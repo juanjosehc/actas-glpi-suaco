@@ -1,36 +1,42 @@
 # =====================================================
-# CONFIGURACIÓN DE LA APLICACIÓN
+# CONFIGURACION DE LA APLICACION
 # =====================================================
-#
-# Puertos, CORS y paths se configuran aquí.
-# Variables de entorno se cargan desde .env via AppConfig.
-# El frontend está hardcodeado a http://127.0.0.1:8001.
 
-# --- Servidor ---
-# Puerto del backend. DEBE ser 8001 (el frontend lo tiene hardcodeado).
 server:
   port: 8001
 
-# --- Spring ---
-# Límites de upload (no se usa actualmente, pero se mantiene por si acaso).
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/actas_glpi
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
 
-# --- Integración GLPI ---
-# URL base de la instancia GLPI (sin barra al final).
-# Tokens se cargan desde variables de entorno o .env.
+# JWT
+security:
+  jwt:
+    secret: ${JWT_SECRET:YWMyN2U5ZjBkOGUxYjM0NTY3ODkwYWRlYmNmZ2hpamtsbW5vcHFy}
+    expiration: ${JWT_EXPIRATION:86400000}
+
+# Integracion GLPI
 glpi:
   url: ${GLPI_URL:http://10.86.1.33/glpi/apirest.php}
   app-token: ${GLPI_APP_TOKEN:ZRsogtQqJgimxPwWxROo0F2WJdvLrsH0XLtcBKu8}
   user-token: ${GLPI_USER_TOKEN:sX4sG98XFSnNyVaLwDckHwpdxNgO6rxrOUsN1vht}
 
-# --- Rutas de archivos ---
-# Directorio donde se guardan los ZIP/DOCX generados.
-# Por defecto usa el directorio temporal del sistema.
+# Rutas de archivos
 app:
   generated-dir: ${java.io.tmpdir}/actas_glpi_generados
-  # Directorio de templates Word (classpath para resources/ o ruta absoluta).
   templates-dir: classpath:plantillas
