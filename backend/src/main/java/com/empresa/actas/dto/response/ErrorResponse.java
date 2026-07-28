@@ -1,31 +1,33 @@
 package com.empresa.actas.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO de respuesta para errores genéricos.
- *
- * Utilizado por el GlobalExceptionHandler y el endpoint
- * de descarga cuando el archivo no existe.
- * Contiene success (siempre false) y un mensaje descriptivo.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
 
     private boolean success;
     private String mensaje;
+    private Object data;
 
-    /**
-     * Crea un ErrorResponse con el mensaje indicado.
-     *
-     * @param mensaje Descripción del error.
-     * @return ErrorResponse con success=false.
-     */
     public static ErrorResponse of(String mensaje) {
-        return new ErrorResponse(false, mensaje);
+        return new ErrorResponse(false, mensaje, null);
+    }
+
+    public static <T> ErrorResponse of(String mensaje, T data) {
+        return new ErrorResponse(false, mensaje, data);
+    }
+
+    public static ErrorResponse ok(String mensaje) {
+        return new ErrorResponse(true, mensaje, null);
+    }
+
+    public static <T> ErrorResponse ok(String mensaje, T data) {
+        return new ErrorResponse(true, mensaje, data);
     }
 }

@@ -1,0 +1,44 @@
+package com.empresa.actas.acta.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+@Schema(description = "Request para crear un nuevo acta")
+public record CrearActaRequest(
+        @Schema(description = "Numero de ticket GLPI asociado", example = "12345")
+        Long ticketGlpi,
+
+        @NotBlank(message = "El tipo de acta es obligatorio")
+        @Schema(description = "Tipo de acta", example = "ENTREGA", allowableValues = {"ENTREGA", "DEVOLUCION"}, requiredMode = Schema.RequiredMode.REQUIRED)
+        String tipoActa,
+
+        @NotBlank(message = "La cedula del usuario es obligatoria")
+        @Size(max = 20, message = "La cedula no puede exceder 20 caracteres")
+        @Schema(description = "Cedula del usuario receptor", example = "1234567890", requiredMode = Schema.RequiredMode.REQUIRED)
+        String cedulaUsuario,
+
+        @NotBlank(message = "El nombre del usuario es obligatorio")
+        @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+        @Schema(description = "Nombre completo del usuario receptor", example = "Carlos Perez", requiredMode = Schema.RequiredMode.REQUIRED)
+        String nombreUsuario,
+
+        @Size(max = 100, message = "El correo no puede exceder 100 caracteres")
+        @Schema(description = "Correo del usuario receptor", example = "cperez@empresa.com")
+        String correoUsuario,
+
+        @Size(max = 50, message = "El serial no puede exceder 50 caracteres")
+        @Schema(description = "Serial del equipo", example = "SN-2024-001")
+        String serialEquipo,
+
+        @Size(max = 50, message = "La placa no puede exceder 50 caracteres")
+        @Schema(description = "Placa del equipo", example = "PL-001")
+        String placaEquipo,
+
+        @Size(max = 255, message = "La descripcion no puede exceder 255 caracteres")
+        @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
+        String descripcionEquipo,
+
+        @Schema(description = "Contenido HTML del acta (generado desde GLPI)")
+        String contenidoHtml
+) {}

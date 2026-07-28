@@ -849,20 +849,42 @@ async function buscarEquipoBloque(bloque) {
     const serial =
         bloque.querySelector("[data-serial]").value;
 
-    const response =
-        await fetch(`http://127.0.0.1:8001/equipo/${serial}`);
+    try {
 
-    const data =
-        await response.json();
+        const response =
+            await fetch(`http://127.0.0.1:8001/equipo/${serial}`);
 
-    bloque.querySelector("[data-marca]").value =
-        data.marca ?? "";
+        if (!response.ok) {
 
-    bloque.querySelector("[data-tipo]").value =
-        data.tipo ?? "";
+            mostrarMensaje(
+                `Error al buscar equipo: HTTP ${response.status}`,
+                "error"
+            );
 
-    bloque.querySelector("[data-modelo]").value =
-        data.modelo ?? "";
+            return;
+
+        }
+
+        const data =
+            await response.json();
+
+        bloque.querySelector("[data-marca]").value =
+            data.marca ?? "";
+
+        bloque.querySelector("[data-tipo]").value =
+            data.tipo ?? "";
+
+        bloque.querySelector("[data-modelo]").value =
+            data.modelo ?? "";
+
+    } catch (error) {
+
+        mostrarMensaje(
+            "Error de conexion al buscar equipo: " + error.message,
+            "error"
+        );
+
+    }
 
 }
 
