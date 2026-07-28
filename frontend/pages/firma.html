@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Firma Digital - Actas GLPI</title>
+    <link rel="stylesheet" href="../css/firma.css">
+    <link rel="stylesheet" href="../css/acta-document.css">
+</head>
+<body>
+
+<div class="firma-page">
+
+    <!-- LOADING -->
+    <div class="firma-state" id="stateLoading">
+        <div class="spinner-lg"></div>
+        <p class="state-text">Cargando acta...</p>
+    </div>
+
+    <!-- ERROR -->
+    <div class="firma-state" id="stateError" style="display:none">
+        <div class="state-icon state-icon--error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h2 class="state-title">Firma no disponible</h2>
+        <p class="state-text" id="errorMessage">El enlace de firma no es valido o ha expirado.</p>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="firma-state" id="stateSuccess" style="display:none">
+        <div class="state-icon state-icon--success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h2 class="state-title">Firma Registrada</h2>
+        <p class="state-text">La firma del acta fue registrada correctamente.</p>
+        <p class="state-text state-text--muted">Puede cerrar esta ventana.</p>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="firma-card" id="firmaCard" style="display:none">
+
+        <header class="firma-header">
+            <div class="firma-logo">
+                <img src="../img/LogoC.png" alt="Logo Coltefinanciera">
+            </div>
+            <h1 class="firma-title">Firma Digital</h1>
+            <p class="firma-subtitle">Revise la informacion y firme el acta</p>
+        </header>
+
+        <!-- ACTA INFO -->
+        <section class="firma-section">
+            <h2 class="section-title">Informacion del Acta</h2>
+            <div class="info-grid" id="infoGrid">
+                <div class="info-field">
+                    <span class="info-label">Tipo de Acta</span>
+                    <span class="info-value" id="infoTipoActa">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Nombre Usuario</span>
+                    <span class="info-value" id="infoNombreUsuario">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Cedula</span>
+                    <span class="info-value" id="infoCedula">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Correo</span>
+                    <span class="info-value" id="infoCorreo">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Equipo</span>
+                    <span class="info-value" id="infoEquipo">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Serial</span>
+                    <span class="info-value" id="infoSerial">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Placa</span>
+                    <span class="info-value" id="infoPlaca">-</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Ticket GLPI</span>
+                    <span class="info-value" id="infoTicket">-</span>
+                </div>
+            </div>
+            <div class="info-html" id="infoHtml" style="display:none">
+                <h3 class="section-title">Contenido del Acta</h3>
+                <div class="html-content" id="htmlContent"></div>
+            </div>
+        </section>
+
+        <!-- FIRMA DIGITAL -->
+        <section class="firma-section">
+            <h2 class="section-title">Firma del Usuario</h2>
+            <p class="section-desc">Firme en el recuadro usando el mouse o su dedo en dispositivos tactiles.</p>
+            <div class="canvas-wrapper">
+                <canvas class="signature-canvas" id="signatureCanvas"></canvas>
+            </div>
+            <div class="canvas-actions">
+                <button class="btn btn-outline" type="button" id="btnClearSignature">Limpiar Firma</button>
+            </div>
+            <p class="field-error" id="signatureError" style="display:none">Debe realizar la firma antes de continuar.</p>
+        </section>
+
+        <!-- FOTOGRAFIA -->
+        <section class="firma-section">
+            <h2 class="section-title">Verificacion Fotografica</h2>
+            <p class="section-desc">Tomese una fotografia para verificar su identidad.</p>
+
+            <div class="camera-area" id="cameraArea">
+                <video class="camera-preview" id="cameraPreview" autoplay playsinline></video>
+                <div class="camera-placeholder" id="cameraPlaceholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <p>Presione "Abrir Camara" para iniciar</p>
+                </div>
+                <img class="camera-captured" id="cameraCaptured" style="display:none" alt="Foto capturada">
+            </div>
+
+            <div class="camera-actions" id="cameraActions">
+                <button class="btn btn-primary" type="button" id="btnOpenCamera">Abrir Camara</button>
+                <button class="btn btn-primary" type="button" id="btnTakePhoto" style="display:none">Tomar Foto</button>
+                <button class="btn btn-outline" type="button" id="btnRetake" style="display:none">Volver a Tomar</button>
+            </div>
+            <p class="field-error" id="photoError" style="display:none">Debe tomarse una fotografia antes de continuar.</p>
+        </section>
+
+        <!-- SUBMIT -->
+        <div class="firma-submit">
+            <button class="btn btn-primary btn-lg btn-full" id="btnSubmit" type="button">
+                <span class="btn-text">Firmar Acta</span>
+                <span class="btn-loading">
+                    <span class="spinner"></span>
+                    Enviando firma...
+                </span>
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="../js/firma.js"></script>
+
+</body>
+</html>

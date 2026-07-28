@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actas GLPI - Generar Acta</title>
+    <link rel="stylesheet" href="../css/actas.css">
+    <link rel="stylesheet" href="../css/acta-document.css">
+    <link rel="stylesheet" href="../css/generar-acta.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+            <span class="sidebar-title">ACTAS GLPI</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <span class="sidebar-version">v1.0.0</span>
+        </div>
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="topbar-left">
+                <div class="topbar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+                <span class="topbar-system">Actas GLPI</span>
+            </div>
+            <div class="topbar-right">
+                <div class="user-badge">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName"></span>
+                        <span class="user-role" id="userRole"></span>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Cerrar sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <div class="page-header">
+                <h1 class="page-title">Generar Acta</h1>
+                <p class="page-subtitle">Complete la informacion para generar el acta corporativa.</p>
+            </div>
+
+            <div class="gen-layout">
+                <div class="gen-form">
+
+                    <div class="gen-card">
+                        <div class="gen-card-title">Tipo de Acta</div>
+                        <div class="tipo-selector">
+                            <button class="tipo-btn" data-tipo="ENTREGA" id="tipoEntrega">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                                Acta de Entrega
+                            </button>
+                            <button class="tipo-btn" data-tipo="DEVOLUCION" id="tipoDevolucion">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                                Acta de Devolucion
+                            </button>
+                        </div>
+                        <p class="gen-error" id="tipoError">Debe seleccionar un tipo de acta.</p>
+                    </div>
+
+                    <div class="gen-card">
+                        <div class="gen-card-title">Datos del Usuario</div>
+                        <div class="gen-grid">
+                            <div class="gen-field">
+                                <label class="gen-label">Cedula *</label>
+                                <input class="gen-input" id="fCedula" placeholder="1234567890">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Nombre Completo *</label>
+                                <input class="gen-input" id="fNombre" placeholder="Carlos Perez">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Correo *</label>
+                                <input class="gen-input" id="fCorreo" type="email" placeholder="correo@empresa.com">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Cargo</label>
+                                <input class="gen-input" id="fCargo" placeholder="Analista de Sistemas">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Departamento / Sede</label>
+                                <input class="gen-input" id="fLugar" placeholder="Sede Principal - Piso 5">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Empresa</label>
+                                <input class="gen-input" id="fEmpresa" placeholder="Coltefinanciera">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gen-card">
+                        <div class="gen-card-title">Datos del Equipo</div>
+                        <div class="gen-grid">
+                            <div class="gen-field">
+                                <label class="gen-label">Tipo / Descripcion *</label>
+                                <input class="gen-input" id="fDescripcion" placeholder="Laptop Dell Latitude 5540">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Marca / Modelo</label>
+                                <input class="gen-input" id="fMarcaModelo" placeholder="Dell Latitude 5540">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Serial *</label>
+                                <input class="gen-input" id="fSerial" placeholder="SN-2024-001">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Placa Interna *</label>
+                                <input class="gen-input" id="fPlaca" placeholder="COL-001">
+                            </div>
+                            <div class="gen-field gen-field-full">
+                                <label class="gen-label">Procesador</label>
+                                <input class="gen-input" id="fProcesador" placeholder="Intel Core i5-1345U">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Memoria RAM</label>
+                                <input class="gen-input" id="fMemoria" placeholder="16 GB DDR4">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Disco Duro</label>
+                                <input class="gen-input" id="fDisco" placeholder="512 GB SSD">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Sistema Operativo</label>
+                                <input class="gen-input" id="fSO" placeholder="Windows 11 Pro">
+                            </div>
+                            <div class="gen-field">
+                                <label class="gen-label">Monitor</label>
+                                <input class="gen-input" id="fMonitor" placeholder="Dell 24 P2423">
+                            </div>
+                            <div class="gen-field gen-field-full">
+                                <label class="gen-label">Accesorios</label>
+                                <input class="gen-input" id="fAccesorios" placeholder="Teclado, mouse, cargador, base">
+                            </div>
+                            <div class="gen-field gen-field-full" id="estadoEquipoGroup">
+                                <label class="gen-label">Estado del Equipo</label>
+                                <select class="gen-input" id="fEstadoEquipo">
+                                    <option value="BUEN ESTADO">Buen Estado</option>
+                                    <option value="CON NOVEDADES">Con Novedades</option>
+                                    <option value="DANADO">Danado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gen-card">
+                        <div class="gen-card-title">Ticket GLPI</div>
+                        <div class="gen-field">
+                            <input class="gen-input" id="fTicket" type="number" placeholder="12345">
+                        </div>
+                    </div>
+
+                    <div class="gen-card">
+                        <div class="gen-card-title">Observaciones</div>
+                        <textarea class="gen-textarea" id="fObservaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                    </div>
+
+                    <div class="gen-actions">
+                        <button class="btn btn-outline" id="btnPreview">Vista Previa</button>
+                        <button class="btn btn-primary" id="btnSave">Generar Acta</button>
+                    </div>
+
+                </div>
+
+                <div class="gen-preview" id="genPreview" style="display:none">
+                    <div class="gen-card">
+                        <div class="gen-card-title">Vista Previa del Documento</div>
+                        <div class="gen-document" id="genDocument"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <span class="loading-text">Generando acta...</span>
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/login.js"></script>
+<script src="../js/generar-acta.js"></script>
+</body>
+</html>

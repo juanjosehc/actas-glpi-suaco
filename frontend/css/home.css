@@ -72,7 +72,6 @@ body {
 .sidebar-logo {
     display: flex;
     align-items: center;
-    justify-content: center;
     background: transparent;
     width: auto;
     height: auto;
@@ -80,8 +79,8 @@ body {
 }
 
 .sidebar-logo img {
-    width: 40px;
-    height: auto;
+    height: 36px;
+    width: auto;
     object-fit: contain;
     filter: none;
 }
@@ -199,12 +198,10 @@ body {
 
 .topbar-logo {
     display: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: transparent;
     align-items: center;
-    justify-content: center;
+    background: transparent;
+    width: auto;
+    height: auto;
     flex-shrink: 0;
 }
 
@@ -212,6 +209,7 @@ body {
     height: 32px;
     width: auto;
     object-fit: contain;
+    filter: none;
 }
 
 .topbar-left {

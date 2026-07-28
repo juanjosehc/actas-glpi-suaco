@@ -1,0 +1,131 @@
+<div class="acta-document">
+    <div class="acta-header">
+        <div class="acta-header-left">
+            <img class="acta-logo" src="img/LogoC.png" alt="Coltefinanciera">
+            <div class="acta-company">COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A.</div>
+            <div class="acta-note">NIT 890.000.000-0</div>
+        </div>
+        <div class="acta-header-right">
+            <div class="acta-code">ACTA N° <strong>{{idActa}}</strong></div>
+            <div class="acta-date">Fecha: <strong>{{fechaCreacion}}</strong></div>
+        </div>
+    </div>
+
+    <div class="acta-title-section">
+        <h1 class="acta-title">MEMORANDO DE ENTREGA DE DISPOSITIVOS</h1>
+        <p class="acta-subtitle">Por medio del presente documento se deja constancia de la entrega de equipos de computo y/o dispositivos electronicos al colaborador que se menciona a continuacion:</p>
+    </div>
+
+    <div class="acta-body">
+        <table class="acta-table">
+            <tr>
+                <td class="acta-label">FECHA DE ENTREGA:</td>
+                <td class="acta-value">{{fechaCreacion}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">FUNCIONARIO QUE RECIBE:</td>
+                <td class="acta-value">{{nombreUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">NUMERO DE CEDULA:</td>
+                <td class="acta-value">{{cedulaUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">CORREO CORPORATIVO:</td>
+                <td class="acta-value">{{correoUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">CARGO:</td>
+                <td class="acta-value">{{cargo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">DEPARTAMENTO / SEDE:</td>
+                <td class="acta-value">{{lugarTrabajo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">EMPRESA:</td>
+                <td class="acta-value">{{empresa}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">TICKET GLPI:</td>
+                <td class="acta-value">{{ticketGlpi}}</td>
+            </tr>
+        </table>
+
+        <h2 class="acta-subsection">DATOS DEL EQUIPO ENTREGADO</h2>
+
+        <table class="acta-table">
+            <tr>
+                <td class="acta-label">TIPO DE EQUIPO:</td>
+                <td class="acta-value">{{descripcionEquipo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">MARCA / MODELO:</td>
+                <td class="acta-value">{{marcaModelo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">NUMERO DE SERIE:</td>
+                <td class="acta-value">{{serialEquipo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">PLACA INTERNA:</td>
+                <td class="acta-value">{{placaEquipo}}</td>
+            </tr>
+        </table>
+
+        <h2 class="acta-subsection">ESPECIFICACIONES TECNICAS</h2>
+
+        <table class="acta-table">
+            <tr>
+                <td class="acta-label">PROCESADOR:</td>
+                <td class="acta-value">{{procesador}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">MEMORIA RAM:</td>
+                <td class="acta-value">{{memoriaRam}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">DISCO DURO:</td>
+                <td class="acta-value">{{discoDuro}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">SISTEMA OPERATIVO:</td>
+                <td class="acta-value">{{sistemaOperativo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">MONITOR:</td>
+                <td class="acta-value">{{monitor}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">ACCESORIOS:</td>
+                <td class="acta-value">{{accesorios}}</td>
+            </tr>
+        </table>
+
+        <h2 class="acta-subsection">OBSERVACIONES</h2>
+        <div class="acta-observations">{{observaciones}}</div>
+
+        <div class="acta-clause">
+            <p><strong>CLAUSULA DE RESPONSABILIDAD:</strong> El colaborador declara haber recibido los equipos y dispositivos descritos en el presente documento, en buen estado y funcionamiento, y se compromete a hacer uso adecuado de los mismos, respondiendo por cualquier dano, perdida o deterioro causado por mal uso, negligencia o incumplimiento de las politicas de seguridad informatica establecidas por la compania.</p>
+        </div>
+    </div>
+
+    <div class="acta-footer">
+        <div class="acta-signature-section">
+            <div class="acta-signature-box">
+                <div class="acta-signature-label">ENTREGADO POR:</div>
+                <div class="acta-signature-line"></div>
+                <div class="acta-signature-name">{{tecnicoNombre}}</div>
+                <div class="acta-signature-role">Tecnico de Soporte</div>
+            </div>
+            <div class="acta-signature-box">
+                <div class="acta-signature-label">RECIBIDO POR:</div>
+                <div class="acta-signature-line"></div>
+                <div class="acta-signature-name">{{nombreUsuario}}</div>
+                <div class="acta-signature-role">Colaborador</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="acta-watermark">DOCUMENTO DE USO INTERNO - COLTEFINANCIERA</div>
+</div>

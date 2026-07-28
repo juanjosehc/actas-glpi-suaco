@@ -1,5 +1,12 @@
 const API_BASE = "http://localhost:8001";
 
+const ROUTES = {
+    LOGIN: "login.html",
+    HOME: "home.html",
+    USUARIOS: "usuarios.html",
+    ACTAS: "actas.html"
+};
+
 const LoginService = {
     async login(username, password) {
         const response = await fetch(`${API_BASE}/auth/login`, {

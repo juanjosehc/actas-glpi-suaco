@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actas GLPI - Vista de Acta</title>
+    <link rel="stylesheet" href="../css/actas.css">
+    <link rel="stylesheet" href="../css/acta-document.css">
+    <link rel="stylesheet" href="../css/acta-view.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+            <span class="sidebar-title">ACTAS GLPI</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <span class="sidebar-version">v1.0.0</span>
+        </div>
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="topbar-left">
+                <div class="topbar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+                <span class="topbar-system">Actas GLPI</span>
+            </div>
+            <div class="topbar-right">
+                <div class="user-badge">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName"></span>
+                        <span class="user-role" id="userRole"></span>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Cerrar sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <div class="page-header">
+                <h1 class="page-title" id="viewTitle">Acta</h1>
+                <p class="page-subtitle" id="viewSubtitle">Vista del documento corporativo.</p>
+            </div>
+
+            <div class="view-info-bar" id="viewInfoBar">
+                <div class="view-info-item">
+                    <span class="view-info-label">Estado</span>
+                    <span class="view-info-value" id="viewEstado">-</span>
+                </div>
+                <div class="view-info-item">
+                    <span class="view-info-label">Tipo</span>
+                    <span class="view-info-value" id="viewTipo">-</span>
+                </div>
+                <div class="view-info-item">
+                    <span class="view-info-label">Usuario</span>
+                    <span class="view-info-value" id="viewUsuario">-</span>
+                </div>
+                <div class="view-info-item">
+                    <span class="view-info-label">Equipo</span>
+                    <span class="view-info-value" id="viewEquipo">-</span>
+                </div>
+                <div class="view-info-item">
+                    <span class="view-info-label">Fecha</span>
+                    <span class="view-info-value" id="viewFecha">-</span>
+                </div>
+            </div>
+
+            <div class="view-evidences" id="viewEvidences" style="display:none">
+                <h3 class="evidences-title">Evidencias</h3>
+                <div class="evidences-grid" id="evidencesGrid"></div>
+            </div>
+
+            <div class="view-document" id="viewDocument">
+                <div class="view-loading">Cargando documento...</div>
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/login.js"></script>
+<script src="../js/acta-view.js"></script>
+</body>
+</html>

@@ -27,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/generar-devolucion",
             "/descargar-acta/",
             "/firma/",
+            "/uploads/",
             "/swagger-ui/",
             "/swagger-ui.html",
             "/v3/api-docs/",

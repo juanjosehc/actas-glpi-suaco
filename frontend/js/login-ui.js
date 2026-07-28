@@ -61,7 +61,7 @@
                 role: data.role,
             });
 
-            window.location.href = "./home.html";
+            window.location.href = ROUTES.HOME;
         } catch (err) {
             const msg = err.message.includes("Failed to fetch")
                 ? "El servidor no esta disponible. Intente de nuevo."

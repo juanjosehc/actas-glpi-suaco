@@ -102,7 +102,11 @@ public class FirmaService {
                 .tipoActa(acta.getTipoActa().name())
                 .nombreUsuario(acta.getNombreUsuario())
                 .cedulaUsuario(acta.getCedulaUsuario())
+                .correoUsuario(acta.getCorreoUsuario())
                 .descripcionEquipo(acta.getDescripcionEquipo())
+                .serialEquipo(acta.getSerialEquipo())
+                .placaEquipo(acta.getPlacaEquipo())
+                .ticketGlpi(acta.getTicketGlpi())
                 .contenidoHtml(acta.getContenidoHtml())
                 .build();
     }

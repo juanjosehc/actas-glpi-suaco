@@ -37,7 +37,7 @@
     function checkAuth() {
         const token = LoginService.obtenerToken();
         if (!token) {
-            window.location.href = "../login.html";
+            window.location.href = ROUTES.LOGIN;
             return null;
         }
         return token;
@@ -46,7 +46,7 @@
     function handle401(resp) {
         if (resp.status === 401) {
             LoginService.cerrarSesion();
-            window.location.href = "../login.html";
+            window.location.href = ROUTES.LOGIN;
             return true;
         }
         return false;
@@ -296,6 +296,12 @@
     function renderActions(a) {
         modalActions.innerHTML = "";
 
+        const btnDoc = document.createElement("a");
+        btnDoc.className = "btn btn-outline";
+        btnDoc.href = `acta-view.html?id=${a.id}`;
+        btnDoc.textContent = "Ver Documento";
+        modalActions.appendChild(btnDoc);
+
         if (a.estado === "GENERADA") {
             const btn = document.createElement("button");
             btn.className = "btn btn-primary";
@@ -461,7 +467,7 @@
     //  LOGOUT
     // =========================
 
-    logoutBtn.addEventListener("click", () => { LoginService.cerrarSesion(); window.location.href = "../login.html"; });
+    logoutBtn.addEventListener("click", () => { LoginService.cerrarSesion(); window.location.href = ROUTES.LOGIN; });
 
     // =========================
     //  BUILD SIDEBAR NAV
@@ -470,9 +476,9 @@
     function buildSidebar(role) {
         const nav = document.getElementById("sidebarNav");
         const sections = {
-            ADMINISTRADOR: [{ section: "Gestion", items: [{ label: "Usuarios", href: "#", icon: "users" }, { label: "Actas", href: "#", icon: "file-text" }, { label: "Firmas", href: "#", icon: "pen-tool" }] }],
-            TECNICO: [{ section: "Actas", items: [{ label: "Generar Acta", href: "#", icon: "plus-circle" }, { label: "Mis Actas", href: "#", icon: "list" }] }],
-            AUDITOR: [{ section: "Consultas", items: [{ label: "Consultar Actas", href: "#", icon: "search" }] }],
+                    ADMINISTRADOR: [{ section: "Gestion", items: [{ label: "Usuarios", href: "usuarios.html", icon: "users" }, { label: "Actas", href: "actas.html", icon: "file-text" }, { label: "Firmas", href: "firmas.html", icon: "pen-tool" }] }, { section: "Actas", items: [{ label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" }, { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" }, { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" }] }],
+            TECNICO: [{ section: "Actas", items: [{ label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" }, { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" }, { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" }, { label: "Mis Actas", href: "actas.html", icon: "list" }] }],
+            AUDITOR: [{ section: "Consultas", items: [{ label: "Consultar Actas", href: "actas.html", icon: "search" }] }],
         };
         const icons = {
             users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -484,6 +490,7 @@
         };
         const sects = sections[role];
         if (!sects) return;
+        const currentFile = window.location.pathname.split("/").pop();
         nav.innerHTML = "";
         sects.forEach((sec) => {
             const label = document.createElement("div");
@@ -491,11 +498,13 @@
             label.textContent = sec.section;
             nav.appendChild(label);
             sec.items.forEach((item) => {
-                const btn = document.createElement("button");
-                btn.className = "nav-item";
-                if (item.label === "Actas" || item.label === "Mis Actas" || item.label === "Consultar Actas") btn.classList.add("active");
-                btn.innerHTML = `${icons[item.icon] || ""}<span>${item.label}</span>`;
-                nav.appendChild(btn);
+                const hasHref = item.href && item.href !== "#";
+                const el = document.createElement(hasHref ? "a" : "button");
+                el.className = "nav-item";
+                if (hasHref) el.href = item.href;
+                if (hasHref && item.href === currentFile) el.classList.add("active");
+                el.innerHTML = `${icons[item.icon] || ""}<span>${item.label}</span>`;
+                nav.appendChild(el);
             });
         });
     }

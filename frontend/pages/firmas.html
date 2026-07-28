@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actas GLPI - Gestion de Firmas</title>
+    <link rel="stylesheet" href="../css/firmas.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">
+                <img src="../img/LogoC.png" alt="Logo">
+            </div>
+            <span class="sidebar-title">ACTAS GLPI</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <span class="sidebar-version">v1.0.0</span>
+        </div>
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="topbar-left">
+                <div class="topbar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+                <span class="topbar-system">Actas GLPI</span>
+            </div>
+            <div class="topbar-right">
+                <div class="user-badge">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName"></span>
+                        <span class="user-role" id="userRole"></span>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Cerrar sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <div class="page-header">
+                <h1 class="page-title">Gestion de Firmas</h1>
+                <p class="page-subtitle">Monitoree el proceso de firmas digitales de las actas.</p>
+            </div>
+
+            <div class="search-bar">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="search-input" type="text" id="searchInput" placeholder="Buscar por ID, usuario, equipo o estado...">
+                <button class="search-clear" id="searchClear" aria-label="Limpiar busqueda">&times;</button>
+            </div>
+
+            <div class="table-container">
+                <table class="table" id="firmasTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Equipo</th>
+                            <th>Tipo Acta</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="firmasBody"></tbody>
+                </table>
+                <div class="empty-state" id="emptyState">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    <p class="empty-text">No se encontraron actas.</p>
+                </div>
+            </div>
+
+            <div class="pagination-bar" id="paginationBar" style="display:none">
+                <span class="pagination-info" id="paginationInfo"></span>
+                <div class="pagination-controls">
+                    <button class="btn btn-outline btn-sm" id="btnPrev">Anterior</button>
+                    <span class="pagination-current" id="paginationCurrent">1</span>
+                    <button class="btn btn-outline btn-sm" id="btnNext">Siguiente</button>
+                </div>
+            </div>
+
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <span class="loading-text">Cargando...</span>
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">Detalle del Acta</h2>
+            <button class="modal-close" id="detailModalClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body" id="detailModalBody"></div>
+        <div class="modal-actions" id="detailModalActions"></div>
+    </div>
+</div>
+
+<!-- SEND LINK MODAL -->
+<div class="modal-overlay" id="sendLinkModal">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title">Enlace de Firma</h2>
+            <button class="modal-close" id="sendLinkModalClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc">Comparta este enlace con el usuario para que firme digitalmente el acta.</p>
+            <div class="link-box">
+                <input class="link-input" type="text" id="linkUrl" readonly>
+                <button class="btn btn-primary btn-sm" id="btnCopyLink">Copiar</button>
+            </div>
+            <p class="link-hint" id="linkHint">Enlace copiado al portapapeles.</p>
+        </div>
+    </div>
+</div>
+
+<!-- EVIDENCE MODAL -->
+<div class="modal-overlay" id="evidenceModal">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title">Evidencias</h2>
+            <button class="modal-close" id="evidenceModalClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body" id="evidenceModalBody"></div>
+    </div>
+</div>
+
+<!-- REJECT MODAL -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title">Rechazar Acta</h2>
+            <button class="modal-close" id="rejectModalClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc">Ingrese el motivo del rechazo:</p>
+            <textarea class="form-textarea" id="rejectReason" rows="4" placeholder="Describa el motivo del rechazo..."></textarea>
+            <div class="form-error" id="rejectError"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="rejectModalCancel">Cancelar</button>
+            <button class="btn btn-danger" id="rejectModalConfirm">Confirmar Rechazo</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/login.js"></script>
+<script src="../js/firmas.js"></script>
+</body>
+</html>

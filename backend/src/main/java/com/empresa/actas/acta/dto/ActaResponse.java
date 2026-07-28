@@ -40,9 +40,30 @@ public class ActaResponse {
     @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
     private String descripcionEquipo;
 
+    @Schema(description = "Contenido HTML del acta")
+    private String contenidoHtml;
+
     @Schema(description = "Fecha de creacion del acta")
     private LocalDateTime fechaCreacion;
 
+    @Schema(description = "Fecha de envio para firma")
+    private LocalDateTime fechaEnvio;
+
+    @Schema(description = "Fecha de firma digital")
+    private LocalDateTime fechaFirma;
+
+    @Schema(description = "Fecha de aprobacion")
+    private LocalDateTime fechaAprobacion;
+
     @Schema(description = "Numero de ticket GLPI", example = "12345")
     private Long ticketGlpi;
+
+    @Schema(description = "Observacion de rechazo", example = "Firma no valida")
+    private String observacionRechazo;
+
+    @Schema(description = "Ruta del archivo PDF", example = "uploads/acta_1.pdf")
+    private String rutaPdf;
+
+    @Schema(description = "Token activo de firma (solo si estado = ENVIADA)")
+    private String tokenFirma;
 }

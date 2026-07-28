@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface FirmaTokenRepository extends JpaRepository<FirmaToken, Long> {
 
     Optional<FirmaToken> findByToken(String token);
+
+    Optional<FirmaToken> findFirstByIdActaOrderByFechaCreacionDesc(Long idActa);
 }

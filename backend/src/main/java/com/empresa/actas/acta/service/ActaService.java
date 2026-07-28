@@ -12,7 +12,9 @@ import com.empresa.actas.acta.mapper.ActaMapper;
 import com.empresa.actas.acta.repository.ActaHistorialRepository;
 import com.empresa.actas.acta.repository.ActaRepository;
 import com.empresa.actas.firma.entity.Evidencia;
+import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
+import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ public class ActaService {
     private final ActaRepository actaRepository;
     private final ActaHistorialRepository actaHistorialRepository;
     private final EvidenciaRepository evidenciaRepository;
+    private final FirmaTokenRepository firmaTokenRepository;
     private final ActaMapper actaMapper;
     private final PdfService pdfService;
 
@@ -72,14 +75,23 @@ public class ActaService {
 
     public Page<ActaResponse> listarActas(Pageable pageable) {
         return actaRepository.findAll(pageable)
-                .map(actaMapper::toResponse);
+                .map(this::toResponseWithToken);
     }
 
     public ActaResponse obtenerActaPorId(Long id) {
         Acta acta = actaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Acta no encontrada con id: " + id));
-        return actaMapper.toResponse(acta);
+        return toResponseWithToken(acta);
+    }
+
+    private ActaResponse toResponseWithToken(Acta acta) {
+        ActaResponse resp = actaMapper.toResponse(acta);
+        if (acta.getEstado() == EstadoActa.ENVIADA) {
+            firmaTokenRepository.findFirstByIdActaOrderByFechaCreacionDesc(acta.getIdActa())
+                    .ifPresent(t -> resp.setTokenFirma(t.getToken()));
+        }
+        return resp;
     }
 
     @Transactional

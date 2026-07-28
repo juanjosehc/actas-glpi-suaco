@@ -45,7 +45,7 @@ public class UsuarioController {
     public ResponseEntity<ErrorResponse> listarUsuarios(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sort) {
+            @RequestParam(defaultValue = "idUsuario") String sort) {
 
         Page<UsuarioResponse> usuarios = usuarioService.listarUsuarios(
                 PageRequest.of(page, size, Sort.by(sort).ascending()));

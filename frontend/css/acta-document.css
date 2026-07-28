@@ -1,0 +1,258 @@
+/* =========================
+   CORPORATE DOCUMENT STYLES
+   Shared by templates, acta-view, and firma portal
+   ========================= */
+
+.acta-document {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    color: #1E293B;
+    line-height: 1.5;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 48px 56px;
+    background: #FFFFFF;
+    position: relative;
+}
+
+.acta-watermark {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #94A3B8;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+.acta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #1E3A8A;
+    margin-bottom: 20px;
+}
+
+.acta-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.acta-logo {
+    width: 160px;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 8px;
+    filter: none;
+}
+
+.acta-company {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.acta-note {
+    font-size: 0.7rem;
+    color: #64748B;
+}
+
+.acta-header-right {
+    text-align: right;
+}
+
+.acta-code {
+    font-size: 0.85rem;
+    color: #1E293B;
+    margin-bottom: 4px;
+}
+
+.acta-date {
+    font-size: 0.85rem;
+    color: #1E293B;
+}
+
+.acta-title-section {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.acta-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1E3A8A;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.acta-subtitle {
+    font-size: 0.85rem;
+    color: #475569;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.acta-body {
+    margin-bottom: 32px;
+}
+
+.acta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.acta-table tr {
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.acta-table tr:last-child {
+    border-bottom: none;
+}
+
+.acta-label {
+    width: 220px;
+    padding: 8px 12px 8px 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    vertical-align: top;
+}
+
+.acta-value {
+    padding: 8px 0;
+    font-size: 0.9rem;
+    color: #1E293B;
+    vertical-align: top;
+}
+
+.acta-subsection {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin: 24px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #E2E8F0;
+}
+
+.acta-observations {
+    padding: 16px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #1E293B;
+    line-height: 1.6;
+    min-height: 40px;
+    margin-bottom: 20px;
+}
+
+.acta-clause {
+    padding: 16px;
+    background: #EFF6FF;
+    border-left: 4px solid #1E3A8A;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #334155;
+    line-height: 1.6;
+    margin-top: 20px;
+}
+
+.acta-footer {
+    margin-top: 40px;
+}
+
+.acta-signature-section {
+    display: flex;
+    gap: 48px;
+    justify-content: space-around;
+}
+
+.acta-signature-box {
+    text-align: center;
+    flex: 1;
+}
+
+.acta-signature-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 48px;
+}
+
+.acta-signature-line {
+    border-bottom: 1px solid #1E293B;
+    margin-bottom: 8px;
+}
+
+.acta-signature-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.acta-signature-role {
+    font-size: 0.75rem;
+    color: #64748B;
+}
+
+@media (max-width: 600px) {
+    .acta-document {
+        padding: 24px 16px;
+    }
+
+    .acta-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .acta-header-right {
+        text-align: left;
+    }
+
+    .acta-logo {
+        width: 130px;
+    }
+
+    .acta-table {
+        display: block;
+    }
+
+    .acta-table tr {
+        display: flex;
+        flex-direction: column;
+        padding: 6px 0;
+    }
+
+    .acta-label {
+        width: auto;
+        padding: 0;
+        font-size: 0.7rem;
+    }
+
+    .acta-value {
+        padding: 2px 0 0;
+        font-size: 0.85rem;
+    }
+
+    .acta-signature-section {
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    .acta-title {
+        font-size: 1rem;
+    }
+}

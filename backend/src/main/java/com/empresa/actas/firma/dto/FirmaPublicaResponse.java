@@ -25,8 +25,20 @@ public class FirmaPublicaResponse {
     @Schema(description = "Cedula del usuario", example = "1234567890")
     private String cedulaUsuario;
 
+    @Schema(description = "Correo del usuario", example = "carlos@example.com")
+    private String correoUsuario;
+
     @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
     private String descripcionEquipo;
+
+    @Schema(description = "Serial del equipo", example = "SN-12345")
+    private String serialEquipo;
+
+    @Schema(description = "Placa del equipo", example = "PL-001")
+    private String placaEquipo;
+
+    @Schema(description = "Ticket GLPI", example = "12345")
+    private Long ticketGlpi;
 
     @Schema(description = "Contenido HTML del acta")
     private String contenidoHtml;

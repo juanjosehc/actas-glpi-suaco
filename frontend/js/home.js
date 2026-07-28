@@ -4,9 +4,17 @@
             {
                 section: "Gestion",
                 items: [
-                    { label: "Usuarios", href: "#", icon: "users" },
-                    { label: "Actas", href: "#", icon: "file-text" },
-                    { label: "Firmas", href: "#", icon: "pen-tool" },
+                    { label: "Usuarios", href: "usuarios.html", icon: "users" },
+                    { label: "Actas", href: "actas.html", icon: "file-text" },
+                    { label: "Firmas", href: "firmas.html", icon: "pen-tool" },
+                ],
+            },
+            {
+                section: "Actas",
+                items: [
+                    { label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" },
+                    { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" },
+                    { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" },
                 ],
             },
         ],
@@ -14,8 +22,10 @@
             {
                 section: "Actas",
                 items: [
-                    { label: "Generar Acta", href: "#", icon: "plus-circle" },
-                    { label: "Mis Actas", href: "#", icon: "list" },
+                    { label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" },
+                    { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" },
+                    { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" },
+                    { label: "Mis Actas", href: "actas.html", icon: "list" },
                 ],
             },
         ],
@@ -23,7 +33,7 @@
             {
                 section: "Consultas",
                 items: [
-                    { label: "Consultar Actas", href: "#", icon: "search" },
+                    { label: "Consultar Actas", href: "actas.html", icon: "search" },
                 ],
             },
         ],
@@ -53,7 +63,7 @@
     function checkAuth() {
         const token = LoginService.obtenerToken();
         if (!token) {
-            window.location.href = "../login.html";
+            window.location.href = ROUTES.LOGIN;
             return null;
         }
         return token;
@@ -78,7 +88,7 @@
                 throw new Error("El servidor no esta disponible.");
             }
             LoginService.cerrarSesion();
-            window.location.href = "../login.html";
+            window.location.href = ROUTES.LOGIN;
             return null;
         }
     }
@@ -102,23 +112,32 @@
             sidebarNav.appendChild(label);
 
             section.items.forEach((item) => {
-                const btn = document.createElement("button");
-                btn.className = "nav-item";
-                btn.innerHTML = `${ICONS[item.icon] || ""}<span>${item.label}</span>`;
-                btn.addEventListener("click", () => {
-                    document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
-                    btn.classList.add("active");
-                    welcomeTitle.textContent = item.label;
-                    welcomeText.textContent = `Seccion "${item.label}" seleccionada.`;
-                });
-                sidebarNav.appendChild(btn);
+                const hasHref = item.href && item.href !== "#";
+                const el = document.createElement(hasHref ? "a" : "button");
+                el.className = "nav-item";
+                if (hasHref) el.href = item.href;
+                el.innerHTML = `${ICONS[item.icon] || ""}<span>${item.label}</span>`;
+
+                if (!hasHref) {
+                    el.addEventListener("click", () => {
+                        document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+                        el.classList.add("active");
+                        welcomeTitle.textContent = item.label;
+                        welcomeText.textContent = `Seccion "${item.label}" seleccionada.`;
+                    });
+                }
+
+                sidebarNav.appendChild(el);
             });
         });
+
+        const activeEl = sidebarNav.querySelector(`[href="${window.location.pathname.split("/").pop()}"]`);
+        if (activeEl) activeEl.classList.add("active");
     }
 
     function logout() {
         LoginService.cerrarSesion();
-        window.location.href = "../login.html";
+        window.location.href = ROUTES.LOGIN;
     }
 
     sidebarToggle.addEventListener("click", () => {

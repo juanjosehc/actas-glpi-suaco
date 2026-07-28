@@ -3,6 +3,7 @@ package com.empresa.actas.acta.service;
 import com.empresa.actas.acta.entity.Acta;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
+import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
@@ -11,6 +12,10 @@ import com.lowagie.text.FontFactory;
 import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,6 +45,12 @@ public class PdfService {
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+    private static final Color PRIMARY_COLOR = new Color(30, 58, 138);
+    private static final Color BG_LIGHT = new Color(241, 245, 249);
+    private static final Color BORDER_COLOR = new Color(226, 232, 240);
+    private static final Color TEXT_DARK = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+
     public String generarPdfFinal(Acta acta) {
         try {
             Path directorioPdf = Paths.get(uploadsDir, "pdf");
@@ -50,90 +62,190 @@ public class PdfService {
             PdfWriter.getInstance(document, Files.newOutputStream(rutaPdf));
             document.open();
 
-            Font tituloFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Font subtituloFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, PRIMARY_COLOR);
+            Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, PRIMARY_COLOR);
+            Font sectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, TEXT_DARK);
+            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 9, TEXT_DARK);
+            Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, TEXT_MUTED);
+            Font valueFont = FontFactory.getFont(FontFactory.HELVETICA, 9, TEXT_DARK);
+            Font smallFont = FontFactory.getFont(FontFactory.HELVETICA, 7, TEXT_MUTED);
 
-            document.add(new Paragraph("ACTA DE " + acta.getTipoActa().name(), tituloFont));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Estado: " + acta.getEstado().name(), subtituloFont));
-            document.add(new Paragraph(" "));
+            // Header
+            PdfPTable headerTable = new PdfPTable(2);
+            headerTable.setWidthPercentage(100);
+            headerTable.setWidths(new float[]{3, 2});
 
-            document.add(new Paragraph("DATOS DEL ACTA", subtituloFont));
-            document.add(new Paragraph("ID Acta: " + acta.getIdActa(), normalFont));
-            document.add(new Paragraph("Ticket GLPI: " + acta.getTicketGlpi(), normalFont));
-            document.add(new Paragraph("Fecha creacion: " + (acta.getFechaCreacion() != null
-                    ? acta.getFechaCreacion().format(FORMATTER) : "N/A"), normalFont));
-            document.add(new Paragraph("Fecha envio: " + (acta.getFechaEnvio() != null
-                    ? acta.getFechaEnvio().format(FORMATTER) : "N/A"), normalFont));
-            document.add(new Paragraph("Fecha firma: " + (acta.getFechaFirma() != null
-                    ? acta.getFechaFirma().format(FORMATTER) : "N/A"), normalFont));
-            document.add(new Paragraph("Fecha aprobacion: " + (acta.getFechaAprobacion() != null
-                    ? acta.getFechaAprobacion().format(FORMATTER) : "N/A"), normalFont));
-            document.add(new Paragraph(" "));
+            PdfPCell headerCell = new PdfPCell();
+            headerCell.setBorder(Rectangle.NO_BORDER);
+            headerCell.addElement(new Paragraph("COMPANIA DE FINANCIAMIENTO COMERCIAL", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, PRIMARY_COLOR)));
+            headerCell.addElement(new Paragraph("COLTEFINANCIERA S.A.", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, PRIMARY_COLOR)));
+            headerCell.addElement(new Paragraph("NIT 890.000.000-0", smallFont));
+            headerTable.addCell(headerCell);
 
-            document.add(new Paragraph("DATOS DEL USUARIO", subtituloFont));
-            document.add(new Paragraph("Nombre: " + acta.getNombreUsuario(), normalFont));
-            document.add(new Paragraph("Cedula: " + acta.getCedulaUsuario(), normalFont));
-            document.add(new Paragraph("Correo: " + acta.getCorreoUsuario(), normalFont));
-            document.add(new Paragraph(" "));
+            PdfPCell rightCell = new PdfPCell();
+            rightCell.setBorder(Rectangle.NO_BORDER);
+            rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            rightCell.addElement(new Paragraph("ACTA N° " + acta.getIdActa(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, TEXT_DARK)));
+            rightCell.addElement(new Paragraph("Fecha: " + (acta.getFechaCreacion() != null ? acta.getFechaCreacion().format(FORMATTER) : "N/A"), smallFont));
+            headerTable.addCell(rightCell);
 
-            document.add(new Paragraph("DATOS DEL EQUIPO", subtituloFont));
-            document.add(new Paragraph("Serial: " + acta.getSerialEquipo(), normalFont));
-            document.add(new Paragraph("Placa: " + acta.getPlacaEquipo(), normalFont));
-            document.add(new Paragraph("Descripcion: " + acta.getDescripcionEquipo(), normalFont));
-            document.add(new Paragraph(" "));
+            document.add(headerTable);
 
+            // Separator
+            PdfPTable sep = new PdfPTable(1);
+            sep.setWidthPercentage(100);
+            PdfPCell sepCell = new PdfPCell();
+            sepCell.setBorder(Rectangle.BOTTOM);
+            sepCell.setBorderColorBottom(PRIMARY_COLOR);
+            sepCell.setBorderWidthBottom(2f);
+            sepCell.setFixedHeight(8f);
+            sep.addCell(sepCell);
+            document.add(sep);
+
+            // Title
+            String tipoText = "ENTREGA".equals(acta.getTipoActa().name()) ? "MEMORANDO DE ENTREGA DE DISPOSITIVOS" : "MEMORANDO DE DEVOLUCION DE DISPOSITIVOS";
+            Paragraph titlePara = new Paragraph(tipoText, titleFont);
+            titlePara.setAlignment(Element.ALIGN_CENTER);
+            titlePara.setSpacingBefore(12);
+            titlePara.setSpacingAfter(4);
+            document.add(titlePara);
+
+            Paragraph subtitlePara = new Paragraph("Por medio del presente documento se deja constancia de la " +
+                    ("ENTREGA".equals(acta.getTipoActa().name()) ? "entrega" : "devolucion") +
+                    " de equipos de computo y/o dispositivos electronicos.", smallFont);
+            subtitlePara.setAlignment(Element.ALIGN_CENTER);
+            subtitlePara.setSpacingAfter(16);
+            document.add(subtitlePara);
+
+            // Helper to create a labeled field row
+            PdfPTable createFieldRow(String label, String value) {
+                PdfPTable t = new PdfPTable(2);
+                t.setWidthPercentage(100);
+                t.setWidths(new float[]{2.5f, 5.5f});
+                PdfPCell lc = new PdfPCell(new Phrase(label, labelFont));
+                lc.setBorder(Rectangle.NO_BORDER);
+                lc.setPaddingTop(3);
+                lc.setPaddingBottom(3);
+                lc.setPaddingLeft(0);
+                lc.setPaddingRight(8);
+                PdfPCell vc = new PdfPCell(new Phrase(value != null ? value : "-", valueFont));
+                vc.setBorder(Rectangle.BOTTOM);
+                vc.setBorderColorBottom(BORDER_COLOR);
+                vc.setBorderWidthBottom(0.5f);
+                vc.setPaddingTop(3);
+                vc.setPaddingBottom(3);
+                vc.setPaddingLeft(0);
+                t.addCell(lc);
+                t.addCell(vc);
+                return t;
+            }
+
+            // Section: Datos del Acta
+            Paragraph sec1 = new Paragraph("DATOS DEL ACTA", sectionFont);
+            sec1.setSpacingBefore(12);
+            sec1.setSpacingAfter(4);
+            document.add(sec1);
+
+            document.add(createFieldRow("ID ACTA", String.valueOf(acta.getIdActa())));
+            document.add(createFieldRow("TICKET GLPI", acta.getTicketGlpi() != null ? String.valueOf(acta.getTicketGlpi()) : "-"));
+            document.add(createFieldRow("ESTADO", acta.getEstado().name()));
+            document.add(createFieldRow("FECHA CREACION", acta.getFechaCreacion() != null ? acta.getFechaCreacion().format(FORMATTER) : "N/A"));
+            if (acta.getFechaEnvio() != null) document.add(createFieldRow("FECHA ENVIO", acta.getFechaEnvio().format(FORMATTER)));
+            if (acta.getFechaFirma() != null) document.add(createFieldRow("FECHA FIRMA", acta.getFechaFirma().format(FORMATTER)));
+            if (acta.getFechaAprobacion() != null) document.add(createFieldRow("FECHA APROBACION", acta.getFechaAprobacion().format(FORMATTER)));
+            if (acta.getObservacionRechazo() != null) document.add(createFieldRow("OBSERVACION RECHAZO", acta.getObservacionRechazo()));
+
+            // Section: Datos del Usuario
+            Paragraph sec2 = new Paragraph("DATOS DEL USUARIO", sectionFont);
+            sec2.setSpacingBefore(16);
+            sec2.setSpacingAfter(4);
+            document.add(sec2);
+
+            document.add(createFieldRow("NOMBRE", acta.getNombreUsuario()));
+            document.add(createFieldRow("CEDULA", acta.getCedulaUsuario()));
+            document.add(createFieldRow("CORREO", acta.getCorreoUsuario()));
+            if (acta.getCargo() != null) document.add(createFieldRow("CARGO", acta.getCargo()));
+            if (acta.getLugarTrabajo() != null) document.add(createFieldRow("DEPARTAMENTO / SEDE", acta.getLugarTrabajo()));
+            if (acta.getEmpresa() != null) document.add(createFieldRow("EMPRESA", acta.getEmpresa()));
+
+            // Section: Datos del Equipo
+            Paragraph sec3 = new Paragraph("DATOS DEL EQUIPO", sectionFont);
+            sec3.setSpacingBefore(16);
+            sec3.setSpacingAfter(4);
+            document.add(sec3);
+
+            document.add(createFieldRow("DESCRIPCION", acta.getDescripcionEquipo()));
+            document.add(createFieldRow("SERIAL", acta.getSerialEquipo()));
+            document.add(createFieldRow("PLACA INTERNA", acta.getPlacaEquipo()));
+            if (acta.getMarcaModelo() != null) document.add(createFieldRow("MARCA / MODELO", acta.getMarcaModelo()));
+            if (acta.getProcesador() != null) document.add(createFieldRow("PROCESADOR", acta.getProcesador()));
+            if (acta.getMemoriaRam() != null) document.add(createFieldRow("MEMORIA RAM", acta.getMemoriaRam()));
+            if (acta.getDiscoDuro() != null) document.add(createFieldRow("DISCO DURO", acta.getDiscoDuro()));
+            if (acta.getSistemaOperativo() != null) document.add(createFieldRow("SISTEMA OPERATIVO", acta.getSistemaOperativo()));
+            if (acta.getMonitor() != null) document.add(createFieldRow("MONITOR", acta.getMonitor()));
+            if (acta.getAccesorios() != null) document.add(createFieldRow("ACCESORIOS", acta.getAccesorios()));
+            if (acta.getEstadoEquipo() != null) document.add(createFieldRow("ESTADO EQUIPO", acta.getEstadoEquipo()));
+            if (acta.getObservaciones() != null) {
+                document.add(createFieldRow("OBSERVACIONES", acta.getObservaciones()));
+            }
+
+            // Evidences
             List<Evidencia> evidencias = evidenciaRepository.findByIdActa(acta.getIdActa());
 
-            for (Evidencia evidencia : evidencias) {
-                document.add(new Paragraph("EVIDENCIA: " + evidencia.getTipo(), subtituloFont));
+            if (!evidencias.isEmpty()) {
+                Paragraph sec4 = new Paragraph("EVIDENCIAS", sectionFont);
+                sec4.setSpacingBefore(16);
+                sec4.setSpacingAfter(8);
+                document.add(sec4);
 
-                String textoAlternativo = "Evidencia no disponible";
-                if (evidencia.getTipo() == Evidencia.TipoEvidencia.FIRMA) {
-                    textoAlternativo = "Firma no disponible";
-                } else if (evidencia.getTipo() == Evidencia.TipoEvidencia.FOTO) {
-                    textoAlternativo = "Foto no disponible";
-                } else if (evidencia.getTipo() == Evidencia.TipoEvidencia.PDF_FINAL) {
-                    textoAlternativo = "PDF no disponible";
-                }
+                for (Evidencia evidencia : evidencias) {
+                    String tipoLabel = evidencia.getTipo() == Evidencia.TipoEvidencia.FIRMA ? "Firma" :
+                            evidencia.getTipo() == Evidencia.TipoEvidencia.FOTO ? "Foto" : "PDF";
 
-                Path rutaImagen = Paths.get(evidencia.getRutaArchivo());
+                    Paragraph evTitle = new Paragraph(tipoLabel + ":", subtitleFont);
+                    evTitle.setSpacingBefore(8);
+                    evTitle.setSpacingAfter(4);
+                    document.add(evTitle);
 
-                if (!Files.exists(rutaImagen)) {
-                    log.warn("Archivo no encontrado para evidencia {}: {}",
-                            evidencia.getIdEvidencia(), evidencia.getRutaArchivo());
-                    document.add(new Paragraph(textoAlternativo, normalFont));
-                    document.add(new Paragraph(" "));
-                    continue;
-                }
+                    Path rutaArchivo = Paths.get(evidencia.getRutaArchivo());
+                    String textoAlternativo = tipoLabel + " no disponible";
 
-                try {
-                    BufferedImage bufferedImage = ImageIO.read(rutaImagen.toFile());
-                    if (bufferedImage == null) {
-                        log.warn("Imagen invalida para evidencia {}: {}",
+                    if (!Files.exists(rutaArchivo)) {
+                        log.warn("Archivo no encontrado para evidencia {}: {}",
                                 evidencia.getIdEvidencia(), evidencia.getRutaArchivo());
                         document.add(new Paragraph(textoAlternativo, normalFont));
-                        document.add(new Paragraph(" "));
                         continue;
                     }
 
-                    Image imagen = Image.getInstance(rutaImagen.toAbsolutePath().toString());
-                    imagen.scaleToFit(450, 300);
-                    imagen.setAlignment(Element.ALIGN_CENTER);
-                    document.add(imagen);
-                    document.add(new Paragraph(" "));
+                    if (evidencia.getTipo() == Evidencia.TipoEvidencia.PDF_FINAL) {
+                        document.add(new Paragraph("PDF disponible en: " + evidencia.getRutaArchivo(), smallFont));
+                        continue;
+                    }
 
-                } catch (IOException e) {
-                    log.warn("Error leyendo imagen evidencia {}: {} - {}",
-                            evidencia.getIdEvidencia(), evidencia.getRutaArchivo(), e.getMessage());
-                    document.add(new Paragraph(textoAlternativo, normalFont));
-                    document.add(new Paragraph(" "));
+                    try {
+                        BufferedImage bufferedImage = ImageIO.read(rutaArchivo.toFile());
+                        if (bufferedImage == null) {
+                            log.warn("Imagen invalida para evidencia {}: {}",
+                                    evidencia.getIdEvidencia(), evidencia.getRutaArchivo());
+                            document.add(new Paragraph(textoAlternativo, normalFont));
+                            continue;
+                        }
+
+                        Image imagen = Image.getInstance(rutaArchivo.toAbsolutePath().toString());
+                        imagen.scaleToFit(400, 250);
+                        imagen.setAlignment(Element.ALIGN_CENTER);
+                        document.add(imagen);
+
+                    } catch (IOException e) {
+                        log.warn("Error leyendo imagen evidencia {}: {} - {}",
+                                evidencia.getIdEvidencia(), evidencia.getRutaArchivo(), e.getMessage());
+                        document.add(new Paragraph(textoAlternativo, normalFont));
+                    }
                 }
             }
 
             document.close();
-            return rutaPdf.toAbsolutePath().toString();
+            return rutaPdf.toString().replace("\\", "/");
 
         } catch (DocumentException | IOException e) {
             throw new RuntimeException("Error generando PDF: " + e.getMessage());

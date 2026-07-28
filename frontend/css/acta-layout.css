@@ -1,0 +1,270 @@
+/* =========================
+   ACTA LAYOUT — espaciado y proporciones
+   ========================= */
+
+/* El padding/min-height lo maneja .content del admin */
+#acta-entrega-page {
+    min-height: 0;
+    padding: 0;
+}
+
+/* Hero header con mas espacio inferior */
+.hero-header {
+    margin-bottom: 36px;
+}
+
+/* Grilla de 3 columnas: proporcion uniforme entre las tres cards */
+#acta-entrega-page #acta-layout {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+}
+
+/* =========================
+   ALTURA UNIFORME DE CARDS INTERNAS (borde azul)
+   Las tres cards de borde azul deben tener exactamente la misma altura.
+   El card-body ya es flex column, los encabezados se fijan y la
+   card/contenedor interna se estira con flex:1.
+   ========================= */
+
+/* Encabezados en card-body — no se estiran */
+#acta-layout .card-body.p-3 > .card-title,
+#acta-layout .card-body.p-3 > .section-header {
+    flex-shrink: 0;
+}
+
+/* Card azul de Datos del Acta — ocupa el espacio restante, scroll si excede */
+#datos-acta-section .card.border {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Contenedores dinamicos de Equipos y Hardware — mismo comportamiento */
+#equipos-container,
+#hardware-container {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Cada card con padding mas ajustado para ganar espacio horizontal */
+#acta-layout .card-body.p-3 {
+    padding: 24px 16px;
+}
+
+/* Espacio entre secciones internas dentro de una card */
+#acta-layout .card-body h3.text-lg {
+    margin-bottom: 20px;
+    font-size: 1.05rem;
+}
+
+/* Separacion entre campos */
+#acta-layout .input-floating,
+.equipo-item .input-floating,
+.hardware-item .input-floating {
+    margin-bottom: 18px;
+}
+
+/* =========================
+   PADDING INTERNO DE CAMPOS
+   Input, select, textarea — mas espacio horizontal
+   Se usa el shorthand fisico `padding` con `.input-floating > .input`
+   para vencer tanto `padding-inline` (logico) como `input:not(...) { padding }` (fisico).
+   ========================= */
+
+/* --- Inputs estaticos (Informacion del Acta) --- */
+#acta-layout .input-floating > .input {
+    padding: 10px 20px;
+}
+
+/* --- Inputs dinamicos (Equipos, Hardware/Software) --- */
+.equipo-item .input-floating > .input,
+.hardware-item .input-floating > .input {
+    padding: 10px 20px;
+}
+
+/* --- Textarea --- */
+#acta-layout .textarea-floating > .textarea,
+.equipo-item .textarea-floating > .textarea,
+.hardware-item .textarea-floating > .textarea {
+    padding: 12px 20px;
+}
+
+/* --- Checklist container --- */
+#checklist-container .input-floating > .input {
+    padding: 10px 20px;
+}
+
+#checklist-container .textarea-floating > .textarea {
+    padding: 12px 20px;
+}
+
+/* --- select (por si acaso) --- */
+#acta-layout select,
+.equipo-item select,
+.hardware-item select {
+    padding: 10px 20px;
+}
+
+/* =========================
+   POSICION DE LABELS FLOTANTES
+   Alinear .input-floating-label con el padding-left del input (20px)
+   para que no se vean "pegados al borde izquierdo".
+   ========================= */
+
+#acta-entrega-page .input-floating-label {
+    margin-inline-start: 20px;
+}
+
+#acta-entrega-page .textarea-floating-label {
+    margin-inline-start: 20px;
+}
+
+/* =========================
+   ELEMENTOS DINAMICOS
+   Generados por JS (app.js / devolucion.js)
+   - .equipo-item  → Equipo X
+   - .hardware-item → Hardware X
+   ========================= */
+
+/* Padding interno igual a las cards estaticas (28px 24px) */
+.equipo-item .card-body,
+.hardware-item .card-body {
+    padding: 24px 16px;
+}
+
+/* Encabezado del item (titulo + boton eliminar) */
+.equipo-item .item-header,
+.hardware-item .item-header {
+    margin-bottom: 20px;
+}
+
+.equipo-item .item-header h4,
+.hardware-item .item-header h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin: 0;
+}
+
+/* Boton Buscar dentro de equipo-item */
+.equipo-item button[data-buscar] {
+    margin-bottom: 16px !important;
+}
+
+/* Asegurar que el ultimo campo tambien tenga separacion */
+.equipo-item .input-floating:last-of-type,
+.hardware-item .input-floating:last-of-type {
+    margin-bottom: 0;
+}
+
+/* Inputs dentro de items dinamicos */
+.equipo-item .input,
+.hardware-item .input {
+    margin-bottom: 0;
+}
+
+/* Responsive: mismo padding que cards estaticas */
+@media (max-width: 768px) {
+    .equipo-item .card-body,
+    .hardware-item .card-body {
+        padding: 20px 12px;
+    }
+
+    .equipo-item .item-header,
+    .hardware-item .item-header {
+        margin-bottom: 16px;
+    }
+}
+
+/* Checklist section con mas espacio superior */
+#checklist-section {
+    margin-top: 32px;
+}
+
+/* Checklist card con mas padding */
+#checklist-card .card-body {
+    padding: 24px 16px;
+}
+
+/* Checklist card interna */
+#checklist-card .card-body .card-title {
+    margin-bottom: 8px;
+}
+
+/* Checklist campos con mas espacio */
+#checklist-container .input-floating {
+    margin-bottom: 24px;
+}
+
+/* Check group title */
+.check-group-title {
+    margin-top: 18px;
+    margin-bottom: 12px;
+}
+
+/* Botones de marcar/desmarcar */
+#checklist-container .flex.gap-2.mb-4 {
+    margin-bottom: 20px;
+    gap: 12px;
+}
+
+/* Detalles de checklist */
+.check-section {
+    margin-top: 16px;
+}
+
+/* Items de checklist con mas padding */
+.check-section label {
+    padding: 12px 14px;
+}
+
+/* Boton de generar */
+#acciones-section {
+    margin-top: 36px;
+    padding: 0 0 16px;
+}
+
+#btn-generar-acta {
+    padding: 18px 40px;
+    font-size: 1.05rem;
+}
+
+/* En pantallas medianas: 2 columnas */
+@media (max-width: 1100px) {
+    #acta-layout {
+        grid-template-columns: 1.2fr 1fr;
+    }
+    #acta-layout .group:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+/* En pantallas pequenas: 1 columna */
+@media (max-width: 768px) {
+    .content {
+        padding: 20px 16px !important;
+    }
+
+    #acta-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    #acta-layout .card-body.p-3 {
+        padding: 20px 12px;
+    }
+
+    #checklist-card .card-body {
+        padding: 20px 12px;
+    }
+
+    #btn-generar-acta {
+        width: 100%;
+        padding: 16px 24px;
+    }
+
+    .hero-header {
+        margin-bottom: 24px;
+    }
+}

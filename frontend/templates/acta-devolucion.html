@@ -1,0 +1,106 @@
+<div class="acta-document">
+    <div class="acta-header">
+        <div class="acta-header-left">
+            <img class="acta-logo" src="img/LogoC.png" alt="Coltefinanciera">
+            <div class="acta-company">COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A.</div>
+            <div class="acta-note">NIT 890.000.000-0</div>
+        </div>
+        <div class="acta-header-right">
+            <div class="acta-code">ACTA N° <strong>{{idActa}}</strong></div>
+            <div class="acta-date">Fecha: <strong>{{fechaCreacion}}</strong></div>
+        </div>
+    </div>
+
+    <div class="acta-title-section">
+        <h1 class="acta-title">MEMORANDO DE DEVOLUCION DE DISPOSITIVOS</h1>
+        <p class="acta-subtitle">Por medio del presente documento se deja constancia de la devolucion de equipos de computo y/o dispositivos electronicos por parte del colaborador que se menciona a continuacion:</p>
+    </div>
+
+    <div class="acta-body">
+        <table class="acta-table">
+            <tr>
+                <td class="acta-label">FECHA DE DEVOLUCION:</td>
+                <td class="acta-value">{{fechaCreacion}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">FUNCIONARIO QUE DEVUELVE:</td>
+                <td class="acta-value">{{nombreUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">NUMERO DE CEDULA:</td>
+                <td class="acta-value">{{cedulaUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">CORREO CORPORATIVO:</td>
+                <td class="acta-value">{{correoUsuario}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">CARGO:</td>
+                <td class="acta-value">{{cargo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">DEPARTAMENTO / SEDE:</td>
+                <td class="acta-value">{{lugarTrabajo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">EMPRESA:</td>
+                <td class="acta-value">{{empresa}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">TICKET GLPI:</td>
+                <td class="acta-value">{{ticketGlpi}}</td>
+            </tr>
+        </table>
+
+        <h2 class="acta-subsection">DATOS DEL EQUIPO DEVUELTO</h2>
+
+        <table class="acta-table">
+            <tr>
+                <td class="acta-label">TIPO DE EQUIPO:</td>
+                <td class="acta-value">{{descripcionEquipo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">MARCA / MODELO:</td>
+                <td class="acta-value">{{marcaModelo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">NUMERO DE SERIE:</td>
+                <td class="acta-value">{{serialEquipo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">PLACA INTERNA:</td>
+                <td class="acta-value">{{placaEquipo}}</td>
+            </tr>
+            <tr>
+                <td class="acta-label">ESTADO DEL EQUIPO:</td>
+                <td class="acta-value">{{estadoEquipo}}</td>
+            </tr>
+        </table>
+
+        <h2 class="acta-subsection">NOVEDADES / OBSERVACIONES</h2>
+        <div class="acta-observations">{{observaciones}}</div>
+
+        <div class="acta-clause">
+            <p><strong>CLAUSULA DE DESCARGO:</strong> El colaborador declara haber devuelto los equipos y dispositivos descritos en el presente documento, y que los mismos se encuentran en el estado indicado. La compania recibe los equipos y se exonera al colaborador de responsabilidad sobre los mismos a partir de la fecha de la presente acta, salvo por las novedades registradas en las observaciones.</p>
+        </div>
+    </div>
+
+    <div class="acta-footer">
+        <div class="acta-signature-section">
+            <div class="acta-signature-box">
+                <div class="acta-signature-label">RECIBIDO POR:</div>
+                <div class="acta-signature-line"></div>
+                <div class="acta-signature-name">{{tecnicoNombre}}</div>
+                <div class="acta-signature-role">Tecnico de Soporte</div>
+            </div>
+            <div class="acta-signature-box">
+                <div class="acta-signature-label">ENTREGADO POR:</div>
+                <div class="acta-signature-line"></div>
+                <div class="acta-signature-name">{{nombreUsuario}}</div>
+                <div class="acta-signature-role">Colaborador</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="acta-watermark">DOCUMENTO DE USO INTERNO - COLTEFINANCIERA</div>
+</div>
