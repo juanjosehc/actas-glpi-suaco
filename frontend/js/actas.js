@@ -131,7 +131,10 @@
                 <td>${a.descripcionEquipo || "-"}</td>
                 <td class="cell-tipo">${a.tipoActa || "-"}</td>
                 <td><span class="badge ${getBadgeClass(a.estado)}">${a.estado || "-"}</span></td>
-                <td class="cell-actions"><button class="btn btn-outline btn-sm" data-id="${a.id}">Ver</button></td>
+                <td class="cell-actions">
+                    <a class="btn btn-outline btn-sm" href="acta-view.html?id=${a.id}">Ver Documento</a>
+                    <button class="btn btn-outline btn-sm" data-id="${a.id}">Ver</button>
+                </td>
             `;
             tr.querySelector("[data-id]").addEventListener("click", () => openDetail(a.id));
             actasBody.appendChild(tr);

@@ -60,6 +60,7 @@ com\empresa\actas\firma\dto\EnviarActaResponse.class
 com\empresa\actas\config\DataInitializer.class
 com\empresa\actas\auth\controller\AuthController.class
 com\empresa\actas\rol\entity\Rol$RolBuilder.class
+com\empresa\actas\config\OpenApiConfig.class
 com\empresa\actas\controller\DevolucionController.class
 com\empresa\actas\config\AppConfig.class
 com\empresa\actas\acta\dto\RechazarRequest.class

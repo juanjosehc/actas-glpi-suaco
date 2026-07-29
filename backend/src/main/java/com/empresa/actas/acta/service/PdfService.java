@@ -117,8 +117,7 @@ public class PdfService {
             subtitlePara.setSpacingAfter(16);
             document.add(subtitlePara);
 
-            // Helper to create a labeled field row
-            PdfPTable createFieldRow(String label, String value) {
+            java.util.function.BiFunction<String, String, PdfPTable> createFieldRow = (label, value) -> {
                 PdfPTable t = new PdfPTable(2);
                 t.setWidthPercentage(100);
                 t.setWidths(new float[]{2.5f, 5.5f});
@@ -138,7 +137,7 @@ public class PdfService {
                 t.addCell(lc);
                 t.addCell(vc);
                 return t;
-            }
+            };
 
             // Section: Datos del Acta
             Paragraph sec1 = new Paragraph("DATOS DEL ACTA", sectionFont);
@@ -146,14 +145,14 @@ public class PdfService {
             sec1.setSpacingAfter(4);
             document.add(sec1);
 
-            document.add(createFieldRow("ID ACTA", String.valueOf(acta.getIdActa())));
-            document.add(createFieldRow("TICKET GLPI", acta.getTicketGlpi() != null ? String.valueOf(acta.getTicketGlpi()) : "-"));
-            document.add(createFieldRow("ESTADO", acta.getEstado().name()));
-            document.add(createFieldRow("FECHA CREACION", acta.getFechaCreacion() != null ? acta.getFechaCreacion().format(FORMATTER) : "N/A"));
-            if (acta.getFechaEnvio() != null) document.add(createFieldRow("FECHA ENVIO", acta.getFechaEnvio().format(FORMATTER)));
-            if (acta.getFechaFirma() != null) document.add(createFieldRow("FECHA FIRMA", acta.getFechaFirma().format(FORMATTER)));
-            if (acta.getFechaAprobacion() != null) document.add(createFieldRow("FECHA APROBACION", acta.getFechaAprobacion().format(FORMATTER)));
-            if (acta.getObservacionRechazo() != null) document.add(createFieldRow("OBSERVACION RECHAZO", acta.getObservacionRechazo()));
+            document.add(createFieldRow.apply("ID ACTA", String.valueOf(acta.getIdActa())));
+            document.add(createFieldRow.apply("TICKET GLPI", acta.getTicketGlpi() != null ? String.valueOf(acta.getTicketGlpi()) : "-"));
+            document.add(createFieldRow.apply("ESTADO", acta.getEstado().name()));
+            document.add(createFieldRow.apply("FECHA CREACION", acta.getFechaCreacion() != null ? acta.getFechaCreacion().format(FORMATTER) : "N/A"));
+            if (acta.getFechaEnvio() != null) document.add(createFieldRow.apply("FECHA ENVIO", acta.getFechaEnvio().format(FORMATTER)));
+            if (acta.getFechaFirma() != null) document.add(createFieldRow.apply("FECHA FIRMA", acta.getFechaFirma().format(FORMATTER)));
+            if (acta.getFechaAprobacion() != null) document.add(createFieldRow.apply("FECHA APROBACION", acta.getFechaAprobacion().format(FORMATTER)));
+            if (acta.getObservacionRechazo() != null) document.add(createFieldRow.apply("OBSERVACION RECHAZO", acta.getObservacionRechazo()));
 
             // Section: Datos del Usuario
             Paragraph sec2 = new Paragraph("DATOS DEL USUARIO", sectionFont);
@@ -161,12 +160,12 @@ public class PdfService {
             sec2.setSpacingAfter(4);
             document.add(sec2);
 
-            document.add(createFieldRow("NOMBRE", acta.getNombreUsuario()));
-            document.add(createFieldRow("CEDULA", acta.getCedulaUsuario()));
-            document.add(createFieldRow("CORREO", acta.getCorreoUsuario()));
-            if (acta.getCargo() != null) document.add(createFieldRow("CARGO", acta.getCargo()));
-            if (acta.getLugarTrabajo() != null) document.add(createFieldRow("DEPARTAMENTO / SEDE", acta.getLugarTrabajo()));
-            if (acta.getEmpresa() != null) document.add(createFieldRow("EMPRESA", acta.getEmpresa()));
+            document.add(createFieldRow.apply("NOMBRE", acta.getNombreUsuario()));
+            document.add(createFieldRow.apply("CEDULA", acta.getCedulaUsuario()));
+            document.add(createFieldRow.apply("CORREO", acta.getCorreoUsuario()));
+            if (acta.getCargo() != null) document.add(createFieldRow.apply("CARGO", acta.getCargo()));
+            if (acta.getLugarTrabajo() != null) document.add(createFieldRow.apply("DEPARTAMENTO / SEDE", acta.getLugarTrabajo()));
+            if (acta.getEmpresa() != null) document.add(createFieldRow.apply("EMPRESA", acta.getEmpresa()));
 
             // Section: Datos del Equipo
             Paragraph sec3 = new Paragraph("DATOS DEL EQUIPO", sectionFont);
@@ -174,19 +173,19 @@ public class PdfService {
             sec3.setSpacingAfter(4);
             document.add(sec3);
 
-            document.add(createFieldRow("DESCRIPCION", acta.getDescripcionEquipo()));
-            document.add(createFieldRow("SERIAL", acta.getSerialEquipo()));
-            document.add(createFieldRow("PLACA INTERNA", acta.getPlacaEquipo()));
-            if (acta.getMarcaModelo() != null) document.add(createFieldRow("MARCA / MODELO", acta.getMarcaModelo()));
-            if (acta.getProcesador() != null) document.add(createFieldRow("PROCESADOR", acta.getProcesador()));
-            if (acta.getMemoriaRam() != null) document.add(createFieldRow("MEMORIA RAM", acta.getMemoriaRam()));
-            if (acta.getDiscoDuro() != null) document.add(createFieldRow("DISCO DURO", acta.getDiscoDuro()));
-            if (acta.getSistemaOperativo() != null) document.add(createFieldRow("SISTEMA OPERATIVO", acta.getSistemaOperativo()));
-            if (acta.getMonitor() != null) document.add(createFieldRow("MONITOR", acta.getMonitor()));
-            if (acta.getAccesorios() != null) document.add(createFieldRow("ACCESORIOS", acta.getAccesorios()));
-            if (acta.getEstadoEquipo() != null) document.add(createFieldRow("ESTADO EQUIPO", acta.getEstadoEquipo()));
+            document.add(createFieldRow.apply("DESCRIPCION", acta.getDescripcionEquipo()));
+            document.add(createFieldRow.apply("SERIAL", acta.getSerialEquipo()));
+            document.add(createFieldRow.apply("PLACA INTERNA", acta.getPlacaEquipo()));
+            if (acta.getMarcaModelo() != null) document.add(createFieldRow.apply("MARCA / MODELO", acta.getMarcaModelo()));
+            if (acta.getProcesador() != null) document.add(createFieldRow.apply("PROCESADOR", acta.getProcesador()));
+            if (acta.getMemoriaRam() != null) document.add(createFieldRow.apply("MEMORIA RAM", acta.getMemoriaRam()));
+            if (acta.getDiscoDuro() != null) document.add(createFieldRow.apply("DISCO DURO", acta.getDiscoDuro()));
+            if (acta.getSistemaOperativo() != null) document.add(createFieldRow.apply("SISTEMA OPERATIVO", acta.getSistemaOperativo()));
+            if (acta.getMonitor() != null) document.add(createFieldRow.apply("MONITOR", acta.getMonitor()));
+            if (acta.getAccesorios() != null) document.add(createFieldRow.apply("ACCESORIOS", acta.getAccesorios()));
+            if (acta.getEstadoEquipo() != null) document.add(createFieldRow.apply("ESTADO EQUIPO", acta.getEstadoEquipo()));
             if (acta.getObservaciones() != null) {
-                document.add(createFieldRow("OBSERVACIONES", acta.getObservaciones()));
+                document.add(createFieldRow.apply("OBSERVACIONES", acta.getObservaciones()));
             }
 
             // Evidences

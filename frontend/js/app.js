@@ -345,6 +345,72 @@ async function generarActa() {
             "success"
         );
 
+        (async () => {
+            try {
+                const tplResp = await fetch("../templates/acta-entrega.html");
+                if (!tplResp.ok) return;
+                const template = await tplResp.text();
+                const fecha = payload.fecha || new Date().toISOString().split("T")[0];
+                const eq = (payload.equipos || [])[0] || {};
+                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ") || "________________";
+
+                const rendered = template
+                    .replace(/\{\{idActa\}\}/g, "Pendiente")
+                    .replace(/\{\{fechaCreacion\}\}/g, fecha)
+                    .replace(/\{\{nombreUsuario\}\}/g, payload.entregado_a || "________________")
+                    .replace(/\{\{cedulaUsuario\}\}/g, "________________")
+                    .replace(/\{\{correoUsuario\}\}/g, "________________")
+                    .replace(/\{\{cargo\}\}/g, payload.cargo_recibe || "________________")
+                    .replace(/\{\{lugarTrabajo\}\}/g, "________________")
+                    .replace(/\{\{empresa\}\}/g, "________________")
+                    .replace(/\{\{ticketGlpi\}\}/g, payload.numero_sac || "________________")
+                    .replace(/\{\{descripcionEquipo\}\}/g, descMarca)
+                    .replace(/\{\{marcaModelo\}\}/g, descMarca)
+                    .replace(/\{\{serialEquipo\}\}/g, eq.serial || "________________")
+                    .replace(/\{\{placaEquipo\}\}/g, eq.inventario || "________________")
+                    .replace(/\{\{procesador\}\}/g, "________________")
+                    .replace(/\{\{memoriaRam\}\}/g, "________________")
+                    .replace(/\{\{discoDuro\}\}/g, "________________")
+                    .replace(/\{\{sistemaOperativo\}\}/g, payload.sistema_operativo || "________________")
+                    .replace(/\{\{monitor\}\}/g, "________________")
+                    .replace(/\{\{accesorios\}\}/g, "________________")
+                    .replace(/\{\{observaciones\}\}/g, payload.observaciones || "________________")
+                    .replace(/\{\{tecnicoNombre\}\}/g, payload.entregado_por || "________________");
+
+                const actaPayload = {
+                    tipoActa: "ENTREGA",
+                    nombreUsuario: payload.entregado_a || "",
+                    cargo: payload.cargo_recibe || "",
+                    ticketGlpi: payload.numero_sac || "",
+                    fechaCreacion: fecha,
+                    descripcionEquipo: descMarca === "________________" ? "" : descMarca,
+                    marcaModelo: descMarca === "________________" ? "" : descMarca,
+                    serialEquipo: eq.serial || "",
+                    placaEquipo: eq.inventario || "",
+                    sistemaOperativo: payload.sistema_operativo || "",
+                    observaciones: payload.observaciones || "",
+                    contenidoHtml: rendered
+                };
+
+                const tokenActa = LoginService.obtenerToken();
+                if (!tokenActa) return;
+                const resp = await fetch("http://localhost:8001/actas", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + tokenActa
+                    },
+                    body: JSON.stringify(actaPayload)
+                });
+                if (resp.ok) {
+                    const body = await resp.json();
+                    if (body.success) console.log("Acta creada ID:", body.data?.id);
+                }
+            } catch (e) {
+                console.error("Error creando acta en BD:", e);
+            }
+        })();
+
         const descargaResponse = await fetch(
             "http://127.0.0.1:8001/descargar-acta/" +
             result.nombre_zip

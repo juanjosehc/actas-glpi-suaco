@@ -21,6 +21,14 @@
     flex-shrink: 0;
 }
 
+/* Placeholder invisible para columna 1 — misma altura que boton en cols 2 y 3 */
+.header-spacer {
+    display: inline-block;
+    width: 1px;
+    height: 41px;
+    visibility: hidden;
+}
+
 /* Altura uniforme para todas las cards internas — scroll individual */
 #acta-layout #datos-acta-section .card.border,
 #acta-layout .equipo-item .card,
@@ -213,6 +221,39 @@
 #acciones-section {
     margin-top: 36px;
     padding: 0 0 16px;
+}
+
+.acciones-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+#btn-preview-acta {
+    padding: 18px 40px;
+    font-size: 1.05rem;
+    background: #FFFFFF;
+    color: #1E3A8A;
+    border: 2px solid #1E3A8A;
+    border-radius: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 4px 12px rgba(30,58,138,0.1);
+}
+
+#btn-preview-acta:hover {
+    background: #F8FAFC;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(30,58,138,0.2);
+}
+
+@media (max-width: 768px) {
+    #btn-preview-acta {
+        width: 100%;
+        padding: 16px 24px;
+    }
 }
 
 #btn-generar-acta {

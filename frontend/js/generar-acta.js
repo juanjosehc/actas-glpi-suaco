@@ -220,9 +220,9 @@
                 return resp.json();
             })
             .then(acta => {
-                if (!acta) return;
-                showToast("Acta #" + acta.id + " generada exitosamente", "success");
-                genDocument.innerHTML = acta.contenidoHtml || "";
+                if (!acta || !acta.success) return;
+                showToast("Acta #" + acta.data.id + " generada exitosamente", "success");
+                genDocument.innerHTML = acta.data.contenidoHtml || "";
                 genPreview.style.display = "block";
                 genPreview.scrollIntoView({ behavior: "smooth", block: "start" });
             })

@@ -1,3 +1,39 @@
+/* =========================
+   ACTA VIEW — documento corporativo
+   ========================= */
+
+.view-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.view-toolbar-spacer {
+    flex: 1;
+}
+
+.btn-download-pdf {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #1E3A8A;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-download-pdf:hover {
+    background: #1E40AF;
+}
+
 .view-info-bar {
     display: flex;
     flex-wrap: wrap;
@@ -94,13 +130,141 @@
     text-decoration: underline;
 }
 
+/* =========================
+   EVIDENCIAS INCRUSTADAS EN EL DOCUMENTO
+   ========================= */
+
+.acta-evidences-section {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 2px solid #1E3A8A;
+}
+
+.acta-evidences-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.acta-evidence-box {
+    text-align: center;
+    flex: 1;
+    min-width: 220px;
+    max-width: 360px;
+}
+
+.acta-evidence-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.acta-evidence-image-wrapper {
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 8px;
+    background: #F8FAFC;
+    overflow: hidden;
+}
+
+.acta-evidence-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.acta-evidence-img--firma {
+    max-height: 80px;
+    object-fit: contain;
+    margin: 0 auto;
+}
+
+.acta-evidence-img--foto {
+    max-height: 200px;
+    object-fit: contain;
+    margin: 0 auto;
+    border-radius: 4px;
+}
+
+.acta-evidence-date {
+    font-size: 0.85rem;
+    color: #475569;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* =========================
+   PREVIEW MODE
+   ========================= */
+
+.view-info-bar-preview-hidden {
+    display: none;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+    .view-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .view-toolbar-spacer {
+        display: none;
+    }
+
+    .btn-download-pdf {
+        justify-content: center;
+    }
+
+    .acta-evidences-row {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .acta-evidence-box {
+        max-width: 100%;
+    }
+}
+
+/* =========================
+   PRINT
+   ========================= */
+
 @media print {
-    .sidebar, .topbar, .page-header, .view-info-bar, .view-evidences, .toast-container {
+    .sidebar,
+    .topbar,
+    .page-header,
+    .view-toolbar,
+    .view-info-bar,
+    .view-evidences,
+    .toast-container {
         display: none !important;
     }
 
     .view-document {
         border: none;
         box-shadow: none;
+        border-radius: 0;
+    }
+
+    .acta-evidences-section {
+        page-break-inside: avoid;
+    }
+
+    .acta-evidence-img--firma {
+        max-height: 60px;
+    }
+
+    .acta-evidence-img--foto {
+        max-height: 150px;
     }
 }

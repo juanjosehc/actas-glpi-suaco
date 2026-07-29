@@ -13,9 +13,8 @@ public record CrearActaRequest(
         @Schema(description = "Tipo de acta", example = "ENTREGA", allowableValues = {"ENTREGA", "DEVOLUCION"}, requiredMode = Schema.RequiredMode.REQUIRED)
         String tipoActa,
 
-        @NotBlank(message = "La cedula del usuario es obligatoria")
         @Size(max = 20, message = "La cedula no puede exceder 20 caracteres")
-        @Schema(description = "Cedula del usuario receptor", example = "1234567890", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Cedula del usuario receptor", example = "1234567890")
         String cedulaUsuario,
 
         @NotBlank(message = "El nombre del usuario es obligatorio")
