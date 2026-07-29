@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Actas GLPI - Generar Acta</title>
-    <link rel="stylesheet" href="../css/actas.css">
+    <link rel="stylesheet" href="../css/system.css">
     <link rel="stylesheet" href="../css/acta-document.css">
     <link rel="stylesheet" href="../css/generar-acta.css">
 </head>
@@ -198,6 +198,13 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script src="../js/login.js"></script>
+<script src="../js/admin-layout.js"></script>
+<script src="../js/ui.js"></script>
 <script src="../js/generar-acta.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        AdminLayout.init({ currentFile: "generar-acta.html" });
+    });
+</script>
 </body>
 </html>

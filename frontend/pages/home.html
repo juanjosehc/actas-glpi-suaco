@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Actas GLPI - Inicio</title>
+    <link rel="stylesheet" href="../css/system.css">
     <link rel="stylesheet" href="../css/home.css">
 </head>
 <body>
@@ -75,6 +76,13 @@
 </div>
 
 <script src="../js/login.js"></script>
+<script src="../js/admin-layout.js"></script>
+<script src="../js/ui.js"></script>
 <script src="../js/home.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        AdminLayout.init({ currentFile: "home.html" });
+    });
+</script>
 </body>
 </html>

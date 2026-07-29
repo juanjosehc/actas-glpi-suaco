@@ -2,17 +2,6 @@
    ACTA LAYOUT — espaciado y proporciones
    ========================= */
 
-/* El padding/min-height lo maneja .content del admin */
-#acta-entrega-page {
-    min-height: 0;
-    padding: 0;
-}
-
-/* Hero header con mas espacio inferior */
-.hero-header {
-    margin-bottom: 36px;
-}
-
 /* Grilla de 3 columnas: proporcion uniforme entre las tres cards */
 #acta-entrega-page #acta-layout {
     grid-template-columns: 1fr 1fr 1fr;
@@ -37,6 +26,13 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+}
+
+/* Override height:100% de styles.css para que las cards internas
+   mantengan su altura natural dentro del contenedor flex */
+#acta-layout .equipo-item .card,
+#acta-layout .hardware-item .card {
+    height: auto;
 }
 
 /* Contenedores dinamicos de Equipos y Hardware — mismo comportamiento */
@@ -264,7 +260,4 @@
         padding: 16px 24px;
     }
 
-    .hero-header {
-        margin-bottom: 24px;
-    }
 }

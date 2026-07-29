@@ -95,16 +95,15 @@
                     section: "Gestion",
                     items: [
                         { label: "Usuarios", href: "usuarios.html", icon: "users" },
-                        { label: "Actas", href: "actas.html", icon: "file-text" },
                         { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
                     ]
                 },
                 {
                     section: "Actas",
                     items: [
-                        { label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" },
-                        { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" },
-                        { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" }
+                        { label: "Listado de Actas", href: "actas.html", icon: "list" },
+                        { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
+                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
                     ]
                 }
             ],
@@ -112,10 +111,9 @@
                 {
                     section: "Actas",
                     items: [
-                        { label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" },
-                        { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" },
-                        { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" },
-                        { label: "Mis Actas", href: "actas.html", icon: "list" }
+                        { label: "Listado de Actas", href: "actas.html", icon: "list" },
+                        { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
+                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
                     ]
                 }
             ],
@@ -148,14 +146,14 @@
         nav.innerHTML = "";
         sects.forEach(function(sec) {
             var label = document.createElement("div");
-            label.style.cssText = "font-size:0.65rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:1px;padding:16px 16px 6px;";
+            label.className = "nav-section-label";
             label.textContent = sec.section;
             nav.appendChild(label);
 
             sec.items.forEach(function(item) {
                 var el = document.createElement("a");
                 el.href = item.href;
-                el.className = "sidebar-item" + (item.href === currentFile ? " active" : "");
+                el.className = "nav-item" + (item.href === currentFile ? " active" : "");
                 el.innerHTML = (icons[item.icon] || "") + "<span>" + item.label + "</span>";
                 nav.appendChild(el);
             });

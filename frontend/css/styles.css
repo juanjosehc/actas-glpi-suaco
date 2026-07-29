@@ -1,102 +1,6 @@
 :root {
-
     --color-corporativo: #1E3A8A;
     --color-corporativo-hover: #1D4ED8;
-
-}
-
-html, body{
-
-    height: 100%;
-    font-family: Arial;
-    margin: 0;
-    min-height: 100vh;
-    
-}
-
-.container{
-    max-width:800px;
-    margin:auto;
-}
-
-/* =========================
-   NAVBAR
-   ========================= */
-
-.navbar-corporativo {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    background: #1E3A8A;
-    color: white;
-
-    padding: 12px 24px;
-
-    box-shadow:
-        0 4px 12px rgba(0,0,0,.12);
-
-    margin-bottom: 24px;
-}
-
-.navbar-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.navbar-logo {
-    height: 55px;
-    width: auto;
-    object-fit: contain;
-}
-
-.navbar-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-}
-
-.navbar-right {
-    display: flex;
-    gap: 12px;
-}
-
-.nav-link {
-    color: white;
-    text-decoration: none;
-
-    padding: 10px 18px;
-    border-radius: 10px;
-
-    transition: all .2s ease;
-}
-
-.nav-link:hover {
-    background: rgba(255,255,255,.15);
-}
-
-.nav-link.active {
-    background: white;
-    color: #1E3A8A;
-    font-weight: 700;
-}
-
-input:not([type="radio"]):not([type="checkbox"]) {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-
-
-button{
-    padding:10px 20px;
-    cursor:pointer;
 }
 
 
@@ -290,34 +194,6 @@ textarea {
 }
 
 
-#acta-entrega-page {
-
-    min-height: 100vh;
-
-    padding: 40px;
-
-    box-sizing: border-box;
-
-    
-
-
-}
-
-
-#acta-entrega-page h1 {
-
-    font-size: 2rem;
-
-    font-weight: 800;
-
-    color: #1E3A8A;
-
-    letter-spacing: -1px;
-
-    margin-bottom: 12px;
-
-}
-
 
 .card-body h3,
 .item-header h4 {
@@ -441,36 +317,6 @@ textarea {
 
 }
 
-.page-header {
-
-    margin-bottom: 24px;
-
-}
-
-.page-header h1 {
-
-    font-size: 3rem;
-
-    font-weight: 800;
-
-    color: #1E3A8A;
-
-    letter-spacing: -1px;
-
-    margin: 0;
-
-}
-
-.page-header p {
-
-    margin-top: 8px;
-
-    color: #64748B;
-
-    font-size: 1rem;
-
-}
-
 .btn-generar {
 
     background: #1E3A8A;
@@ -504,74 +350,6 @@ textarea {
 
 }
 
-
-.hero-header {
-
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: center;
-
-    text-align: center;
-
-    margin-bottom: 28px;
-
-}
-
-
-.hero-icon {
-
-    width: 72px;
-
-    height: 72px;
-
-    border-radius: 20px;
-
-    background: linear-gradient(
-        135deg,
-        #1E3A8A,
-        #3B82F6
-    );
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    font-size: 2rem;
-
-    color: white;
-
-    box-shadow:
-        0 10px 25px rgba(30,58,138,.2);
-
-}
-
-.hero-header h1 {
-
-    margin: 0;
-
-    font-size: 3rem;
-
-    font-weight: 800;
-
-    letter-spacing: -1px;
-
-    color: #1E3A8A;
-
-}
-
-.hero-header p {
-
-    margin-top: 6px;
-
-    color: #64748B;
-
-    font-size: .95rem;
-
-}
 
 #btn-generar-acta {
 

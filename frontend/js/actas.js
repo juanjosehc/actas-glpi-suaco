@@ -4,18 +4,11 @@
     let actas = [];
     let currentActaId = null;
 
-    const sidebarToggle = document.getElementById("sidebarToggle");
-    const sidebar = document.getElementById("sidebar");
-    const logoutBtn = document.getElementById("logoutBtn");
     const searchInput = document.getElementById("searchInput");
     const searchClear = document.getElementById("searchClear");
     const actasBody = document.getElementById("actasBody");
     const emptyState = document.getElementById("emptyState");
     const loadingOverlay = document.getElementById("loadingOverlay");
-    const userAvatar = document.getElementById("userAvatar");
-    const userName = document.getElementById("userName");
-    const userRole = document.getElementById("userRole");
-
     const detailModal = document.getElementById("detailModal");
     const modalBody = document.getElementById("modalBody");
     const modalActions = document.getElementById("modalActions");
@@ -71,28 +64,6 @@
 
     // =========================
     //  USER INFO
-    // =========================
-
-    async function loadUserInfo() {
-        const token = checkAuth();
-        if (!token) return;
-        try {
-            const resp = await fetch(`${API_BASE}/usuarios/me`, { headers: { Authorization: `Bearer ${token}` } });
-            if (handle401(resp)) return;
-            const body = await resp.json();
-            if (body.success) {
-                const u = body.data;
-                userName.textContent = `${u.nombres} ${u.apellidos}`;
-                userRole.textContent = u.rol;
-                const a = (u.nombres || "")[0] || "";
-                const b = (u.apellidos || "")[0] || "";
-                userAvatar.textContent = (a + b).toUpperCase();
-            }
-        } catch (_) {}
-    }
-
-    // =========================
-    //  LOAD ACTAS
     // =========================
 
     async function loadActas() {
@@ -451,71 +422,9 @@
         }
     });
 
-    // =========================
-    //  SIDEBAR
-    // =========================
-
-    sidebarToggle.addEventListener("click", () => sidebar.classList.toggle("open"));
-    document.addEventListener("click", (e) => {
-        if (window.innerWidth <= 768 && sidebar.classList.contains("open") && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-            sidebar.classList.remove("open");
-        }
-    });
-    window.addEventListener("resize", () => { if (window.innerWidth > 768) sidebar.classList.remove("open"); });
-
-    // =========================
-    //  LOGOUT
-    // =========================
-
-    logoutBtn.addEventListener("click", () => { LoginService.cerrarSesion(); window.location.href = ROUTES.LOGIN; });
-
-    // =========================
-    //  BUILD SIDEBAR NAV
-    // =========================
-
-    function buildSidebar(role) {
-        const nav = document.getElementById("sidebarNav");
-        const sections = {
-                    ADMINISTRADOR: [{ section: "Gestion", items: [{ label: "Usuarios", href: "usuarios.html", icon: "users" }, { label: "Actas", href: "actas.html", icon: "file-text" }, { label: "Firmas", href: "firmas.html", icon: "pen-tool" }] }, { section: "Actas", items: [{ label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" }, { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" }, { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" }] }],
-            TECNICO: [{ section: "Actas", items: [{ label: "Generar Acta", href: "generar-acta.html", icon: "plus-circle" }, { label: "Acta Entrega", href: "acta-entrega.html", icon: "file-text" }, { label: "Acta Devolucion", href: "acta-devolucion.html", icon: "file-text" }, { label: "Mis Actas", href: "actas.html", icon: "list" }] }],
-            AUDITOR: [{ section: "Consultas", items: [{ label: "Consultar Actas", href: "actas.html", icon: "search" }] }],
-        };
-        const icons = {
-            users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-            "file-text": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-            "pen-tool": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
-            "plus-circle": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
-            list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
-            search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
-        };
-        const sects = sections[role];
-        if (!sects) return;
-        const currentFile = window.location.pathname.split("/").pop();
-        nav.innerHTML = "";
-        sects.forEach((sec) => {
-            const label = document.createElement("div");
-            label.style.cssText = "font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#64748B;padding:16px 12px 6px";
-            label.textContent = sec.section;
-            nav.appendChild(label);
-            sec.items.forEach((item) => {
-                const hasHref = item.href && item.href !== "#";
-                const el = document.createElement(hasHref ? "a" : "button");
-                el.className = "nav-item";
-                if (hasHref) el.href = item.href;
-                if (hasHref && item.href === currentFile) el.classList.add("active");
-                el.innerHTML = `${icons[item.icon] || ""}<span>${item.label}</span>`;
-                nav.appendChild(el);
-            });
-        });
-    }
-
-    // =========================
-    //  INIT
-    // =========================
-
     (async function init() {
-        await loadUserInfo();
-        buildSidebar(userRole.textContent || "ADMINISTRADOR");
+        const token = LoginService.obtenerToken();
+        if (!token) { window.location.href = ROUTES.LOGIN; return; }
         await loadActas();
     })();
 })();
