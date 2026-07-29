@@ -21,18 +21,12 @@
     flex-shrink: 0;
 }
 
-/* Card azul de Datos del Acta — ocupa el espacio restante, scroll si excede */
-#datos-acta-section .card.border {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-}
-
-/* Override height:100% de styles.css para que las cards internas
-   mantengan su altura natural dentro del contenedor flex */
+/* Altura uniforme para todas las cards internas — scroll individual */
+#acta-layout #datos-acta-section .card.border,
 #acta-layout .equipo-item .card,
 #acta-layout .hardware-item .card {
-    height: auto;
+    height: 400px;
+    overflow-y: auto;
 }
 
 /* Contenedores dinamicos de Equipos y Hardware — mismo comportamiento */

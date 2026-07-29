@@ -62,6 +62,8 @@
 
     margin-bottom: 16px;
 
+    
+
 }
 
 #acciones-section {
@@ -81,6 +83,19 @@ select,
 textarea {
     width: 100%;
     box-sizing: border-box;
+}
+
+/* Input base — visible en estado normal (sin foco) */
+.input:not(:focus),
+.textarea:not(:focus) {
+    border-color: #BFC9D9;
+}
+
+.input,
+.textarea {
+    background: #FFFFFF !important;
+    border: 1px solid #C7D2E0 !important;
+    color: #334155;
 }
 
 .equipo-item,
@@ -141,48 +156,6 @@ textarea {
     margin-bottom: 12px;
 
 }
-
-.input-floating {
-
-    width: 100%;
-
-}
-
-.input {
-
-    width: 100%;
-
-    box-sizing: border-box;
-
-    
-    border-color: #CBD5E1;
-
-    background: white;
-
-
-}
-
-.input:focus {
-
-    border-color: #1E3A8A !important;
-
-    box-shadow:
-        0 0 0 4px rgba(30, 58, 138, 0.12);
-
-}
-
-.input-floating-label {
-
-    color: #475569;
-
-}
-
-.input:focus + .input-floating-label {
-
-    color: #1E3A8A;
-
-}
-
 
 
 .btn-outline:hover {
@@ -514,6 +487,7 @@ textarea {
     box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15) !important;
 }
 
+.input:focus + .input-floating-label,
 .textarea:focus + .textarea-floating-label {
     color: #1E3A8A !important;
 }
@@ -594,3 +568,4 @@ textarea {
     opacity: 1 !important;
 
 }
+
