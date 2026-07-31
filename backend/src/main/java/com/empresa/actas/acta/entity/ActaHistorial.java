@@ -32,6 +32,10 @@ public class ActaHistorial {
     private Long idActa;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_evento", nullable = false, length = 40)
+    private TipoEventoActa tipoEvento;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado_anterior", length = 20)
     private EstadoActa estadoAnterior;
 
@@ -39,8 +43,17 @@ public class ActaHistorial {
     @Column(name = "estado_nuevo", nullable = false, length = 20)
     private EstadoActa estadoNuevo;
 
-    @Column(name = "usuario_accion", nullable = false, length = 50)
+    @Column(name = "usuario_accion", nullable = false, length = 100)
     private String usuarioAccion;
+
+    @Column(name = "actor_id")
+    private Long actorId;
+
+    @Column(name = "actor_nombre", length = 150)
+    private String actorNombre;
+
+    @Column(name = "id_token_firma")
+    private Long idTokenFirma;
 
     @Column(name = "fecha_cambio", nullable = false)
     @Builder.Default

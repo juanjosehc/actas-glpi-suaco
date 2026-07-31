@@ -1,13 +1,14 @@
 package com.empresa.actas.acta.service;
 
+import com.empresa.actas.acta.dto.ActaHistorialResponse;
 import com.empresa.actas.acta.dto.ActaResponse;
 import com.empresa.actas.acta.dto.CrearActaRequest;
 import com.empresa.actas.acta.dto.EvidenciaResponse;
 import com.empresa.actas.acta.dto.RechazarRequest;
 import com.empresa.actas.acta.entity.Acta;
-import com.empresa.actas.acta.entity.ActaHistorial;
 import com.empresa.actas.acta.entity.EstadoActa;
 import com.empresa.actas.acta.entity.TipoActa;
+import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.mapper.ActaMapper;
 import com.empresa.actas.acta.repository.ActaHistorialRepository;
 import com.empresa.actas.acta.repository.ActaRepository;
@@ -32,6 +33,7 @@ public class ActaService {
 
     private final ActaRepository actaRepository;
     private final ActaHistorialRepository actaHistorialRepository;
+    private final ActaHistorialService actaHistorialService;
     private final EvidenciaRepository evidenciaRepository;
     private final FirmaTokenRepository firmaTokenRepository;
     private final ActaMapper actaMapper;
@@ -63,14 +65,15 @@ public class ActaService {
 
         Acta actaGuardada = actaRepository.save(acta);
 
-        ActaHistorial historial = ActaHistorial.builder()
-                .idActa(actaGuardada.getIdActa())
-                .estadoAnterior(null)
-                .estadoNuevo(EstadoActa.GENERADA)
-                .usuarioAccion(userSecurity.getUsername())
-                .build();
-
-        actaHistorialRepository.save(historial);
+        actaHistorialService.registrarEvento(
+                actaGuardada.getIdActa(),
+                TipoEventoActa.ACTA_GENERADA,
+                null,
+                EstadoActa.GENERADA,
+                userSecurity.getUsuario().getIdUsuario(),
+                userSecurity.getUsername(),
+                null,
+                "Acta generada");
 
         return actaMapper.toResponse(actaGuardada);
     }
@@ -85,6 +88,27 @@ public class ActaService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Acta no encontrada con id: " + id));
         return toResponseWithToken(acta);
+    }
+
+    public List<ActaHistorialResponse> obtenerHistorial(Long id) {
+        actaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Acta no encontrada con id: " + id));
+
+        return actaHistorialRepository.findByIdActaOrderByFechaCambioDesc(id).stream()
+                .map(h -> ActaHistorialResponse.builder()
+                        .idHistorial(h.getIdHistorial())
+                        .idActa(h.getIdActa())
+                        .tipoEvento(h.getTipoEvento() != null ? h.getTipoEvento().name() : null)
+                        .estadoAnterior(h.getEstadoAnterior() != null ? h.getEstadoAnterior().name() : null)
+                        .estadoNuevo(h.getEstadoNuevo() != null ? h.getEstadoNuevo().name() : null)
+                        .actorId(h.getActorId())
+                        .actorNombre(h.getActorNombre())
+                        .idTokenFirma(h.getIdTokenFirma())
+                        .fechaCambio(h.getFechaCambio())
+                        .observacion(h.getObservacion())
+                        .build())
+                .toList();
     }
 
     private ActaResponse toResponseWithToken(Acta acta) {
@@ -123,6 +147,16 @@ public class ActaService {
                     .rutaArchivo(rutaPdf)
                     .build();
             evidenciaRepository.save(evidenciaPdf);
+
+            actaHistorialService.registrarEvento(
+                    id,
+                    TipoEventoActa.EVIDENCIA_CARGADA,
+                    null,
+                    acta.getEstado(),
+                    null,
+                    "SISTEMA",
+                    null,
+                    "Tipo: PDF_FINAL - " + rutaPdf);
         }
 
         acta.setEstado(EstadoActa.APROBADA);
@@ -130,12 +164,15 @@ public class ActaService {
         acta.setRutaPdf(rutaPdf);
         actaRepository.save(acta);
 
-        actaHistorialRepository.save(ActaHistorial.builder()
-                .idActa(id)
-                .estadoAnterior(estadoAnterior)
-                .estadoNuevo(EstadoActa.APROBADA)
-                .usuarioAccion(userSecurity.getUsername())
-                .build());
+        actaHistorialService.registrarEvento(
+                id,
+                TipoEventoActa.ACTA_APROBADA,
+                estadoAnterior,
+                EstadoActa.APROBADA,
+                userSecurity.getUsuario().getIdUsuario(),
+                userSecurity.getUsername(),
+                null,
+                "Acta aprobada");
     }
 
     @Transactional
@@ -156,16 +193,19 @@ public class ActaService {
         EstadoActa estadoAnterior = acta.getEstado();
 
         acta.setEstado(EstadoActa.RECHAZADA);
+        acta.setFechaRechazo(LocalDateTime.now());
         acta.setObservacionRechazo(request.observacion());
         actaRepository.save(acta);
 
-        actaHistorialRepository.save(ActaHistorial.builder()
-                .idActa(id)
-                .estadoAnterior(estadoAnterior)
-                .estadoNuevo(EstadoActa.RECHAZADA)
-                .usuarioAccion(userSecurity.getUsername())
-                .observacion(request.observacion())
-                .build());
+        actaHistorialService.registrarEvento(
+                id,
+                TipoEventoActa.ACTA_RECHAZADA_ADMIN,
+                estadoAnterior,
+                EstadoActa.RECHAZADA,
+                userSecurity.getUsuario().getIdUsuario(),
+                userSecurity.getUsername(),
+                null,
+                request.observacion());
     }
 
     public List<EvidenciaResponse> obtenerEvidencias(Long idActa) {

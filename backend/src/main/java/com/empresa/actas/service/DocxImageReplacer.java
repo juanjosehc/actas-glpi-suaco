@@ -40,17 +40,31 @@ public class DocxImageReplacer {
              XWPFDocument doc = new XWPFDocument(fis)) {
 
             reemplazarEnParrafos(doc.getParagraphs(), doc, "{{firma_usuario}}",
-                    firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes));
+                    firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes), 0);
             reemplazarEnParrafos(doc.getParagraphs(), doc, "{{foto_usuario}}",
-                    fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, dimensionesFoto(fotoBytes));
+                    fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, dimensionesFoto(fotoBytes), 0);
 
             for (XWPFTable table : doc.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
                         reemplazarEnParrafos(cell.getParagraphs(), doc, "{{firma_usuario}}",
-                                firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes));
+                                firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes), 0);
+                        boolean tieneFoto = false;
+                        for (XWPFParagraph pp : cell.getParagraphs()) {
+                            String texto = pp.getText();
+                            if (texto != null && texto.contains("{{foto_usuario}}")) {
+                                tieneFoto = true;
+                                break;
+                            }
+                        }
+                        if (tieneFoto) {
+                            var tcPr = cell.getCTTc().getTcPr();
+                            if (tcPr != null && tcPr.isSetVAlign()) tcPr.unsetVAlign();
+                            cell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.TOP);
+                        }
+                        int[] fotoDims = dimensionesFotoEnCelda(fotoBytes, row, cell);
                         reemplazarEnParrafos(cell.getParagraphs(), doc, "{{foto_usuario}}",
-                                fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, dimensionesFotoEnCelda(fotoBytes, row, cell));
+                                fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, fotoDims, fotoDims[2]);
                     }
                 }
             }
@@ -103,17 +117,21 @@ public class DocxImageReplacer {
 
         int anchoTwips = cell.getWidth();
         int altoTwips = row.getHeight();
-        if (anchoTwips <= 0 || altoTwips <= 0) return fallback;
-
-        anchoTwips -= margenCeldaEnTwips(cell, true);
-        anchoTwips -= margenCeldaEnTwips(cell, false);
-        if (anchoTwips <= 0 || altoTwips <= 0) return fallback;
+        if (anchoTwips > 0 && altoTwips > 0) {
+            anchoTwips -= margenCeldaEnTwips(cell, true);
+            anchoTwips -= margenCeldaEnTwips(cell, false);
+        }
+        if (anchoTwips <= 0 || altoTwips <= 0) {
+            return new int[]{fallback[0], fallback[1], espaciadoVerticalTwips(altoTwips, fallback[1])};
+        }
 
         double maxAnchoEmu = anchoTwips * EMU_PER_TWIP * PHOTO_CELL_FILL;
         double maxAltoEmu = altoTwips * EMU_PER_TWIP * PHOTO_CELL_FILL;
 
         BufferedImage img = ImageIO.read(new ByteArrayInputStream(fotoBytes));
-        if (img == null || img.getWidth() <= 0) return fallback;
+        if (img == null || img.getWidth() <= 0) {
+            return new int[]{fallback[0], fallback[1], espaciadoVerticalTwips(altoTwips, fallback[1])};
+        }
         double aspect = (double) img.getHeight() / img.getWidth();
 
         double ancho = maxAnchoEmu;
@@ -122,7 +140,18 @@ public class DocxImageReplacer {
             alto = maxAltoEmu;
             ancho = alto / aspect;
         }
-        return new int[]{(int) Math.round(ancho), (int) Math.round(alto)};
+        int anchoEmu = (int) Math.round(ancho);
+        int altoEmu = (int) Math.round(alto);
+        return new int[]{anchoEmu, altoEmu, espaciadoVerticalTwips(altoTwips, altoEmu)};
+    }
+
+    private static int espaciadoVerticalTwips(int altoFilaTwips, int altoImagenEmu) {
+        if (altoFilaTwips <= 0 || altoImagenEmu <= 0) return 0;
+        double altoFilaPt = altoFilaTwips / 20.0;
+        double altoImagenPt = altoImagenEmu / 12700.0;
+        double bordesPt = 2.0;
+        double espaciadoPt = Math.max(0, (altoFilaPt - bordesPt - altoImagenPt) / 2.0);
+        return (int) Math.round(espaciadoPt * 20.0);
     }
 
     private static int margenCeldaEnTwips(XWPFTableCell cell, boolean izquierdo) {
@@ -143,7 +172,8 @@ public class DocxImageReplacer {
             String placeholder,
             byte[] imagenBytes,
             int pictureType,
-            int[] dimensionesEmu
+            int[] dimensionesEmu,
+            int espaciadoVerticalTwips
     ) throws IOException {
         for (XWPFParagraph p : parrafos) {
             String fullText = p.getText();
@@ -196,6 +226,11 @@ public class DocxImageReplacer {
                 }
 
                 idx = phEnd;
+            }
+
+            if (espaciadoVerticalTwips > 0) {
+                p.setSpacingBefore(espaciadoVerticalTwips);
+                p.setSpacingAfter(espaciadoVerticalTwips);
             }
         }
     }

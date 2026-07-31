@@ -1,7 +1,9 @@
 package com.empresa.actas.service;
 
 import com.empresa.actas.acta.entity.Acta;
+import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.repository.ActaRepository;
+import com.empresa.actas.acta.service.ActaHistorialService;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
@@ -31,6 +33,7 @@ public class SignedDocumentService {
     private final ActaRepository actaRepository;
     private final FirmaTokenRepository firmaTokenRepository;
     private final EvidenciaRepository evidenciaRepository;
+    private final ActaHistorialService actaHistorialService;
     private final DocumentoWordService documentoWordService;
     private final LibreOfficePdfService libreOfficePdfService;
     private final ObjectMapper objectMapper;
@@ -105,8 +108,28 @@ public class SignedDocumentService {
                     .build();
             evidenciaRepository.save(evidenciaPdf);
 
+            actaHistorialService.registrarEvento(
+                    acta.getIdActa(),
+                    TipoEventoActa.EVIDENCIA_CARGADA,
+                    null,
+                    acta.getEstado(),
+                    null,
+                    "SISTEMA",
+                    firmaToken.getIdToken(),
+                    "Tipo: PDF_FINAL - " + rutaPdf);
+
             acta.setRutaPdf(rutaPdf);
             actaRepository.save(acta);
+
+            actaHistorialService.registrarEvento(
+                    acta.getIdActa(),
+                    TipoEventoActa.PDF_REGENERADO,
+                    null,
+                    acta.getEstado(),
+                    null,
+                    "SISTEMA",
+                    firmaToken.getIdToken(),
+                    "PDF del documento firmado regenerado: " + rutaPdf);
 
             log.info("Documento firmado generado para acta {}: {}", acta.getIdActa(), rutaPdf);
 

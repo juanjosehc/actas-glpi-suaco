@@ -17,6 +17,8 @@
     var toastContainer = document.getElementById("toastContainer");
     var viewInfoBar = document.getElementById("viewInfoBar");
     var downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    var sendFirmaBtn = document.getElementById("sendFirmaBtn");
+    var currentActaId = null;
 
     function showToast(message, type) {
         var toast = document.createElement("div");

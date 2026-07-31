@@ -1,10 +1,10 @@
 package com.empresa.actas.firma.service;
 
 import com.empresa.actas.acta.entity.Acta;
-import com.empresa.actas.acta.entity.ActaHistorial;
 import com.empresa.actas.acta.entity.EstadoActa;
-import com.empresa.actas.acta.repository.ActaHistorialRepository;
+import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.repository.ActaRepository;
+import com.empresa.actas.acta.service.ActaHistorialService;
 import com.empresa.actas.firma.dto.EnviarActaResponse;
 import com.empresa.actas.firma.dto.FirmaPublicaResponse;
 import com.empresa.actas.firma.dto.FirmaRequest;
@@ -32,7 +32,7 @@ import java.util.UUID;
 public class FirmaService {
 
     private final ActaRepository actaRepository;
-    private final ActaHistorialRepository actaHistorialRepository;
+    private final ActaHistorialService actaHistorialService;
     private final FirmaTokenRepository firmaTokenRepository;
     private final EvidenciaRepository evidenciaRepository;
 
@@ -68,17 +68,20 @@ public class FirmaService {
         acta.setFechaEnvio(LocalDateTime.now());
         actaRepository.save(acta);
 
-        actaHistorialRepository.save(ActaHistorial.builder()
-                .idActa(idActa)
-                .estadoAnterior(estadoAnterior)
-                .estadoNuevo(EstadoActa.ENVIADA)
-                .usuarioAccion(userSecurity.getUsername())
-                .build());
+        actaHistorialService.registrarEvento(
+                idActa,
+                TipoEventoActa.ACTA_ENVIADA,
+                estadoAnterior,
+                EstadoActa.ENVIADA,
+                userSecurity.getUsuario().getIdUsuario(),
+                userSecurity.getUsername(),
+                firmaToken.getIdToken(),
+                "Acta enviada para firma");
 
         return new EnviarActaResponse(token, "/firma/" + token);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FirmaPublicaResponse obtenerActaPorToken(String token) {
         FirmaToken firmaToken = firmaTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -96,6 +99,16 @@ public class FirmaService {
             throw new IllegalArgumentException(
                     "Esta acta no esta disponible para firma. Estado: " + acta.getEstado());
         }
+
+        actaHistorialService.registrarEvento(
+                acta.getIdActa(),
+                TipoEventoActa.ACTA_ABIERTA_USUARIO,
+                null,
+                acta.getEstado(),
+                null,
+                identidadFirmante(acta),
+                firmaToken.getIdToken(),
+                "El usuario abrio el enlace de firma");
 
         return FirmaPublicaResponse.builder()
                 .idActa(acta.getIdActa())
@@ -144,13 +157,15 @@ public class FirmaService {
         acta.setObservacionRechazo(motivo);
         actaRepository.save(acta);
 
-        actaHistorialRepository.save(ActaHistorial.builder()
-                .idActa(acta.getIdActa())
-                .estadoAnterior(estadoAnterior)
-                .estadoNuevo(EstadoActa.RECHAZADA)
-                .usuarioAccion("SISTEMA")
-                .observacion(motivo)
-                .build());
+        actaHistorialService.registrarEvento(
+                acta.getIdActa(),
+                TipoEventoActa.ACTA_RECHAZADA_USUARIO,
+                estadoAnterior,
+                EstadoActa.RECHAZADA,
+                null,
+                identidadFirmante(acta),
+                firmaToken.getIdToken(),
+                motivo);
     }
 
     @Transactional
@@ -192,11 +207,31 @@ public class FirmaService {
                     .rutaArchivo("uploads/firmas/firma_" + acta.getIdActa() + ".png")
                     .build());
 
+            actaHistorialService.registrarEvento(
+                    acta.getIdActa(),
+                    TipoEventoActa.EVIDENCIA_CARGADA,
+                    null,
+                    acta.getEstado(),
+                    null,
+                    "SISTEMA",
+                    firmaToken.getIdToken(),
+                    "Tipo: FIRMA - uploads/firmas/firma_" + acta.getIdActa() + ".png");
+
             evidenciaRepository.save(Evidencia.builder()
                     .idActa(acta.getIdActa())
                     .tipo(Evidencia.TipoEvidencia.FOTO)
                     .rutaArchivo("uploads/fotos/foto_" + acta.getIdActa() + ".jpg")
                     .build());
+
+            actaHistorialService.registrarEvento(
+                    acta.getIdActa(),
+                    TipoEventoActa.EVIDENCIA_CARGADA,
+                    null,
+                    acta.getEstado(),
+                    null,
+                    "SISTEMA",
+                    firmaToken.getIdToken(),
+                    "Tipo: FOTO - uploads/fotos/foto_" + acta.getIdActa() + ".jpg");
 
             firmaToken.setUtilizado(true);
             firmaToken.setFechaUtilizacion(LocalDateTime.now());
@@ -207,18 +242,33 @@ public class FirmaService {
             acta.setFechaFirma(LocalDateTime.now());
             actaRepository.save(acta);
 
-            actaHistorialRepository.save(ActaHistorial.builder()
-                    .idActa(acta.getIdActa())
-                    .estadoAnterior(estadoAnterior)
-                    .estadoNuevo(EstadoActa.FIRMADA)
-                    .usuarioAccion("SISTEMA")
-                    .observacion("Firma digital registrada")
-                    .build());
+            actaHistorialService.registrarEvento(
+                    acta.getIdActa(),
+                    TipoEventoActa.ACTA_FIRMADA,
+                    estadoAnterior,
+                    EstadoActa.FIRMADA,
+                    null,
+                    identidadFirmante(acta),
+                    firmaToken.getIdToken(),
+                    "Firma digital registrada");
 
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (IOException e) {
             throw new RuntimeException("Error al guardar archivos: " + e.getMessage());
         }
+    }
+
+    private String identidadFirmante(Acta acta) {
+        String nombre = acta.getNombreUsuario();
+        String cedula = acta.getCedulaUsuario();
+        StringBuilder identidad = new StringBuilder();
+        if (nombre != null && !nombre.isBlank()) {
+            identidad.append(nombre);
+        }
+        if (cedula != null && !cedula.isBlank()) {
+            identidad.append(" (CC ").append(cedula).append(")");
+        }
+        return identidad.length() > 0 ? identidad.toString() : "USUARIO_FIRMANTE";
     }
 }

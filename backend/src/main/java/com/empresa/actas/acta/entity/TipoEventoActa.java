@@ -1,0 +1,14 @@
+package com.empresa.actas.acta.entity;
+
+public enum TipoEventoActa {
+    ACTA_GENERADA,
+    ACTA_ENVIADA,
+    ACTA_ABIERTA_USUARIO,
+    ACTA_FIRMADA,
+    ACTA_RECHAZADA_USUARIO,
+    ACTA_RECHAZADA_ADMIN,
+    ACTA_REENVIADA,
+    ACTA_APROBADA,
+    EVIDENCIA_CARGADA,
+    PDF_REGENERADO
+}

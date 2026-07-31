@@ -1,5 +1,6 @@
 package com.empresa.actas.acta.controller;
 
+import com.empresa.actas.acta.dto.ActaHistorialResponse;
 import com.empresa.actas.acta.dto.ActaResponse;
 import com.empresa.actas.acta.dto.CrearActaRequest;
 import com.empresa.actas.acta.dto.EvidenciaResponse;
@@ -133,5 +134,17 @@ public class ActaController {
     public ResponseEntity<ErrorResponse> obtenerEvidencias(@PathVariable Long id) {
         List<EvidenciaResponse> evidencias = actaService.obtenerEvidencias(id);
         return ResponseEntity.ok(ErrorResponse.ok("Evidencias listadas", evidencias));
+    }
+
+    @GetMapping("/{id}/historial")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener historial de auditoria de un acta", description = "Lista todos los eventos de auditoria de un acta")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Historial listado"),
+            @ApiResponse(responseCode = "404", description = "Acta no encontrada")
+    })
+    public ResponseEntity<ErrorResponse> obtenerHistorial(@PathVariable Long id) {
+        List<ActaHistorialResponse> historial = actaService.obtenerHistorial(id);
+        return ResponseEntity.ok(ErrorResponse.ok("Historial de acta", historial));
     }
 }

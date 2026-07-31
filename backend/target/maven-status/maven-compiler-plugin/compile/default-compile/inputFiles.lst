@@ -1,4 +1,5 @@
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\controller\ActaController.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\dto\ActaHistorialResponse.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\dto\ActaResponse.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\dto\CrearActaRequest.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\dto\EvidenciaResponse.java
@@ -7,9 +8,11 @@ C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIER
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\entity\ActaHistorial.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\entity\EstadoActa.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\entity\TipoActa.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\entity\TipoEventoActa.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\mapper\ActaMapper.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\repository\ActaHistorialRepository.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\repository\ActaRepository.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\service\ActaHistorialService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\service\ActaService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\acta\service\PdfService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\ActasApplication.java
