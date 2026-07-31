@@ -106,8 +106,14 @@ public class Acta {
     @Column(name = "observacion_rechazo", length = 500)
     private String observacionRechazo;
 
+    @Column(name = "fecha_rechazo")
+    private LocalDateTime fechaRechazo;
+
     @Column(name = "ruta_pdf", length = 500)
     private String rutaPdf;
+
+    @Column(name = "datos_originales", columnDefinition = "text")
+    private String datosOriginales;
 
     @Column(name = "fecha_creacion", nullable = false)
     @Builder.Default

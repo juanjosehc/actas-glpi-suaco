@@ -278,6 +278,7 @@
                 <div class="detail-field"><span class="detail-label">Fecha Envio</span><span class="detail-value">${formatDate(a.fechaEnvio)}</span></div>
                 <div class="detail-field"><span class="detail-label">Fecha Firma</span><span class="detail-value">${formatDate(a.fechaFirma)}</span></div>
                 <div class="detail-field"><span class="detail-label">Fecha Aprobacion</span><span class="detail-value">${formatDate(a.fechaAprobacion)}</span></div>
+                <div class="detail-field"><span class="detail-label">Fecha Rechazo</span><span class="detail-value">${formatDate(a.fechaRechazo)}</span></div>
                 <div class="detail-field full"><span class="detail-label">Observacion Rechazo</span><span class="detail-value">${a.observacionRechazo || "-"}</span></div>
                 ${htmlContent}
             </div>`;
@@ -369,7 +370,7 @@
             body.data.forEach((ev) => {
                 const tipo = ev.tipo || "";
                 const label = labelMap[tipo] || tipo;
-                const fileUrl = `${API_BASE}/uploads/${ev.rutaArchivo.replace(/\\/g, "/").replace(/^uploads\/?/, "")}`;
+                const fileUrl = `${API_BASE}/${ev.rutaArchivo}`;
                 const item = document.createElement("div");
                 item.className = "evidence-item";
                 item.innerHTML = `

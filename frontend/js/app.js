@@ -347,49 +347,20 @@ async function generarActa() {
 
         (async () => {
             try {
-                const tplResp = await fetch("../templates/acta-entrega.html");
-                if (!tplResp.ok) return;
-                const template = await tplResp.text();
-                const fecha = payload.fecha || new Date().toISOString().split("T")[0];
+                if (!result.ruta_pdf) return;
                 const eq = (payload.equipos || [])[0] || {};
-                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ") || "________________";
-
-                const rendered = template
-                    .replace(/\{\{idActa\}\}/g, "Pendiente")
-                    .replace(/\{\{fechaCreacion\}\}/g, fecha)
-                    .replace(/\{\{nombreUsuario\}\}/g, payload.entregado_a || "________________")
-                    .replace(/\{\{cedulaUsuario\}\}/g, "________________")
-                    .replace(/\{\{correoUsuario\}\}/g, "________________")
-                    .replace(/\{\{cargo\}\}/g, payload.cargo_recibe || "________________")
-                    .replace(/\{\{lugarTrabajo\}\}/g, "________________")
-                    .replace(/\{\{empresa\}\}/g, "________________")
-                    .replace(/\{\{ticketGlpi\}\}/g, payload.numero_sac || "________________")
-                    .replace(/\{\{descripcionEquipo\}\}/g, descMarca)
-                    .replace(/\{\{marcaModelo\}\}/g, descMarca)
-                    .replace(/\{\{serialEquipo\}\}/g, eq.serial || "________________")
-                    .replace(/\{\{placaEquipo\}\}/g, eq.inventario || "________________")
-                    .replace(/\{\{procesador\}\}/g, "________________")
-                    .replace(/\{\{memoriaRam\}\}/g, "________________")
-                    .replace(/\{\{discoDuro\}\}/g, "________________")
-                    .replace(/\{\{sistemaOperativo\}\}/g, payload.sistema_operativo || "________________")
-                    .replace(/\{\{monitor\}\}/g, "________________")
-                    .replace(/\{\{accesorios\}\}/g, "________________")
-                    .replace(/\{\{observaciones\}\}/g, payload.observaciones || "________________")
-                    .replace(/\{\{tecnicoNombre\}\}/g, payload.entregado_por || "________________");
+                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ");
 
                 const actaPayload = {
                     tipoActa: "ENTREGA",
                     nombreUsuario: payload.entregado_a || "",
-                    cargo: payload.cargo_recibe || "",
+                    cedulaUsuario: payload.cedula || "",
                     ticketGlpi: payload.numero_sac || "",
-                    fechaCreacion: fecha,
-                    descripcionEquipo: descMarca === "________________" ? "" : descMarca,
-                    marcaModelo: descMarca === "________________" ? "" : descMarca,
                     serialEquipo: eq.serial || "",
                     placaEquipo: eq.inventario || "",
-                    sistemaOperativo: payload.sistema_operativo || "",
-                    observaciones: payload.observaciones || "",
-                    contenidoHtml: rendered
+                    descripcionEquipo: descMarca || "",
+                    rutaPdf: result.ruta_pdf,
+                    datosOriginales: JSON.stringify(payload)
                 };
 
                 const tokenActa = LoginService.obtenerToken();

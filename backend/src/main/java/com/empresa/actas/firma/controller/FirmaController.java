@@ -2,8 +2,10 @@ package com.empresa.actas.firma.controller;
 
 import com.empresa.actas.dto.response.ErrorResponse;
 import com.empresa.actas.firma.dto.FirmaPublicaResponse;
+import com.empresa.actas.firma.dto.FirmaRechazoRequest;
 import com.empresa.actas.firma.dto.FirmaRequest;
 import com.empresa.actas.firma.service.FirmaService;
+import com.empresa.actas.service.SignedDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class FirmaController {
 
     private final FirmaService firmaService;
+    private final SignedDocumentService signedDocumentService;
 
     @GetMapping("/{token}")
     @Operation(summary = "Obtener acta para firmar", description = "Retorna los datos del acta asociada al token de firma (acceso publico)")
@@ -48,6 +51,21 @@ public class FirmaController {
             @PathVariable String token,
             @Valid @RequestBody FirmaRequest request) {
         firmaService.firmarActa(token, request);
+        signedDocumentService.generarDocumentoFirmado(token);
         return ResponseEntity.ok(ErrorResponse.ok("Acta firmada exitosamente"));
+    }
+
+    @PostMapping("/{token}/rechazar")
+    @Operation(summary = "Rechazar acta", description = "Rechaza el acta desde el portal publico de firma con un motivo, cambia estado a RECHAZADA (acceso publico)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Acta rechazada exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Token invalido o expirado"),
+            @ApiResponse(responseCode = "400", description = "Motivo invalido o acta no disponible")
+    })
+    public ResponseEntity<ErrorResponse> rechazarActa(
+            @PathVariable String token,
+            @Valid @RequestBody FirmaRechazoRequest request) {
+        firmaService.rechazarActa(token, request.motivo());
+        return ResponseEntity.ok(ErrorResponse.ok("Acta rechazada exitosamente"));
     }
 }

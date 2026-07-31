@@ -91,8 +91,17 @@
                 <div class="evidences-grid" id="evidencesGrid"></div>
             </div>
 
-            <div class="view-document" id="viewDocument">
-                <div class="view-loading">Cargando documento...</div>
+            <div class="view-document" id="viewDocument" style="display:none;">
+                <iframe id="pdfViewer"
+                    style="width:100%;height:800px;border:none;"
+                    src="">
+                </iframe>
+            </div>
+            <div class="view-loading" id="viewLoading">
+                <p style="color:#64748B;padding:40px;text-align:center;">Cargando documento...</p>
+            </div>
+            <div class="view-no-pdf" id="viewNoPdf" style="display:none;">
+                <p style="color:#DC2626;padding:40px;text-align:center;">No hay PDF disponible para esta acta.</p>
             </div>
 
         </main>

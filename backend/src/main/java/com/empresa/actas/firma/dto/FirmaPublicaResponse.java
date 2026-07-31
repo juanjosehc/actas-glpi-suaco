@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,6 +20,12 @@ public class FirmaPublicaResponse {
 
     @Schema(description = "Tipo de acta", example = "ENTREGA")
     private String tipoActa;
+
+    @Schema(description = "Estado actual del acta", example = "ENVIADA")
+    private String estado;
+
+    @Schema(description = "Ruta del archivo PDF oficial (misma fuente que el modulo de Actas)", example = "uploads/pdf/acta_1.pdf")
+    private String rutaPdf;
 
     @Schema(description = "Nombre del usuario que debe firmar", example = "Carlos Perez")
     private String nombreUsuario;
@@ -42,4 +50,10 @@ public class FirmaPublicaResponse {
 
     @Schema(description = "Contenido HTML del acta")
     private String contenidoHtml;
+
+    @Schema(description = "Fecha de rechazo del acta")
+    private LocalDateTime fechaRechazo;
+
+    @Schema(description = "Observacion de rechazo")
+    private String observacionRechazo;
 }

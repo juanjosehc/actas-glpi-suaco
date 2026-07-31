@@ -281,44 +281,19 @@ async function generarDevolucion() {
 
         (async () => {
             try {
-                const tplResp = await fetch("../templates/acta-devolucion.html");
-                if (!tplResp.ok) return;
-                const template = await tplResp.text();
-                const fecha = payload.fecha || new Date().toISOString().split("T")[0];
+                if (!result.ruta_pdf) return;
                 const eq = (payload.equipos || [])[0] || {};
-                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ") || "________________";
-
-                const rendered = template
-                    .replace(/\{\{idActa\}\}/g, "Pendiente")
-                    .replace(/\{\{fechaCreacion\}\}/g, fecha)
-                    .replace(/\{\{nombreUsuario\}\}/g, payload.recibido_por || "________________")
-                    .replace(/\{\{cedulaUsuario\}\}/g, payload.cedula || "________________")
-                    .replace(/\{\{correoUsuario\}\}/g, "________________")
-                    .replace(/\{\{cargo\}\}/g, payload.cargo_recibe || "________________")
-                    .replace(/\{\{lugarTrabajo\}\}/g, "________________")
-                    .replace(/\{\{empresa\}\}/g, "________________")
-                    .replace(/\{\{ticketGlpi\}\}/g, "________________")
-                    .replace(/\{\{descripcionEquipo\}\}/g, descMarca)
-                    .replace(/\{\{marcaModelo\}\}/g, descMarca)
-                    .replace(/\{\{serialEquipo\}\}/g, eq.serial || "________________")
-                    .replace(/\{\{placaEquipo\}\}/g, eq.inventario || "________________")
-                    .replace(/\{\{estadoEquipo\}\}/g, eq.estado || "________________")
-                    .replace(/\{\{observaciones\}\}/g, payload.observaciones || "________________")
-                    .replace(/\{\{tecnicoNombre\}\}/g, payload.entregado_por || "________________");
+                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ");
 
                 const actaPayload = {
                     tipoActa: "DEVOLUCION",
                     nombreUsuario: payload.recibido_por || "",
                     cedulaUsuario: payload.cedula || "",
-                    cargo: payload.cargo_recibe || "",
-                    fechaCreacion: fecha,
-                    descripcionEquipo: descMarca === "________________" ? "" : descMarca,
-                    marcaModelo: descMarca === "________________" ? "" : descMarca,
                     serialEquipo: eq.serial || "",
                     placaEquipo: eq.inventario || "",
-                    estadoEquipo: eq.estado || "",
-                    observaciones: payload.observaciones || "",
-                    contenidoHtml: rendered
+                    descripcionEquipo: descMarca || "",
+                    rutaPdf: result.ruta_pdf,
+                    datosOriginales: JSON.stringify(payload)
                 };
 
                 const tokenActa = LoginService.obtenerToken();

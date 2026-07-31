@@ -100,6 +100,8 @@ public class FirmaService {
         return FirmaPublicaResponse.builder()
                 .idActa(acta.getIdActa())
                 .tipoActa(acta.getTipoActa().name())
+                .estado(acta.getEstado().name())
+                .rutaPdf(acta.getRutaPdf())
                 .nombreUsuario(acta.getNombreUsuario())
                 .cedulaUsuario(acta.getCedulaUsuario())
                 .correoUsuario(acta.getCorreoUsuario())
@@ -108,7 +110,47 @@ public class FirmaService {
                 .placaEquipo(acta.getPlacaEquipo())
                 .ticketGlpi(acta.getTicketGlpi())
                 .contenidoHtml(acta.getContenidoHtml())
+                .fechaRechazo(acta.getFechaRechazo())
+                .observacionRechazo(acta.getObservacionRechazo())
                 .build();
+    }
+
+    @Transactional
+    public void rechazarActa(String token, String motivo) {
+        FirmaToken firmaToken = firmaTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Token no valido"));
+
+        if (firmaToken.getUtilizado()) {
+            throw new IllegalArgumentException("Este enlace ya fue utilizado");
+        }
+
+        Acta acta = actaRepository.findById(firmaToken.getIdActa())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Acta no encontrada"));
+
+        if (acta.getEstado() != EstadoActa.ENVIADA) {
+            throw new IllegalArgumentException(
+                    "Esta acta no esta disponible para firma. Estado: " + acta.getEstado());
+        }
+
+        firmaToken.setUtilizado(true);
+        firmaToken.setFechaUtilizacion(LocalDateTime.now());
+        firmaTokenRepository.save(firmaToken);
+
+        EstadoActa estadoAnterior = acta.getEstado();
+        acta.setEstado(EstadoActa.RECHAZADA);
+        acta.setFechaRechazo(LocalDateTime.now());
+        acta.setObservacionRechazo(motivo);
+        actaRepository.save(acta);
+
+        actaHistorialRepository.save(ActaHistorial.builder()
+                .idActa(acta.getIdActa())
+                .estadoAnterior(estadoAnterior)
+                .estadoNuevo(EstadoActa.RECHAZADA)
+                .usuarioAccion("SISTEMA")
+                .observacion(motivo)
+                .build());
     }
 
     @Transactional
@@ -147,13 +189,13 @@ public class FirmaService {
             evidenciaRepository.save(Evidencia.builder()
                     .idActa(acta.getIdActa())
                     .tipo(Evidencia.TipoEvidencia.FIRMA)
-                    .rutaArchivo(rutaFirma.toString())
+                    .rutaArchivo("uploads/firmas/firma_" + acta.getIdActa() + ".png")
                     .build());
 
             evidenciaRepository.save(Evidencia.builder()
                     .idActa(acta.getIdActa())
                     .tipo(Evidencia.TipoEvidencia.FOTO)
-                    .rutaArchivo(rutaFoto.toString())
+                    .rutaArchivo("uploads/fotos/foto_" + acta.getIdActa() + ".jpg")
                     .build());
 
             firmaToken.setUtilizado(true);

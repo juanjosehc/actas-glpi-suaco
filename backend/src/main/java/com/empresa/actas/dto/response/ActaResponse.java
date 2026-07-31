@@ -1,5 +1,6 @@
 package com.empresa.actas.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ActaResponse {
 
     private boolean success;
@@ -24,6 +26,9 @@ public class ActaResponse {
 
     private String mensaje;
 
+    @JsonProperty("ruta_pdf")
+    private String rutaPdf;
+
     /**
      * Crea una respuesta exitosa con el nombre del ZIP generado.
      *
@@ -31,7 +36,18 @@ public class ActaResponse {
      * @return ActaResponse con success=true.
      */
     public static ActaResponse ok(String nombreZip) {
-        return new ActaResponse(true, nombreZip, "Documentacion generada correctamente");
+        return new ActaResponse(true, nombreZip, "Documentacion generada correctamente", null);
+    }
+
+    /**
+     * Crea una respuesta exitosa con el nombre del ZIP y la ruta del PDF.
+     *
+     * @param nombreZip Nombre del archivo ZIP para descarga.
+     * @param rutaPdf   Ruta relativa del PDF generado.
+     * @return ActaResponse con success=true y ruta_pdf.
+     */
+    public static ActaResponse ok(String nombreZip, String rutaPdf) {
+        return new ActaResponse(true, nombreZip, "Documentacion generada correctamente", rutaPdf);
     }
 
     /**
@@ -41,6 +57,6 @@ public class ActaResponse {
      * @return ActaResponse con success=false.
      */
     public static ActaResponse error(String mensaje) {
-        return new ActaResponse(false, null, mensaje);
+        return new ActaResponse(false, null, mensaje, null);
     }
 }

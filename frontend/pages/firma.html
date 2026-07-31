@@ -36,6 +36,16 @@
         <p class="state-text state-text--muted">Puede cerrar esta ventana.</p>
     </div>
 
+    <!-- REJECTED -->
+    <div class="firma-state" id="stateRejected" style="display:none">
+        <div class="state-icon state-icon--error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h2 class="state-title">Acta Rechazada</h2>
+        <p class="state-text">El rechazo del acta fue registrado correctamente.</p>
+        <p class="state-text state-text--muted">Puede cerrar esta ventana.</p>
+    </div>
+
     <!-- MAIN CONTENT -->
     <div class="firma-card" id="firmaCard" style="display:none">
 
@@ -44,7 +54,8 @@
                 <img src="../img/LogoC.png" alt="Logo Coltefinanciera">
             </div>
             <h1 class="firma-title">Firma Digital</h1>
-            <p class="firma-subtitle">Revise la informacion y firme el acta</p>
+            <p class="firma-subtitle">Revise el documento oficial y decida si desea firmar o rechazar</p>
+            <div class="firma-estado" id="firmaEstado"></div>
         </header>
 
         <!-- ACTA INFO -->
@@ -84,9 +95,21 @@
                     <span class="info-value" id="infoTicket">-</span>
                 </div>
             </div>
-            <div class="info-html" id="infoHtml" style="display:none">
-                <h3 class="section-title">Contenido del Acta</h3>
-                <div class="html-content" id="htmlContent"></div>
+        </section>
+
+        <!-- DOCUMENTO OFICIAL -->
+        <section class="firma-section">
+            <h2 class="section-title">Documento Oficial</h2>
+            <p class="section-desc">Este es el documento que va a firmar. Puede navegar entre paginas y hacer zoom antes de decidir.</p>
+            <div class="pdf-loading" id="pdfLoading">
+                <div class="spinner-lg"></div>
+                <p class="state-text">Cargando documento...</p>
+            </div>
+            <div class="pdf-error" id="pdfError" style="display:none">
+                <p>No se pudo cargar el documento oficial.</p>
+            </div>
+            <div class="pdf-viewer" id="pdfViewerWrap" style="display:none">
+                <iframe id="pdfViewer" title="Documento oficial del acta"></iframe>
             </div>
         </section>
 
@@ -127,6 +150,9 @@
 
         <!-- SUBMIT -->
         <div class="firma-submit">
+            <button class="btn btn-outline btn-lg btn-full" id="btnReject" type="button">
+                Rechazar Acta
+            </button>
             <button class="btn btn-primary btn-lg btn-full" id="btnSubmit" type="button">
                 <span class="btn-text">Firmar Acta</span>
                 <span class="btn-loading">
@@ -136,6 +162,37 @@
             </button>
         </div>
 
+    </div>
+
+    <!-- RECHAZO -->
+    <div class="reject-overlay" id="rejectOverlay" style="display:none">
+        <div class="reject-modal">
+            <h2 class="reject-title">Rechazar Acta</h2>
+            <p class="section-desc">Indique el motivo por el cual rechaza este documento. Es un campo obligatorio.</p>
+
+            <div class="reject-reasons">
+                <button type="button" class="reject-reason" data-reason="No corresponde a mi equipo">No corresponde a mi equipo</button>
+                <button type="button" class="reject-reason" data-reason="Informacion incorrecta">Informacion incorrecta</button>
+                <button type="button" class="reject-reason" data-reason="No estoy de acuerdo con el contenido">No estoy de acuerdo con el contenido</button>
+                <button type="button" class="reject-reason" data-reason="">Otro</button>
+            </div>
+
+            <label class="info-label" for="rejectMotivo">Motivo del rechazo</label>
+            <textarea id="rejectMotivo" class="reject-textarea" maxlength="500" rows="4"
+                      placeholder="Describa el motivo del rechazo..."></textarea>
+            <p class="field-error" id="rejectError" style="display:none">Debe indicar un motivo para rechazar el acta.</p>
+
+            <div class="reject-actions">
+                <button class="btn btn-outline" id="btnCancelReject" type="button">Cancelar</button>
+                <button class="btn btn-danger" id="btnConfirmReject" type="button">
+                    <span class="btn-text">Confirmar Rechazo</span>
+                    <span class="btn-loading">
+                        <span class="spinner"></span>
+                        Enviando...
+                    </span>
+                </button>
+            </div>
+        </div>
     </div>
 
 </div>

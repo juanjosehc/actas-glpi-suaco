@@ -39,5 +39,12 @@ public record CrearActaRequest(
         String descripcionEquipo,
 
         @Schema(description = "Contenido HTML del acta (generado desde GLPI)")
-        String contenidoHtml
+        String contenidoHtml,
+
+        @Size(max = 500, message = "La ruta PDF no puede exceder 500 caracteres")
+        @Schema(description = "Ruta del archivo PDF generado desde la plantilla DOCX")
+        String rutaPdf,
+
+        @Schema(description = "JSON con los datos originales usados para generar el DOCX (para regeneracion del documento firmado con imagenes)")
+        String datosOriginales
 ) {}

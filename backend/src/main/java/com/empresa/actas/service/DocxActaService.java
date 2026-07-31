@@ -18,18 +18,24 @@ public class DocxActaService {
     @Value("${app.generated-dir}")
     private String generatedDir;
 
+    @Value("${app.uploads-dir:uploads}")
+    private String uploadsDir;
+
     private final DocumentoWordService wordService;
     private final ZipService zipService;
     private final ObjectMapper objectMapper;
+    private final LibreOfficePdfService libreOfficePdfService;
 
     public DocxActaService(
             DocumentoWordService wordService,
             ZipService zipService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            LibreOfficePdfService libreOfficePdfService
     ) {
         this.wordService = wordService;
         this.zipService = zipService;
         this.objectMapper = objectMapper;
+        this.libreOfficePdfService = libreOfficePdfService;
     }
 
     public ActaResponse generarActa(ActaRequest request) {
@@ -59,7 +65,11 @@ public class DocxActaService {
 
             zipService.crearZip(rutaZip, rutaActa, rutaChecklist);
 
-            return ActaResponse.ok(nombreZip);
+            Path pdfDir = Paths.get(uploadsDir, "pdf");
+            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaActa, pdfDir);
+            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+
+            return ActaResponse.ok(nombreZip, rutaPdfUrl);
 
         } catch (Exception e) {
             return ActaResponse.error("Error generando documentacion: " + e.getMessage());

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-29T11:38:29-0500",
+    date = "2026-07-31T08:27:23-0500",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
@@ -33,6 +33,7 @@ public class ActaMapperImpl implements ActaMapper {
         actaResponse.setFechaFirma( acta.getFechaFirma() );
         actaResponse.setFechaAprobacion( acta.getFechaAprobacion() );
         actaResponse.setObservacionRechazo( acta.getObservacionRechazo() );
+        actaResponse.setFechaRechazo( acta.getFechaRechazo() );
         actaResponse.setRutaPdf( acta.getRutaPdf() );
         actaResponse.setCedulaUsuario( acta.getCedulaUsuario() );
         actaResponse.setNombreUsuario( acta.getNombreUsuario() );

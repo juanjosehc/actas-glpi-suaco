@@ -6,13 +6,16 @@
     const stateLoading = $("stateLoading");
     const stateError = $("stateError");
     const stateSuccess = $("stateSuccess");
+    const stateRejected = $("stateRejected");
     const firmaCard = $("firmaCard");
     const errorMessage = $("errorMessage");
     const btnSubmit = $("btnSubmit");
+    const btnReject = $("btnReject");
     const signatureError = $("signatureError");
     const photoError = $("photoError");
 
     // Info fields
+    const firmaEstado = $("firmaEstado");
     const infoTipoActa = $("infoTipoActa");
     const infoNombreUsuario = $("infoNombreUsuario");
     const infoCedula = $("infoCedula");
@@ -21,8 +24,19 @@
     const infoSerial = $("infoSerial");
     const infoPlaca = $("infoPlaca");
     const infoTicket = $("infoTicket");
-    const infoHtml = $("infoHtml");
-    const htmlContent = $("htmlContent");
+
+    // PDF viewer
+    const pdfLoading = $("pdfLoading");
+    const pdfError = $("pdfError");
+    const pdfViewerWrap = $("pdfViewerWrap");
+    const pdfViewer = $("pdfViewer");
+
+    // Reject modal
+    const rejectOverlay = $("rejectOverlay");
+    const rejectMotivo = $("rejectMotivo");
+    const rejectError = $("rejectError");
+    const btnCancelReject = $("btnCancelReject");
+    const btnConfirmReject = $("btnConfirmReject");
 
     // Signature
     const canvas = $("signatureCanvas");
@@ -79,6 +93,10 @@
     }
 
     function renderActa(data) {
+        if (data.estado) {
+            firmaEstado.innerHTML = '<span class="estado-badge">' + data.estado + '</span>';
+        }
+
         infoTipoActa.textContent = data.tipoActa || "-";
         infoNombreUsuario.textContent = data.nombreUsuario || "-";
         infoCedula.textContent = data.cedulaUsuario || "-";
@@ -88,15 +106,39 @@
         infoPlaca.textContent = data.placaEquipo || "-";
         infoTicket.textContent = data.ticketGlpi != null ? String(data.ticketGlpi) : "-";
 
-        if (data.contenidoHtml) {
-            htmlContent.innerHTML = data.contenidoHtml;
-            infoHtml.style.display = "block";
-        }
+        loadPdf(data.rutaPdf);
 
         stateLoading.style.display = "none";
         firmaCard.style.display = "block";
 
         setupCanvas();
+    }
+
+    function loadPdf(rutaPdf) {
+        pdfLoading.style.display = "flex";
+        pdfError.style.display = "none";
+        pdfViewerWrap.style.display = "none";
+
+        if (!rutaPdf) {
+            pdfLoading.style.display = "none";
+            pdfError.style.display = "block";
+            return;
+        }
+
+        fetch(API_BASE + "/" + rutaPdf)
+            .then(function (r) {
+                if (!r.ok) throw new Error("Error al cargar PDF");
+                return r.blob();
+            })
+            .then(function (blob) {
+                pdfLoading.style.display = "none";
+                pdfViewer.src = URL.createObjectURL(blob);
+                pdfViewerWrap.style.display = "block";
+            })
+            .catch(function () {
+                pdfLoading.style.display = "none";
+                pdfError.style.display = "block";
+            });
     }
 
     function showError(msg) {
@@ -356,6 +398,88 @@
         } finally {
             btnSubmit.classList.remove("loading");
             btnSubmit.disabled = false;
+        }
+    }
+
+    // =========================
+    //  REJECT
+    // =========================
+
+    btnReject.addEventListener("click", openRejectModal);
+
+    document.querySelectorAll(".reject-reason").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            document.querySelectorAll(".reject-reason").forEach(function (b) {
+                b.classList.remove("selected");
+            });
+            btn.classList.add("selected");
+            rejectMotivo.value = btn.dataset.reason;
+            hideFieldError(rejectError);
+        });
+    });
+
+    rejectMotivo.addEventListener("input", function () {
+        hideFieldError(rejectError);
+    });
+
+    btnCancelReject.addEventListener("click", closeRejectModal);
+
+    rejectOverlay.addEventListener("click", function (e) {
+        if (e.target === rejectOverlay) closeRejectModal();
+    });
+
+    function openRejectModal() {
+        rejectMotivo.value = "";
+        document.querySelectorAll(".reject-reason").forEach(function (b) {
+            b.classList.remove("selected");
+        });
+        hideFieldError(rejectError);
+        rejectOverlay.style.display = "flex";
+    }
+
+    function closeRejectModal() {
+        rejectOverlay.style.display = "none";
+        btnConfirmReject.classList.remove("loading");
+        btnConfirmReject.disabled = false;
+    }
+
+    btnConfirmReject.addEventListener("click", submitRechazo);
+
+    async function submitRechazo() {
+        const motivo = rejectMotivo.value.trim();
+
+        if (!motivo) {
+            showFieldError(rejectError);
+            return;
+        }
+
+        btnConfirmReject.classList.add("loading");
+        btnConfirmReject.disabled = true;
+
+        try {
+            const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}/rechazar`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ motivo }),
+            });
+
+            const body = await resp.json();
+
+            if (body.success) {
+                stopCamera();
+                closeRejectModal();
+                firmaCard.style.display = "none";
+                stateRejected.style.display = "flex";
+            } else {
+                closeRejectModal();
+                alert(body.mensaje || "Error al rechazar el acta. Intente de nuevo.");
+            }
+        } catch (err) {
+            closeRejectModal();
+            const msg = err.message.includes("Failed to fetch")
+                ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
+                : "Error al rechazar el acta. Intente de nuevo.";
+            alert(msg);
         }
     }
 })();

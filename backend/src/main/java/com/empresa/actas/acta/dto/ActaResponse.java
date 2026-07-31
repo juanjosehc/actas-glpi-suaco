@@ -61,6 +61,9 @@ public class ActaResponse {
     @Schema(description = "Observacion de rechazo", example = "Firma no valida")
     private String observacionRechazo;
 
+    @Schema(description = "Fecha de rechazo del acta")
+    private LocalDateTime fechaRechazo;
+
     @Schema(description = "Ruta del archivo PDF", example = "uploads/acta_1.pdf")
     private String rutaPdf;
 

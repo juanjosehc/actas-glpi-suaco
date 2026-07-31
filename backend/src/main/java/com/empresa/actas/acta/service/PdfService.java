@@ -244,7 +244,7 @@ public class PdfService {
             }
 
             document.close();
-            return rutaPdf.toString().replace("\\", "/");
+            return "uploads/pdf/acta_" + acta.getIdActa() + ".pdf";
 
         } catch (DocumentException | IOException e) {
             throw new RuntimeException("Error generando PDF: " + e.getMessage());

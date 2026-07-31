@@ -261,6 +261,14 @@
                     <span class="detail-label">Placa</span>
                     <span class="detail-value">${a.placaEquipo || "-"}</span>
                 </div>
+                <div class="detail-field">
+                    <span class="detail-label">Fecha Rechazo</span>
+                    <span class="detail-value">${formatDate(a.fechaRechazo)}</span>
+                </div>
+                <div class="detail-field full">
+                    <span class="detail-label">Observacion Rechazo</span>
+                    <span class="detail-value">${a.observacionRechazo || "-"}</span>
+                </div>
                 ${htmlContent}
             </div>`;
 

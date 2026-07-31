@@ -20,7 +20,8 @@ import java.util.Map;
  * 2. Convertir DevolucionRequest a Map<String, Object> para el motor de templates.
  * 3. Generar acta de devolución (DOCX) vía DocumentoWordService.
  * 4. Empaquetar el DOCX en un ZIP vía ZipService.
- * 5. Retornar ActaResponse con el nombre del ZIP.
+ * 5. Generar PDF desde el DOCX generado vía DocxToPdfService.
+ * 6. Retornar ActaResponse con nombre del ZIP y ruta del PDF.
  *
  * A diferencia de ActaService, solo genera un DOCX (no checklist).
  * Naming del ZIP: Devolucion_{serial}_{motivo}.zip
@@ -31,25 +32,32 @@ public class DevolucionService {
     @Value("${app.generated-dir}")
     private String generatedDir;
 
+    @Value("${app.uploads-dir:uploads}")
+    private String uploadsDir;
+
     private final DocumentoWordService wordService;
     private final ZipService zipService;
     private final ObjectMapper objectMapper;
+    private final LibreOfficePdfService libreOfficePdfService;
 
     public DevolucionService(
             DocumentoWordService wordService,
             ZipService zipService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            LibreOfficePdfService libreOfficePdfService
     ) {
         this.wordService = wordService;
         this.zipService = zipService;
         this.objectMapper = objectMapper;
+        this.libreOfficePdfService = libreOfficePdfService;
     }
 
     /**
-     * Genera el acta de devolución empaquetada en ZIP.
+     * Genera el acta de devolución empaquetada en ZIP,
+     * junto con el PDF desde la plantilla DOCX.
      *
      * @param request Datos del acta validados previamente por el controller.
-     * @return ActaResponse con success=true y nombre_zip, o success=false con error.
+     * @return ActaResponse con success=true, nombre_zip y ruta_pdf, o success=false con error.
      */
     public ActaResponse generarDevolucion(DevolucionRequest request) {
         try {
@@ -76,7 +84,11 @@ public class DevolucionService {
 
             zipService.crearZip(rutaZip, rutaDevolucion);
 
-            return ActaResponse.ok(nombreZip);
+            Path pdfDir = Paths.get(uploadsDir, "pdf");
+            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaDevolucion, pdfDir);
+            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+
+            return ActaResponse.ok(nombreZip, rutaPdfUrl);
 
         } catch (Exception e) {
             return ActaResponse.error("Error generando devolucion: " + e.getMessage());

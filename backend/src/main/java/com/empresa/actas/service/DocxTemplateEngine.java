@@ -149,8 +149,15 @@ public class DocxTemplateEngine {
         List<int[]> matchRanges = new ArrayList<>();
         List<String> matchValues = new ArrayList<>();
         while (matcher.find()) {
-            matchRanges.add(new int[]{matcher.start(), matcher.end()});
-            matchValues.add(variables.getOrDefault(matcher.group(1), ""));
+            String varName = matcher.group(1);
+            if (variables.containsKey(varName)) {
+                matchRanges.add(new int[]{matcher.start(), matcher.end()});
+                matchValues.add(variables.get(varName));
+            }
+        }
+
+        if (matchRanges.isEmpty()) {
+            return;
         }
 
         for (int r = 0; r < n; r++) {

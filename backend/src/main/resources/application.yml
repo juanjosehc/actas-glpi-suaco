@@ -53,3 +53,8 @@ glpi:
 app:
   generated-dir: ${java.io.tmpdir}/actas_glpi_generados
   templates-dir: classpath:plantillas
+  uploads-dir: ${java.io.tmpdir}/actas_glpi_uploads
+
+# Ruta a LibreOffice Portable (soffice.exe)
+libreoffice:
+  path: ${user.home}/LibreOfficePortable/LibreOfficePortable/App/libreoffice/program/soffice.exe

@@ -57,6 +57,8 @@ public class ActaService {
                 .placaEquipo(request.placaEquipo())
                 .descripcionEquipo(request.descripcionEquipo())
                 .contenidoHtml(request.contenidoHtml())
+                .rutaPdf(request.rutaPdf())
+                .datosOriginales(request.datosOriginales())
                 .build();
 
         Acta actaGuardada = actaRepository.save(acta);
@@ -111,14 +113,17 @@ public class ActaService {
 
         EstadoActa estadoAnterior = acta.getEstado();
 
-        String rutaPdf = pdfService.generarPdfFinal(acta);
+        String rutaPdf = acta.getRutaPdf();
+        if (rutaPdf == null || rutaPdf.isBlank()) {
+            rutaPdf = pdfService.generarPdfFinal(acta);
 
-        Evidencia evidenciaPdf = Evidencia.builder()
-                .idActa(id)
-                .tipo(Evidencia.TipoEvidencia.PDF_FINAL)
-                .rutaArchivo(rutaPdf)
-                .build();
-        evidenciaRepository.save(evidenciaPdf);
+            Evidencia evidenciaPdf = Evidencia.builder()
+                    .idActa(id)
+                    .tipo(Evidencia.TipoEvidencia.PDF_FINAL)
+                    .rutaArchivo(rutaPdf)
+                    .build();
+            evidenciaRepository.save(evidenciaPdf);
+        }
 
         acta.setEstado(EstadoActa.APROBADA);
         acta.setFechaAprobacion(LocalDateTime.now());

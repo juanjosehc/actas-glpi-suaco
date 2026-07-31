@@ -444,11 +444,190 @@ html, body {
 }
 
 /* =========================
+   ESTADO BADGE
+   ========================= */
+
+.firma-estado {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: var(--f-primary-light);
+    color: var(--f-primary);
+    border: 1px solid var(--f-border);
+}
+
+/* =========================
+   PDF VIEWER
+   ========================= */
+
+.pdf-viewer {
+    border: 1px solid var(--f-border);
+    border-radius: var(--f-radius-sm);
+    overflow: hidden;
+    background: #FFFFFF;
+}
+
+.pdf-viewer iframe {
+    display: block;
+    width: 100%;
+    height: 640px;
+    border: none;
+}
+
+.pdf-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 48px 24px;
+    border: 1px dashed var(--f-border-light);
+    border-radius: var(--f-radius-sm);
+    background: #FAFAFA;
+}
+
+.pdf-loading .spinner-lg {
+    margin-bottom: 0;
+}
+
+.pdf-error {
+    border: 1px dashed var(--f-border-light);
+    border-radius: var(--f-radius-sm);
+    background: var(--f-error-bg);
+    padding: 24px;
+    text-align: center;
+}
+
+.pdf-error p {
+    color: var(--f-error);
+    font-weight: 600;
+}
+
+/* =========================
    SUBMIT
    ========================= */
 
 .firma-submit {
     margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-danger {
+    color: var(--f-white);
+    background: var(--f-error);
+    border-color: var(--f-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #B91C1C;
+    border-color: #B91C1C;
+}
+
+/* =========================
+   REJECT MODAL
+   ========================= */
+
+.reject-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+}
+
+.reject-modal {
+    width: 100%;
+    max-width: 480px;
+    background: var(--f-white);
+    border-radius: var(--f-radius);
+    box-shadow: var(--f-shadow-lg);
+    padding: 28px;
+    animation: fadeUp 0.3s ease;
+}
+
+.reject-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--f-text);
+    margin-bottom: 8px;
+}
+
+.reject-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 16px;
+}
+
+.reject-reason {
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--f-border-light);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--f-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.reject-reason:hover {
+    border-color: var(--f-error);
+    color: var(--f-error);
+    background: var(--f-error-bg);
+}
+
+.reject-reason.selected {
+    border-color: var(--f-error);
+    color: var(--f-error);
+    background: var(--f-error-bg);
+}
+
+.reject-textarea {
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--f-border-light);
+    border-radius: var(--f-radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--f-text);
+    resize: vertical;
+    background: #FFFFFF;
+}
+
+.reject-textarea:focus {
+    outline: none;
+    border-color: var(--f-primary);
+}
+
+.reject-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+.reject-actions .btn {
+    min-width: 120px;
 }
 
 /* =========================
@@ -495,6 +674,18 @@ html, body {
     }
 
     .camera-actions .btn {
+        width: 100%;
+    }
+
+    .pdf-viewer iframe {
+        height: 480px;
+    }
+
+    .reject-actions {
+        flex-direction: column;
+    }
+
+    .reject-actions .btn {
         width: 100%;
     }
 }

@@ -25,6 +25,9 @@ public class DocxActaController {
     @Value("${app.generated-dir}")
     private String generatedDir;
 
+    @Value("${app.uploads-dir:uploads}")
+    private String uploadsDir;
+
     private final DocxActaService docxActaService;
 
     public DocxActaController(DocxActaService docxActaService) {
@@ -50,6 +53,23 @@ public class DocxActaController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + nombreZip + "\"")
+                .body(resource);
+    }
+
+    @GetMapping("/uploads/pdf/{fileName:.+}")
+    public ResponseEntity<?> servirPdf(@PathVariable String fileName) {
+        Path rutaPdf = Paths.get(uploadsDir, "pdf", fileName);
+
+        if (!rutaPdf.toFile().exists()) {
+            return ResponseEntity.ok(ErrorResponse.of("PDF no encontrado"));
+        }
+
+        Resource resource = new FileSystemResource(rutaPdf.toFile());
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + fileName + "\"")
                 .body(resource);
     }
 }

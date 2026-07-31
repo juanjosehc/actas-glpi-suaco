@@ -2,6 +2,9 @@
     var API_BASE = "http://localhost:8001";
 
     var viewDocument = document.getElementById("viewDocument");
+    var pdfViewer = document.getElementById("pdfViewer");
+    var viewLoading = document.getElementById("viewLoading");
+    var viewNoPdf = document.getElementById("viewNoPdf");
     var viewTitle = document.getElementById("viewTitle");
     var viewSubtitle = document.getElementById("viewSubtitle");
     var viewEstado = document.getElementById("viewEstado");
@@ -55,78 +58,38 @@
         } catch (_) { return dateStr; }
     }
 
-    function embedEvidencesInDocument(html, acta, evidencias) {
-        var firmaUrl = null;
-        var fotoUrl = null;
+    function loadPdfViewer(rutaPdf) {
+        viewLoading.style.display = "block";
+        viewNoPdf.style.display = "none";
+        viewDocument.style.display = "none";
 
-        if (evidencias && evidencias.length > 0) {
-            for (var i = 0; i < evidencias.length; i++) {
-                var ev = evidencias[i];
-                if (ev.tipo === "FIRMA") firmaUrl = ev.rutaArchivo;
-                if (ev.tipo === "FOTO") fotoUrl = ev.rutaArchivo;
-            }
+        if (!rutaPdf) {
+            viewLoading.style.display = "none";
+            viewNoPdf.style.display = "block";
+            return;
         }
 
-        var estadoFirmado = acta.estado === "FIRMADA" || acta.estado === "APROBADA" || acta.estado === "RECHAZADA";
+        var pdfUrl = API_BASE + "/" + rutaPdf;
 
-        var signatureHtml = "";
-        if (estadoFirmado && (firmaUrl || fotoUrl || acta.fechaFirma)) {
-            signatureHtml += '<div class="acta-evidences-section">';
-            signatureHtml += '<h2 class="acta-subsection">EVIDENCIAS DE FIRMA</h2>';
-
-            if (acta.fechaFirma) {
-                signatureHtml += '<p class="acta-evidence-date">Fecha de firma: <strong>' + formatDateTime(acta.fechaFirma) + '</strong></p>';
-            }
-
-            signatureHtml += '<div class="acta-evidences-row">';
-
-            if (firmaUrl) {
-                signatureHtml += '<div class="acta-evidence-box">';
-                signatureHtml += '<span class="acta-evidence-label">FIRMA DEL COLABORADOR</span>';
-                signatureHtml += '<div class="acta-evidence-image-wrapper">';
-                signatureHtml += '<img src="' + API_BASE + '/' + firmaUrl + '" alt="Firma" class="acta-evidence-img acta-evidence-img--firma" />';
-                signatureHtml += '</div>';
-                signatureHtml += '</div>';
-            }
-
-            if (fotoUrl) {
-                signatureHtml += '<div class="acta-evidence-box">';
-                signatureHtml += '<span class="acta-evidence-label">FOTOGRAFIA DEL COLABORADOR</span>';
-                signatureHtml += '<div class="acta-evidence-image-wrapper">';
-                signatureHtml += '<img src="' + API_BASE + '/' + fotoUrl + '" alt="Foto" class="acta-evidence-img acta-evidence-img--foto" />';
-                signatureHtml += '</div>';
-                signatureHtml += '</div>';
-            }
-
-            signatureHtml += '</div>';
-            signatureHtml += '</div>';
-        }
-
-        if (!signatureHtml) return html;
-
-        var footerIndex = html.lastIndexOf('<div class="acta-footer"');
-        var watermarkIndex = html.lastIndexOf('<div class="acta-watermark"');
-
-        if (footerIndex !== -1) {
-            return html.slice(0, footerIndex) + signatureHtml + html.slice(footerIndex);
-        } else if (watermarkIndex !== -1) {
-            return html.slice(0, watermarkIndex) + signatureHtml + html.slice(watermarkIndex);
-        } else {
-            return html + signatureHtml;
-        }
+        fetch(pdfUrl)
+            .then(function (r) {
+                if (!r.ok) throw new Error("Error al cargar PDF");
+                return r.blob();
+            })
+            .then(function (blob) {
+                viewLoading.style.display = "none";
+                pdfViewer.src = URL.createObjectURL(blob);
+                viewDocument.style.display = "block";
+            })
+            .catch(function () {
+                viewLoading.style.display = "none";
+                viewNoPdf.style.display = "block";
+                viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">Error al cargar el PDF.</p>';
+            });
     }
 
     function renderDocument(acta, evidencias) {
-        viewDocument.innerHTML = "";
-
-        if (acta.contenidoHtml) {
-            var finalHtml = embedEvidencesInDocument(acta.contenidoHtml, acta, evidencias);
-            var div = document.createElement("div");
-            div.innerHTML = finalHtml;
-            viewDocument.appendChild(div);
-        } else {
-            viewDocument.innerHTML = '<div class="acta-document"><p style="color:#64748B;padding:20px;text-align:center;">No hay contenido HTML disponible para esta acta.</p></div>';
-        }
+        viewLoading.style.display = "none";
 
         var estadoBadge = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + acta.estado + '</span>';
         viewEstado.innerHTML = estadoBadge;
@@ -140,7 +103,9 @@
         viewTitle.textContent = "Acta #" + acta.id;
         viewSubtitle.textContent = (acta.tipoActa || "") + " - " + (acta.nombreUsuario || "");
 
-        if (downloadPdfBtn && acta.rutaPdf && acta.estado === "APROBADA") {
+        loadPdfViewer(acta.rutaPdf);
+
+        if (downloadPdfBtn && acta.rutaPdf) {
             downloadPdfBtn.style.display = "inline-flex";
             downloadPdfBtn.href = API_BASE + "/" + acta.rutaPdf;
         } else if (downloadPdfBtn) {
@@ -232,7 +197,9 @@
                 renderDocument(acta, evidencias);
             })
             .catch(function (err) {
-                viewDocument.innerHTML = '<div class="acta-document"><p style="color:#DC2626;padding:20px;text-align:center;">Error: ' + err.message + '</p></div>';
+                viewLoading.style.display = "none";
+                viewNoPdf.style.display = "block";
+                viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">Error: ' + err.message + '</p>';
             });
     }
 
@@ -258,7 +225,9 @@
             .then(function (body) {
                 if (!body) return;
                 if (!body.success) {
-                    viewDocument.innerHTML = '<div class="acta-document"><p style="color:#DC2626;padding:20px;text-align:center;">' + (body.mensaje || "Acta no encontrada.") + '</p></div>';
+                    viewLoading.style.display = "none";
+                    viewNoPdf.style.display = "block";
+                    viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">' + (body.mensaje || "Acta no encontrada.") + '</p>';
                     return;
                 }
 
@@ -269,7 +238,9 @@
                 });
             })
             .catch(function (err) {
-                viewDocument.innerHTML = '<div class="acta-document"><p style="color:#DC2626;padding:20px;text-align:center;">Error: ' + err.message + '</p></div>';
+                viewLoading.style.display = "none";
+                viewNoPdf.style.display = "block";
+                viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">Error: ' + err.message + '</p>';
                 showToast("Error al cargar acta", "error");
             });
     }
@@ -277,7 +248,9 @@
     function loadPreview() {
         var previewData = localStorage.getItem("actaPreview");
         if (!previewData) {
-            viewDocument.innerHTML = '<div class="acta-document"><p style="color:#DC2626;padding:20px;text-align:center;">No hay datos de vista previa disponibles.</p></div>';
+            viewLoading.style.display = "none";
+            viewNoPdf.style.display = "block";
+            viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">No hay datos de vista previa disponibles.</p>';
             return;
         }
 
@@ -292,16 +265,20 @@
                 nombreUsuario: data.nombreUsuario || "-",
                 descripcionEquipo: data.descripcionEquipo || "-",
                 fechaCreacion: data.fechaCreacion || null,
-                contenidoHtml: data.contenidoHtml || ""
+                rutaPdf: data.rutaPdf || ""
             };
 
             viewTitle.textContent = "Vista Previa";
             viewSubtitle.textContent = (acta.tipoActa || "") + " - " + (acta.nombreUsuario || "");
             viewInfoBar.style.display = "none";
 
-            renderDocument(acta, []);
+            loadPdfViewer(acta.rutaPdf);
+
+            renderEvidencesGrid([]);
         } catch (e) {
-            viewDocument.innerHTML = '<div class="acta-document"><p style="color:#DC2626;padding:20px;text-align:center;">Error al cargar la vista previa.</p></div>';
+            viewLoading.style.display = "none";
+            viewNoPdf.style.display = "block";
+            viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">Error al cargar la vista previa.</p>';
         }
     }
 
