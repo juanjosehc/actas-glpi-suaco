@@ -75,7 +75,7 @@
         emptyState.classList.remove("visible");
 
         try {
-            const resp = await fetch(`${API_BASE}/actas`, { headers: { Authorization: `Bearer ${token}` } });
+            const resp = await fetch(`${API_BASE}/actas?size=1000`, { headers: { Authorization: `Bearer ${token}` } });
             if (handle401(resp)) return;
 
             const body = await resp.json();
@@ -158,8 +158,9 @@
             const id = String(a.id);
             const user = (a.nombreUsuario || "").toLowerCase();
             const equipo = (a.descripcionEquipo || "").toLowerCase();
+            const serial = (a.serialEquipo || "").toLowerCase();
             const estado = (a.estado || "").toLowerCase();
-            return id.includes(q) || user.includes(q) || equipo.includes(q) || estado.includes(q);
+            return id.includes(q) || user.includes(q) || equipo.includes(q) || serial.includes(q) || estado.includes(q);
         });
         renderTable(filtered);
     }
@@ -240,10 +241,6 @@
                 <div class="detail-field">
                     <span class="detail-label">Cedula</span>
                     <span class="detail-value">${a.cedulaUsuario || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Correo</span>
-                    <span class="detail-value">${a.correoUsuario || "-"}</span>
                 </div>
                 <div class="detail-field">
                     <span class="detail-label">Ticket GLPI</span>

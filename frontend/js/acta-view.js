@@ -114,6 +114,18 @@
             downloadPdfBtn.style.display = "none";
         }
 
+        if (sendFirmaBtn) {
+            var hasAuthToken = !!LoginService.obtenerToken();
+            var hasRealId = typeof acta.id === "number" && isFinite(acta.id);
+            if (hasAuthToken && hasRealId && acta.estado === "GENERADA") {
+                currentActaId = acta.id;
+                sendFirmaBtn.style.display = "inline-flex";
+            } else {
+                currentActaId = null;
+                sendFirmaBtn.style.display = "none";
+            }
+        }
+
         renderEvidencesGrid(evidencias);
     }
 
@@ -247,6 +259,43 @@
             });
     }
 
+    function enviarActa(id) {
+        var tokenAuth = LoginService.obtenerToken();
+        if (!tokenAuth) {
+            window.location.href = ROUTES.LOGIN;
+            return;
+        }
+
+        if (sendFirmaBtn) sendFirmaBtn.disabled = true;
+
+        fetch(API_BASE + "/actas/" + id + "/enviar", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + tokenAuth, "Content-Type": "application/json" }
+        })
+            .then(function (r) {
+                if (r.status === 401) {
+                    LoginService.cerrarSesion();
+                    window.location.href = ROUTES.LOGIN;
+                    return null;
+                }
+                return r.json();
+            })
+            .then(function (body) {
+                if (!body) return;
+                if (body.success) {
+                    showToast("Acta enviada para firma exitosamente.", "success");
+                    loadById(id);
+                } else {
+                    showToast(body.mensaje || "Error al enviar el acta.", "error");
+                    if (sendFirmaBtn) sendFirmaBtn.disabled = false;
+                }
+            })
+            .catch(function () {
+                showToast("Error de conexion al enviar el acta.", "error");
+                if (sendFirmaBtn) sendFirmaBtn.disabled = false;
+            });
+    }
+
     function loadPreview() {
         var previewData = localStorage.getItem("actaPreview");
         if (!previewData) {
@@ -286,6 +335,12 @@
 
     function init() {
         var params = getActaFromUrl();
+
+        if (sendFirmaBtn) {
+            sendFirmaBtn.addEventListener("click", function () {
+                if (currentActaId != null) enviarActa(currentActaId);
+            });
+        }
 
         if (params.preview === "true") {
             loadPreview();
