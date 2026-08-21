@@ -24,8 +24,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/auth/",
             "/equipo/",
             "/usuario",
-            "/generar-acta",
-            "/generar-devolucion",
+            // /generar-acta y /generar-devolucion ya no van aqui: se deja que el
+            // filtro intente autenticar el header Bearer para tener el tecnico
+            // y poder persistir la entidad Acta de forma atomica en el backend.
             "/descargar-acta/",
             "/firma/",
             "/uploads/",

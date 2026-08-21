@@ -244,7 +244,8 @@ async function generarDevolucion() {
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + (LoginService.obtenerToken() || "")
                 },
                 body: JSON.stringify(payload)
             }
@@ -279,42 +280,9 @@ async function generarDevolucion() {
             "success"
         );
 
-        (async () => {
-            try {
-                if (!result.ruta_pdf) return;
-                const eq = (payload.equipos || [])[0] || {};
-                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ");
-
-                const actaPayload = {
-                    tipoActa: "DEVOLUCION",
-                    nombreUsuario: payload.recibido_por || "",
-                    cedulaUsuario: payload.cedula || "",
-                    correoUsuario: getCorreoUsuarioSeleccionado(document.getElementById("recibido_por")) || "",
-                    serialEquipo: eq.serial || "",
-                    placaEquipo: eq.inventario || "",
-                    descripcionEquipo: descMarca || "",
-                    rutaPdf: result.ruta_pdf,
-                    datosOriginales: JSON.stringify(payload)
-                };
-
-                const tokenActa = LoginService.obtenerToken();
-                if (!tokenActa) return;
-                const resp = await fetch("http://localhost:8001/actas", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + tokenActa
-                    },
-                    body: JSON.stringify(actaPayload)
-                });
-                if (resp.ok) {
-                    const body = await resp.json();
-                    if (body.success) console.log("Acta creada ID:", body.data?.id);
-                }
-            } catch (e) {
-                console.error("Error creando acta en BD:", e);
-            }
-        })();
+        // La entidad Acta ya se persiste de forma atomica en el backend
+        // (POST /generar-devolucion guarda en PostgreSQL y registra auditoria).
+        // Ya no se hace una segunda llamada independiente a POST /actas.
 
         const descargaResponse = await fetch(
             "http://127.0.0.1:8001/descargar-acta/" +

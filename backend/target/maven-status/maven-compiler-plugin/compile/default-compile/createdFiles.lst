@@ -28,6 +28,7 @@ com\empresa\actas\security\CustomUserDetailsService.class
 com\empresa\actas\dto\response\ActaResponse.class
 com\empresa\actas\auth\service\AuthService.class
 com\empresa\actas\usuario\repository\UsuarioRepository.class
+com\empresa\actas\security\AccesoService.class
 com\empresa\actas\firma\entity\Evidencia.class
 com\empresa\actas\acta\entity\EstadoActa.class
 com\empresa\actas\firma\dto\FirmaRequest.class

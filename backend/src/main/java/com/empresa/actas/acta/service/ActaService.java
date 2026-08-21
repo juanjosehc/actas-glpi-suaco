@@ -16,6 +16,7 @@ import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
+import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class ActaService {
     private final FirmaTokenRepository firmaTokenRepository;
     private final ActaMapper actaMapper;
     private final PdfService pdfService;
+    private final AccesoService accesoService;
 
     @Transactional
     public ActaResponse crearActa(CrearActaRequest request) {
@@ -79,21 +81,24 @@ public class ActaService {
     }
 
     public Page<ActaResponse> listarActas(Pageable pageable) {
+        // ROL TECNICO: solo ve actas que el mismo creo (idTecnico == su id).
+        // ADMINISTRADOR / AUDITOR: ve todas.
+        if (accesoService.esTecnico()) {
+            Long idTecnico = accesoService.usuarioActual().getUsuario().getIdUsuario();
+            return actaRepository.findByIdTecnico(idTecnico, pageable)
+                    .map(this::toResponseWithToken);
+        }
         return actaRepository.findAll(pageable)
                 .map(this::toResponseWithToken);
     }
 
     public ActaResponse obtenerActaPorId(Long id) {
-        Acta acta = actaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + id));
+        Acta acta = cargarActaConAcceso(id);
         return toResponseWithToken(acta);
     }
 
     public List<ActaHistorialResponse> obtenerHistorial(Long id) {
-        actaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + id));
+        cargarActaConAcceso(id);
 
         return actaHistorialRepository.findByIdActaOrderByFechaCambioDesc(id).stream()
                 .map(h -> ActaHistorialResponse.builder()
@@ -120,15 +125,25 @@ public class ActaService {
         return resp;
     }
 
+    /**
+     * Carga el acta y valida acceso segun rol/propietario.
+     * TECNICO no puede ver/operar actas de otro tecnico (403).
+     */
+    private Acta cargarActaConAcceso(Long id) {
+        Acta acta = actaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Acta no encontrada con id: " + id));
+        accesoService.verificarAccesoActa(acta);
+        return acta;
+    }
+
     @Transactional
     public void aprobarActa(Long id) {
         UserSecurity userSecurity =
                 (UserSecurity) SecurityContextHolder.getContext()
                         .getAuthentication().getPrincipal();
 
-        Acta acta = actaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + id));
+        Acta acta = cargarActaConAcceso(id);
 
         if (acta.getEstado() != EstadoActa.FIRMADA) {
             throw new IllegalArgumentException(
@@ -181,9 +196,7 @@ public class ActaService {
                 (UserSecurity) SecurityContextHolder.getContext()
                         .getAuthentication().getPrincipal();
 
-        Acta acta = actaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + id));
+        Acta acta = cargarActaConAcceso(id);
 
         if (acta.getEstado() != EstadoActa.FIRMADA) {
             throw new IllegalArgumentException(
@@ -209,9 +222,7 @@ public class ActaService {
     }
 
     public List<EvidenciaResponse> obtenerEvidencias(Long idActa) {
-        actaRepository.findById(idActa)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + idActa));
+        cargarActaConAcceso(idActa);
 
         return evidenciaRepository.findByIdActa(idActa).stream()
                 .map(e -> EvidenciaResponse.builder()

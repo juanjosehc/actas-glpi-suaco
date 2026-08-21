@@ -13,6 +13,7 @@ import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.mail.service.MailService;
+import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class FirmaService {
     private final FirmaTokenRepository firmaTokenRepository;
     private final EvidenciaRepository evidenciaRepository;
     private final MailService mailService;
+    private final AccesoService accesoService;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -53,6 +55,9 @@ public class FirmaService {
         Acta acta = actaRepository.findById(idActa)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Acta no encontrada con id: " + idActa));
+
+        // ROL TECNICO: solo puede enviar a firma sus propias actas.
+        accesoService.verificarAccesoActa(acta);
 
         if (acta.getEstado() != EstadoActa.GENERADA) {
             throw new IllegalArgumentException(

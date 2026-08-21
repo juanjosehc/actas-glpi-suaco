@@ -55,6 +55,7 @@ C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIER
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\mail\service\MailService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\rol\entity\Rol.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\rol\repository\RolRepository.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\AccesoService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\CustomUserDetailsService.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\JwtAuthenticationFilter.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\JwtService.java

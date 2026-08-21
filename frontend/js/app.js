@@ -305,12 +305,15 @@ async function generarActa() {
 
         };        
 
+        const token = LoginService.obtenerToken();
+
         const response = await fetch(
             "http://127.0.0.1:8001/generar-acta",
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + (token || "")
                 },
                 body: JSON.stringify(payload)
             }
@@ -345,43 +348,10 @@ async function generarActa() {
             "success"
         );
 
-        (async () => {
-            try {
-                if (!result.ruta_pdf) return;
-                const eq = (payload.equipos || [])[0] || {};
-                const descMarca = [eq.marca, eq.modelo].filter(Boolean).join(" ");
-
-                const actaPayload = {
-                    tipoActa: "ENTREGA",
-                    nombreUsuario: payload.entregado_a || "",
-                    cedulaUsuario: payload.cedula || "",
-                    correoUsuario: getCorreoUsuarioSeleccionado(document.getElementById("entregado_a")) || "",
-                    ticketGlpi: payload.numero_sac || "",
-                    serialEquipo: eq.serial || "",
-                    placaEquipo: eq.inventario || "",
-                    descripcionEquipo: descMarca || "",
-                    rutaPdf: result.ruta_pdf,
-                    datosOriginales: JSON.stringify(payload)
-                };
-
-                const tokenActa = LoginService.obtenerToken();
-                if (!tokenActa) return;
-                const resp = await fetch("http://localhost:8001/actas", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + tokenActa
-                    },
-                    body: JSON.stringify(actaPayload)
-                });
-                if (resp.ok) {
-                    const body = await resp.json();
-                    if (body.success) console.log("Acta creada ID:", body.data?.id);
-                }
-            } catch (e) {
-                console.error("Error creando acta en BD:", e);
-            }
-        })();
+        // La entidad Acta ya se persiste de forma atomica en el backend
+        // (POST /generar-acta guarda en PostgreSQL y registra auditoria).
+        // Ya no se hace una segunda llamada independiente a POST /actas,
+        // que era la causa de que la acta no quedara registrada.
 
         const descargaResponse = await fetch(
             "http://127.0.0.1:8001/descargar-acta/" +

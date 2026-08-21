@@ -2,7 +2,6 @@ package com.empresa.actas.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,7 +14,6 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ActaResponse {
 
@@ -28,6 +26,16 @@ public class ActaResponse {
 
     @JsonProperty("ruta_pdf")
     private String rutaPdf;
+
+    @JsonProperty("id_acta")
+    private Long idActa;
+
+    public ActaResponse(boolean success, String nombreZip, String mensaje, String rutaPdf) {
+        this.success = success;
+        this.nombreZip = nombreZip;
+        this.mensaje = mensaje;
+        this.rutaPdf = rutaPdf;
+    }
 
     /**
      * Crea una respuesta exitosa con el nombre del ZIP generado.
@@ -48,6 +56,16 @@ public class ActaResponse {
      */
     public static ActaResponse ok(String nombreZip, String rutaPdf) {
         return new ActaResponse(true, nombreZip, "Documentacion generada correctamente", rutaPdf);
+    }
+
+    /**
+     * Crea una respuesta exitosa con el nombre del ZIP, la ruta del PDF y
+     * el id de la entidad Acta persistida en PostgreSQL.
+     */
+    public static ActaResponse ok(String nombreZip, String rutaPdf, Long idActa) {
+        ActaResponse r = new ActaResponse(true, nombreZip, "Documentacion generada correctamente", rutaPdf);
+        r.setIdActa(idActa);
+        return r;
     }
 
     /**
