@@ -49,11 +49,51 @@ glpi:
   app-token: ZRsogtQqJgimxPwWxROo0F2WJdvLrsH0XLtcBKu8
   user-token: sX4sG98XFSnNyVaLwDckHwpdxNgO6rxrOUsN1vht
 
-# Rutas de archivos
+# =====================================================
+# CORREO ELECTRONICO (SMTP)
+# =====================================================
+# Configuracion parametrizable. Si no se define, la
+# aplicacion arranca y el envio se omite con un log.
+# Compatible con Microsoft 365, Exchange y SMTP estandar.
+# Use variables de entorno o edite estos valores.
+mail:
+  host: ${MAIL_HOST:}
+  port: ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:}
+  password: ${MAIL_PASSWORD:}
+  from: ${MAIL_FROM:}
+  properties:
+    mail:
+      smtp:
+        auth: ${MAIL_SMTP_AUTH:true}
+        starttls:
+          enable: ${MAIL_SMTP_STARTTLS:true}
+        connectiontimeout: ${MAIL_SMTP_TIMEOUT_CONNECT:10000}
+        timeout: ${MAIL_SMTP_TIMEOUT:15000}
+        writetimeout: ${MAIL_SMTP_TIMEOUT_WRITE:15000}
+
+# Almacenamiento persistente de archivos (PDF, DOCX, firmas, fotos).
+# Ya no usa directorios temporales del SO.
+# Configure STORAGE_ROOT (variable de entorno) o edite storage.root por entorno:
+#   Windows:  D:/ActasStorage  o  C:/ActasStorage
+#   Linux:    /data/actas  o  /opt/actas-storage
+#   Docker:   STORAGE_ROOT=/data/actas  + volumen montado en /data/actas
+# El default ${user.dir}/storage es para desarrollo local (ruta relativa al
+# directorio de trabajo del proceso, no a Temp/AppData/Downloads).
+storage:
+  root: ${STORAGE_ROOT:${user.dir}/storage}
+
+# Rutas de archivos (derivadas del storage root)
 app:
-  generated-dir: ${java.io.tmpdir}/actas_glpi_generados
+  generated-dir: ${storage.root}/generated
   templates-dir: classpath:plantillas
-  uploads-dir: ${java.io.tmpdir}/actas_glpi_uploads
+  uploads-dir: ${storage.root}/uploads
+  # URL base publica del portal de firma (sin slash final).
+  # El enlace del correo sera: firma-url-base + "/firma.html?token={token}"
+  # Ejemplos:
+  #   Desarrollo:  http://localhost:5500
+  #   Produccion:  https://actas.coltefinanciera.com
+  firma-url-base: ${FIRMA_URL_BASE:}
 
 # Ruta a LibreOffice Portable (soffice.exe)
 libreoffice:

@@ -12,6 +12,7 @@ import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
+import com.empresa.actas.mail.service.MailService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,12 +36,16 @@ public class FirmaService {
     private final ActaHistorialService actaHistorialService;
     private final FirmaTokenRepository firmaTokenRepository;
     private final EvidenciaRepository evidenciaRepository;
+    private final MailService mailService;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
 
+    @Value("${app.firma-url-base:}")
+    private String firmaUrlBase;
+
     @Transactional
-    public EnviarActaResponse enviarActa(Long idActa) {
+    public EnviarActaResponse enviarActa(Long idActa, String correo) {
         UserSecurity userSecurity =
                 (UserSecurity) SecurityContextHolder.getContext()
                         .getAuthentication().getPrincipal();
@@ -53,6 +58,14 @@ public class FirmaService {
             throw new IllegalArgumentException(
                     "Solo se pueden enviar actas en estado GENERADA. Estado actual: " + acta.getEstado());
         }
+
+        String correoDetectadoGlpi = acta.getCorreoUsuario();
+
+        if (correo != null && !correo.isBlank()) {
+            acta.setCorreoUsuario(correo.trim());
+        }
+
+        String correoUtilizado = acta.getCorreoUsuario();
 
         String token = UUID.randomUUID().toString();
 
@@ -68,6 +81,20 @@ public class FirmaService {
         acta.setFechaEnvio(LocalDateTime.now());
         actaRepository.save(acta);
 
+        String urlFirma = construirUrlFirma(token);
+
+        boolean correoEnviado = mailService.enviarCorreoFirma(
+                correoUtilizado,
+                acta.getNombreUsuario(),
+                acta.getTipoActa() != null ? acta.getTipoActa().name() : null,
+                acta.getSerialEquipo(),
+                urlFirma);
+
+        String observacion = "Acta enviada para firma"
+                + "; correo_detectado_glpi=" + (correoDetectadoGlpi == null ? "" : correoDetectadoGlpi)
+                + "; correo_utilizado=" + (correoUtilizado == null ? "" : correoUtilizado)
+                + "; correo_enviado=" + (correoEnviado ? "SI" : "NO");
+
         actaHistorialService.registrarEvento(
                 idActa,
                 TipoEventoActa.ACTA_ENVIADA,
@@ -76,9 +103,23 @@ public class FirmaService {
                 userSecurity.getUsuario().getIdUsuario(),
                 userSecurity.getUsername(),
                 firmaToken.getIdToken(),
-                "Acta enviada para firma");
+                observacion);
 
-        return new EnviarActaResponse(token, "/firma/" + token);
+        return new EnviarActaResponse(token, urlFirma);
+    }
+
+    /**
+     * Construye la URL publica del portal de firma a partir de la
+     * configuracion {@code app.firma-url-base}. Nunca se usa localhost.
+     */
+    private String construirUrlFirma(String token) {
+        if (firmaUrlBase == null || firmaUrlBase.isBlank()) {
+            return "/firma.html?token=" + token;
+        }
+        String base = firmaUrlBase.endsWith("/")
+                ? firmaUrlBase.substring(0, firmaUrlBase.length() - 1)
+                : firmaUrlBase;
+        return base + "/firma.html?token=" + token;
     }
 
     @Transactional

@@ -85,6 +85,65 @@ frontend/pages/acta-devolucion.html
 
 O usar Live Server de VS Code en el puerto 5500.
 
+## Almacenamiento de archivos (producción)
+
+Los datos de las actas se guardan en PostgreSQL. Los archivos físicos (PDF, DOCX/ZIP, firmas PNG, fotos JPG) se guardan en un almacenamiento permanente configurable — **no** en directorios temporales del SO.
+
+### Configuración
+
+La raíz del almacenamiento se define con una sola clave: `storage.root` (o la variable de entorno `STORAGE_ROOT`).
+
+| Entorno | Configuración |
+|---------|---------------|
+| Desarrollo | `STORAGE_ROOT` sin definir → `{directorio de trabajo}/storage` |
+| Windows producción | `STORAGE_ROOT=D:/ActasStorage` (o editar `storage.root` en `application.yml`) |
+| Linux | `STORAGE_ROOT=/opt/actas-storage` o `/data/actas` |
+| Docker | `-e STORAGE_ROOT=/data/actas` + volumen montado en `/data/actas` |
+
+Estructura resultante:
+
+```
+storage.root/
+├── generated/        # DOCX y ZIP generados
+└── uploads/
+    ├── pdf/          # PDF finales
+    ├── firmas/       # Firmas PNG
+    └── fotos/        # Fotografías JPG
+```
+
+Las rutas guardadas en la base de datos (`uploads/...`) son virtuales y no cambian al mover la raíz. El backend sirve los archivos vía `/uploads/**` contra el directorio configurado.
+
+> En producción asegúrese de que el directorio tenga permisos de escritura para el usuario del proceso y respaldo (backup) periódico, ya que es el archivo documental permanente.
+
+### Migración desde directorios temporales antiguos
+
+Si existían archivos en el almacenamiento anterior (`%TEMP%/actas_glpi_*` o `backend/uploads`), migrelos antes de poner en marcha la nueva configuración:
+
+```bash
+python tools/migrate_storage.py --dry-run          # ver qué se movería
+python tools/migrate_storage.py                     # migrar (temp del SO)
+# destinos antiguos explícitos (ej. desarrollo con carpeta local en el repo):
+python tools/migrate_storage.py --old-generated backend/generados --old-uploads backend/uploads --root /data/actas
+```
+
+El script copia los archivos preservando la estructura `generated/` y `uploads/{pdf,firmas,fotos}/`, no sobrescribe archivos existentes y es re-ejecutable. Las rutas en PostgreSQL siguen siendo válidas; no requieren actualización.
+
+### Docker (referencia)
+
+```yaml
+services:
+  backend:
+    build: ./backend
+    environment:
+      - STORAGE_ROOT=/data/actas
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SaucoDB
+    volumes:
+      - actas-storage:/data/actas   # persistencia documental permanente
+
+volumes:
+  actas-storage:
+```
+
 ## Endpoints
 
 | Método | Ruta | Descripción |
@@ -115,5 +174,5 @@ O usar Live Server de VS Code en el puerto 5500.
 
 - El frontend está hardcodeado a `http://127.0.0.1:8001`. El backend **debe** ejecutarse en el puerto 8001.
 - Los tokens de GLPI en `.env` están excluidos del repositorio (`.gitignore`).
-- Los archivos generados se guardan en el directorio temporal del sistema (`/tmp/actas_glpi_generados`).
-- No se generan documentos PDF — solo DOCX empaquetados en ZIP.
+- Los archivos generados se guardan en el almacenamiento permanente configurado por `storage.root` (ver sección anterior) — ya no en el directorio temporal del sistema.
+- Los PDF finales se generan en `uploads/pdf/`; los DOCX y ZIP en `generated/`.

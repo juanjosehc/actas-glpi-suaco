@@ -7,6 +7,7 @@ import com.empresa.actas.acta.dto.EvidenciaResponse;
 import com.empresa.actas.acta.dto.RechazarRequest;
 import com.empresa.actas.acta.service.ActaService;
 import com.empresa.actas.dto.response.ErrorResponse;
+import com.empresa.actas.firma.dto.EnviarActaRequest;
 import com.empresa.actas.firma.dto.EnviarActaResponse;
 import com.empresa.actas.firma.service.FirmaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -91,8 +92,11 @@ public class ActaController {
             @ApiResponse(responseCode = "404", description = "Acta no encontrada"),
             @ApiResponse(responseCode = "400", description = "Estado invalido para envio")
     })
-    public ResponseEntity<ErrorResponse> enviarActa(@PathVariable Long id) {
-        EnviarActaResponse response = firmaService.enviarActa(id);
+    public ResponseEntity<ErrorResponse> enviarActa(
+            @PathVariable Long id,
+            @RequestBody(required = false) EnviarActaRequest request) {
+        String correo = request != null ? request.correo() : null;
+        EnviarActaResponse response = firmaService.enviarActa(id, correo);
         return ResponseEntity.ok(ErrorResponse.ok("Acta enviada correctamente", response));
     }
 

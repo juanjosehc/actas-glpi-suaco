@@ -31,6 +31,13 @@
     const btnCopyLink = $("btnCopyLink");
     const linkHint = $("linkHint");
 
+    const enviarModal = $("enviarModal");
+    const enviarCorreo = $("enviarCorreo");
+    const enviarError = $("enviarError");
+    const enviarCancel = $("enviarCancel");
+    const enviarConfirm = $("enviarConfirm");
+    const enviarClose = $("enviarClose");
+
     const evidenceModal = $("evidenceModal");
     const evidenceModalClose = $("evidenceModalClose");
     const evidenceModalBody = $("evidenceModalBody");
@@ -166,7 +173,7 @@
             actions.appendChild(actionBtn("Ver", "btn-outline", () => openDetail(a.id)));
 
             if (a.estado === "GENERADA") {
-                actions.appendChild(actionBtn("Enviar", "btn-primary", () => enviarActa(a.id)));
+                actions.appendChild(actionBtn("Enviar", "btn-primary", () => openEnviarModal(a)));
             }
             if (a.estado === "ENVIADA") {
                 actions.appendChild(actionBtn("Enlace", "btn-outline", () => openLinkModal(a)));
@@ -296,15 +303,48 @@
     //  SEND TO FIRMA
     // =========================
 
-    async function enviarActa(id) {
+    function openEnviarModal(a) {
+        currentActaId = a.id;
+        enviarCorreo.value = a.correoUsuario || "";
+        enviarError.textContent = "";
+        enviarError.classList.remove("visible");
+        enviarModal.classList.add("open");
+        enviarCorreo.focus();
+    }
+
+    function closeEnviarModal() {
+        enviarModal.classList.remove("open");
+    }
+
+    async function confirmEnviar() {
+        const correo = enviarCorreo.value.trim();
+        if (!correo) {
+            enviarError.textContent = "Debe ingresar un correo para el envio.";
+            enviarError.classList.add("visible");
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+            enviarError.textContent = "Ingrese un correo valido.";
+            enviarError.classList.add("visible");
+            return;
+        }
+        await enviarActa(currentActaId, correo);
+    }
+
+    async function enviarActa(id, correo) {
         const token = checkAuth();
         if (!token) return;
         setLoading(true, "Enviando a firma...");
         try {
-            const resp = await fetch(`${API_BASE}/actas/${id}/enviar`, { method: "POST", headers: authHeaders() });
+            const resp = await fetch(`${API_BASE}/actas/${id}/enviar`, {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({ correo })
+            });
             if (handle401(resp)) return;
             const body = await resp.json();
             if (body.success) {
+                closeEnviarModal();
                 const data = body.data;
                 const url = BASE_URL + "firma.html?token=" + (data.token || "");
                 linkUrl.value = url;
@@ -345,6 +385,11 @@
 
     sendLinkModalClose.addEventListener("click", () => sendLinkModal.classList.remove("open"));
     sendLinkModal.addEventListener("click", (e) => { if (e.target === sendLinkModal) sendLinkModal.classList.remove("open"); });
+
+    enviarClose.addEventListener("click", closeEnviarModal);
+    enviarCancel.addEventListener("click", closeEnviarModal);
+    enviarConfirm.addEventListener("click", confirmEnviar);
+    enviarModal.addEventListener("click", (e) => { if (e.target === enviarModal) closeEnviarModal(); });
 
     // =========================
     //  EVIDENCES
@@ -474,6 +519,7 @@
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             if (rejectModal.classList.contains("open")) closeRejectModal();
+            else if (enviarModal.classList.contains("open")) closeEnviarModal();
             else if (detailModal.classList.contains("open")) detailModal.classList.remove("open");
             else if (sendLinkModal.classList.contains("open")) sendLinkModal.classList.remove("open");
             else if (evidenceModal.classList.contains("open")) evidenceModal.classList.remove("open");

@@ -133,6 +133,25 @@
     </div>
 </div>
 
+<!-- ENVIAR A FIRMA MODAL -->
+<div class="modal-overlay" id="enviarModal">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title">Enviar a Firma</h2>
+            <button class="modal-close" id="enviarClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc">Confirme el correo al que se enviara el enlace de firma:</p>
+            <input class="form-input" type="email" id="enviarCorreo" placeholder="correo@empresa.com" autocomplete="off">
+            <div class="form-error" id="enviarError"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="enviarCancel">Cancelar</button>
+            <button class="btn btn-primary" id="enviarConfirm">Enviar</button>
+        </div>
+    </div>
+</div>
+
 <!-- EVIDENCE MODAL -->
 <div class="modal-overlay" id="evidenceModal">
     <div class="modal-container modal-sm">

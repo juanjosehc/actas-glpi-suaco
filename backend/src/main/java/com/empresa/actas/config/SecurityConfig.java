@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/**",
                                 "/equipo/**",
+                                "/usuario",
+                                "/usuario/**",
                                 "/generar-acta",
                                 "/generar-devolucion",
                                 "/descargar-acta/**",

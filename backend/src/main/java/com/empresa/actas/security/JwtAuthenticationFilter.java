@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/auth/",
             "/equipo/",
+            "/usuario",
             "/generar-acta",
             "/generar-devolucion",
             "/descargar-acta/",
@@ -83,6 +84,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+        return PUBLIC_PATHS.stream().anyMatch(publicPath ->
+                publicPath.endsWith("/")
+                        ? path.startsWith(publicPath)
+                        : path.equals(publicPath));
     }
 }

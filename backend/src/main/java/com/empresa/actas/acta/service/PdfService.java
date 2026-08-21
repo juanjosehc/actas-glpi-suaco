@@ -51,6 +51,20 @@ public class PdfService {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
 
+    /**
+     * Convierte una ruta virtual almacenada en BD (uploads/...) a una ruta
+     * fisica bajo el directorio de uploads configurado.
+     */
+    private Path resolverRutaArchivo(String rutaArchivo) {
+        if (rutaArchivo == null || rutaArchivo.isBlank()) {
+            return Paths.get(rutaArchivo == null ? "" : rutaArchivo);
+        }
+        if (rutaArchivo.startsWith("uploads/") || rutaArchivo.startsWith("uploads\\")) {
+            return Paths.get(uploadsDir).resolve(rutaArchivo.substring("uploads/".length()));
+        }
+        return Paths.get(rutaArchivo);
+    }
+
     public String generarPdfFinal(Acta acta) {
         try {
             Path directorioPdf = Paths.get(uploadsDir, "pdf");
@@ -206,7 +220,7 @@ public class PdfService {
                     evTitle.setSpacingAfter(4);
                     document.add(evTitle);
 
-                    Path rutaArchivo = Paths.get(evidencia.getRutaArchivo());
+                    Path rutaArchivo = resolverRutaArchivo(evidencia.getRutaArchivo());
                     String textoAlternativo = tipoLabel + " no disponible";
 
                     if (!Files.exists(rutaArchivo)) {

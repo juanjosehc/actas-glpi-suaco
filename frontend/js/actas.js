@@ -21,6 +21,13 @@
     const rejectConfirm = document.getElementById("rejectConfirm");
     const rejectClose = document.getElementById("rejectClose");
 
+    const enviarModal = document.getElementById("enviarModal");
+    const enviarCorreo = document.getElementById("enviarCorreo");
+    const enviarError = document.getElementById("enviarError");
+    const enviarCancel = document.getElementById("enviarCancel");
+    const enviarConfirm = document.getElementById("enviarConfirm");
+    const enviarClose = document.getElementById("enviarClose");
+
     const toastContainer = document.getElementById("toastContainer");
 
     // =========================
@@ -285,7 +292,7 @@
             const btn = document.createElement("button");
             btn.className = "btn btn-primary";
             btn.textContent = "Enviar a Firma";
-            btn.addEventListener("click", () => enviarActa(a.id));
+            btn.addEventListener("click", () => openEnviarModal(a));
             modalActions.appendChild(btn);
         }
 
@@ -316,15 +323,46 @@
     //  ENVIAR
     // =========================
 
-    async function enviarActa(id) {
+    function openEnviarModal(a) {
+        currentActaId = a.id;
+        enviarCorreo.value = a.correoUsuario || "";
+        enviarError.textContent = "";
+        enviarError.classList.remove("visible");
+        enviarModal.classList.add("open");
+        enviarCorreo.focus();
+    }
+
+    function closeEnviarModal() {
+        enviarModal.classList.remove("open");
+    }
+
+    async function confirmEnviar() {
+        const correo = enviarCorreo.value.trim();
+        if (!correo) {
+            enviarError.textContent = "Debe ingresar un correo para el envio.";
+            enviarError.classList.add("visible");
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+            enviarError.textContent = "Ingrese un correo valido.";
+            enviarError.classList.add("visible");
+            return;
+        }
+
         const token = checkAuth();
         if (!token) return;
+
         try {
-            const resp = await fetch(`${API_BASE}/actas/${id}/enviar`, { method: "POST", headers: authHeaders() });
+            const resp = await fetch(`${API_BASE}/actas/${currentActaId}/enviar`, {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({ correo })
+            });
             if (handle401(resp)) return;
             const body = await resp.json();
             if (body.success) {
                 showToast("Acta enviada para firma exitosamente.", "success");
+                closeEnviarModal();
                 closeDetailModal();
                 loadActas();
             } else {
@@ -423,9 +461,15 @@
     rejectConfirm.addEventListener("click", confirmReject);
     rejectModal.addEventListener("click", (e) => { if (e.target === rejectModal) closeRejectModal(); });
 
+    enviarClose.addEventListener("click", closeEnviarModal);
+    enviarCancel.addEventListener("click", closeEnviarModal);
+    enviarConfirm.addEventListener("click", confirmEnviar);
+    enviarModal.addEventListener("click", (e) => { if (e.target === enviarModal) closeEnviarModal(); });
+
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             if (rejectModal.classList.contains("open")) closeRejectModal();
+            else if (enviarModal.classList.contains("open")) closeEnviarModal();
             else closeDetailModal();
         }
     });

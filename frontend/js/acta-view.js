@@ -18,7 +18,14 @@
     var viewInfoBar = document.getElementById("viewInfoBar");
     var downloadPdfBtn = document.getElementById("downloadPdfBtn");
     var sendFirmaBtn = document.getElementById("sendFirmaBtn");
+    var enviarModal = document.getElementById("enviarModal");
+    var enviarCorreo = document.getElementById("enviarCorreo");
+    var enviarError = document.getElementById("enviarError");
+    var enviarCancel = document.getElementById("enviarCancel");
+    var enviarConfirm = document.getElementById("enviarConfirm");
+    var enviarClose = document.getElementById("enviarClose");
     var currentActaId = null;
+    var currentActaCorreo = "";
 
     function showToast(message, type) {
         var toast = document.createElement("div");
@@ -119,9 +126,11 @@
             var hasRealId = typeof acta.id === "number" && isFinite(acta.id);
             if (hasAuthToken && hasRealId && acta.estado === "GENERADA") {
                 currentActaId = acta.id;
+                currentActaCorreo = acta.correoUsuario || "";
                 sendFirmaBtn.style.display = "inline-flex";
             } else {
                 currentActaId = null;
+                currentActaCorreo = "";
                 sendFirmaBtn.style.display = "none";
             }
         }
@@ -259,7 +268,19 @@
             });
     }
 
-    function enviarActa(id) {
+    function openEnviarModal() {
+        enviarCorreo.value = currentActaCorreo;
+        enviarError.textContent = "";
+        enviarError.classList.remove("visible");
+        enviarModal.classList.add("open");
+        enviarCorreo.focus();
+    }
+
+    function closeEnviarModal() {
+        enviarModal.classList.remove("open");
+    }
+
+    function enviarActa(id, correo) {
         var tokenAuth = LoginService.obtenerToken();
         if (!tokenAuth) {
             window.location.href = ROUTES.LOGIN;
@@ -270,7 +291,8 @@
 
         fetch(API_BASE + "/actas/" + id + "/enviar", {
             method: "POST",
-            headers: { "Authorization": "Bearer " + tokenAuth, "Content-Type": "application/json" }
+            headers: { "Authorization": "Bearer " + tokenAuth, "Content-Type": "application/json" },
+            body: JSON.stringify({ correo: correo })
         })
             .then(function (r) {
                 if (r.status === 401) {
@@ -283,6 +305,7 @@
             .then(function (body) {
                 if (!body) return;
                 if (body.success) {
+                    closeEnviarModal();
                     showToast("Acta enviada para firma exitosamente.", "success");
                     loadById(id);
                 } else {
@@ -294,6 +317,23 @@
                 showToast("Error de conexion al enviar el acta.", "error");
                 if (sendFirmaBtn) sendFirmaBtn.disabled = false;
             });
+    }
+
+    function confirmEnviar() {
+        var correo = enviarCorreo.value.trim();
+        if (!correo) {
+            enviarError.textContent = "Debe ingresar un correo para el envio.";
+            enviarError.classList.add("visible");
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+            enviarError.textContent = "Ingrese un correo valido.";
+            enviarError.classList.add("visible");
+            return;
+        }
+        if (currentActaId != null) {
+            enviarActa(currentActaId, correo);
+        }
     }
 
     function loadPreview() {
@@ -338,7 +378,16 @@
 
         if (sendFirmaBtn) {
             sendFirmaBtn.addEventListener("click", function () {
-                if (currentActaId != null) enviarActa(currentActaId);
+                if (currentActaId != null) openEnviarModal();
+            });
+        }
+
+        if (enviarClose) enviarClose.addEventListener("click", closeEnviarModal);
+        if (enviarCancel) enviarCancel.addEventListener("click", closeEnviarModal);
+        if (enviarConfirm) enviarConfirm.addEventListener("click", confirmEnviar);
+        if (enviarModal) {
+            enviarModal.addEventListener("click", function (e) {
+                if (e.target === enviarModal) closeEnviarModal();
             });
         }
 

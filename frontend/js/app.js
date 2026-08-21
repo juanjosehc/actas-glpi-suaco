@@ -355,6 +355,7 @@ async function generarActa() {
                     tipoActa: "ENTREGA",
                     nombreUsuario: payload.entregado_a || "",
                     cedulaUsuario: payload.cedula || "",
+                    correoUsuario: getCorreoUsuarioSeleccionado(document.getElementById("entregado_a")) || "",
                     ticketGlpi: payload.numero_sac || "",
                     serialEquipo: eq.serial || "",
                     placaEquipo: eq.inventario || "",
@@ -462,6 +463,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnEquipo) {
         btnEquipo.addEventListener("click", agregarEquipo);
+    }
+
+    const campoEntregadoA =
+        document.getElementById("entregado_a");
+
+    if (campoEntregadoA) {
+        iniciarAutocompleteUsuario(campoEntregadoA);
+    }
+
+    const campoEntregadoPor =
+        document.getElementById("entregado_por");
+
+    if (campoEntregadoPor) {
+        iniciarAutocompleteUsuario(campoEntregadoPor);
     }
 
     agregarEquipo();

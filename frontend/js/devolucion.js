@@ -289,6 +289,7 @@ async function generarDevolucion() {
                     tipoActa: "DEVOLUCION",
                     nombreUsuario: payload.recibido_por || "",
                     cedulaUsuario: payload.cedula || "",
+                    correoUsuario: getCorreoUsuarioSeleccionado(document.getElementById("recibido_por")) || "",
                     serialEquipo: eq.serial || "",
                     placaEquipo: eq.inventario || "",
                     descripcionEquipo: descMarca || "",
@@ -392,6 +393,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnEquipo) {
         btnEquipo.addEventListener("click", agregarEquipo);
+    }
+
+    const campoRecibidoPor =
+        document.getElementById("recibido_por");
+
+    if (campoRecibidoPor) {
+        iniciarAutocompleteUsuario(campoRecibidoPor);
+    }
+
+    const campoEntregadoPor =
+        document.getElementById("entregado_por");
+
+    if (campoEntregadoPor) {
+        iniciarAutocompleteUsuario(campoEntregadoPor);
     }
 
     agregarEquipo();
