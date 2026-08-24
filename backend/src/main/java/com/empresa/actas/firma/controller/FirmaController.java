@@ -12,6 +12,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +41,19 @@ public class FirmaController {
     public ResponseEntity<ErrorResponse> obtenerActa(@PathVariable String token) {
         FirmaPublicaResponse acta = firmaService.obtenerActaPorToken(token);
         return ResponseEntity.ok(ErrorResponse.ok("Acta encontrada", acta));
+    }
+
+    @GetMapping("/{token}/pdf")
+    @Operation(summary = "Obtener PDF del acta para firmar", description = "Sirve el PDF del acta al firmante validando el token de firma (acceso publico con token)")
+    public ResponseEntity<Resource> obtenerPdf(@PathVariable String token) {
+        Resource recurso = firmaService.obtenerPdfPorToken(token);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"acta.pdf\"")
+                .body(recurso);
     }
 
     @PostMapping("/{token}")

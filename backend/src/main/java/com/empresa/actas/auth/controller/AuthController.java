@@ -38,6 +38,13 @@ public class AuthController {
         return ResponseEntity.ok(ErrorResponse.ok("Login exitoso", response));
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "Cerrar sesion", description = "Registra el cierre de sesion del usuario autenticado")
+    public ResponseEntity<ErrorResponse> logout() {
+        authService.logout();
+        return ResponseEntity.ok(ErrorResponse.ok("Sesion cerrada"));
+    }
+
     @PostMapping("/register")
     @Operation(summary = "Registrar usuario", description = "Registra un nuevo usuario en el sistema")
     @ApiResponses({

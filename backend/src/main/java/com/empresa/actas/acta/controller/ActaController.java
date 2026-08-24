@@ -16,10 +16,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,6 +71,48 @@ public class ActaController {
     public ResponseEntity<ErrorResponse> obtenerActa(@PathVariable Long id) {
         ActaResponse acta = actaService.obtenerActaPorId(id);
         return ResponseEntity.ok(ErrorResponse.ok("Acta encontrada", acta));
+    }
+
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener PDF del acta", description = "Sirve el PDF del acta validando acceso por rol/propietario")
+    public ResponseEntity<Resource> obtenerPdf(@PathVariable Long id) {
+        Resource recurso = actaService.obtenerPdfConAcceso(id);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"acta_" + id + ".pdf\"")
+                .body(recurso);
+    }
+
+    @GetMapping("/{id}/firma")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener imagen de firma del acta", description = "Sirve la firma del acta validando acceso por rol/propietario")
+    public ResponseEntity<Resource> obtenerFirma(@PathVariable Long id) {
+        Resource recurso = actaService.obtenerFirmaConAcceso(id);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"firma_" + id + ".png\"")
+                .body(recurso);
+    }
+
+    @GetMapping("/{id}/foto")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener fotografia del acta", description = "Sirve la foto del acta validando acceso por rol/propietario")
+    public ResponseEntity<Resource> obtenerFoto(@PathVariable Long id) {
+        Resource recurso = actaService.obtenerFotoConAcceso(id);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"foto_" + id + ".jpg\"")
+                .body(recurso);
     }
 
     @PostMapping

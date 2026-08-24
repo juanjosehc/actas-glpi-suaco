@@ -42,4 +42,8 @@ public class FirmaToken {
 
     @Column(name = "fecha_utilizacion")
     private LocalDateTime fechaUtilizacion;
+
+    /** Vencimiento del enlace (configurable, default 72h). Null = nunca expira (legacy). */
+    @Column(name = "fecha_expiracion")
+    private LocalDateTime fechaExpiracion;
 }

@@ -67,21 +67,25 @@
         } catch (_) { return dateStr; }
     }
 
-    function loadPdfViewer(rutaPdf) {
+    function fetchArchivoAutenticado(url) {
+        var tokenAuth = LoginService.obtenerToken();
+        return fetch(url, { headers: { "Authorization": "Bearer " + tokenAuth } });
+    }
+
+    function loadPdfViewer(fileUrl, useAuth) {
         viewLoading.style.display = "block";
         viewNoPdf.style.display = "none";
         viewDocument.style.display = "none";
 
-        if (!rutaPdf) {
+        if (!fileUrl) {
             viewLoading.style.display = "none";
             viewNoPdf.style.display = "block";
             return;
         }
 
-        var pdfUrl = API_BASE + "/" + rutaPdf;
+        var request = useAuth ? fetchArchivoAutenticado(fileUrl) : fetch(fileUrl);
 
-        fetch(pdfUrl)
-            .then(function (r) {
+        request.then(function (r) {
                 if (!r.ok) throw new Error("Error al cargar PDF");
                 return r.blob();
             })
@@ -97,7 +101,7 @@
             });
     }
 
-    function renderDocument(acta, evidencias) {
+    function renderDocument(acta, evidencias, pdfUrl, pdfAuth) {
         viewLoading.style.display = "none";
 
         var estadoBadge = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + acta.estado + '</span>';
@@ -112,33 +116,41 @@
         viewTitle.textContent = "Acta #" + acta.id;
         viewSubtitle.textContent = (acta.tipoActa || "") + " - " + (acta.nombreUsuario || "");
 
-        loadPdfViewer(acta.rutaPdf);
+        var hasAuthToken = !!LoginService.obtenerToken();
+        var hasRealId = typeof acta.id === "number" && isFinite(acta.id);
+        if (hasAuthToken && hasRealId) {
+            // Gestión: se guarda el id para acciones (enviar, descargar PDF).
+            currentActaId = acta.id;
+            currentActaCorreo = acta.correoUsuario || "";
+        } else {
+            // Portal público (token): sin JWT, sin acciones de gestion.
+            currentActaId = null;
+            currentActaCorreo = "";
+        }
 
-        if (downloadPdfBtn && acta.rutaPdf) {
-            downloadPdfBtn.style.display = "inline-flex";
-            downloadPdfBtn.href = API_BASE + "/" + acta.rutaPdf;
-        } else if (downloadPdfBtn) {
-            downloadPdfBtn.style.display = "none";
+        loadPdfViewer(pdfUrl, pdfAuth);
+
+        if (downloadPdfBtn) {
+            if (currentActaId != null && acta.rutaPdf) {
+                downloadPdfBtn.style.display = "inline-flex";
+                downloadPdfBtn.href = "#";
+            } else {
+                downloadPdfBtn.style.display = "none";
+            }
         }
 
         if (sendFirmaBtn) {
-            var hasAuthToken = !!LoginService.obtenerToken();
-            var hasRealId = typeof acta.id === "number" && isFinite(acta.id);
             if (hasAuthToken && hasRealId && acta.estado === "GENERADA") {
-                currentActaId = acta.id;
-                currentActaCorreo = acta.correoUsuario || "";
                 sendFirmaBtn.style.display = "inline-flex";
             } else {
-                currentActaId = null;
-                currentActaCorreo = "";
                 sendFirmaBtn.style.display = "none";
             }
         }
 
-        renderEvidencesGrid(evidencias);
+        renderEvidencesGrid(evidencias, currentActaId);
     }
 
-    function renderEvidencesGrid(evidencias) {
+    function renderEvidencesGrid(evidencias, actaId) {
         if (!evidencias || evidencias.length === 0) {
             viewEvidences.style.display = "none";
             return;
@@ -160,26 +172,49 @@
         viewEvidences.style.display = "block";
         evidencesGrid.innerHTML = "";
 
-        for (var j = 0; j < imagesToShow.length; j++) {
-            var e = imagesToShow[j];
+        imagesToShow.forEach(function (e) {
+            var ruta = e.tipo === "FIRMA"
+                ? "/actas/" + actaId + "/firma"
+                : "/actas/" + actaId + "/foto";
+
             var item = document.createElement("div");
             item.className = "evidence-item";
 
             var img = document.createElement("img");
-            img.src = API_BASE + "/" + e.rutaArchivo;
             img.alt = e.tipo === "FIRMA" ? "Firma" : "Fotografia";
             img.loading = "lazy";
             img.onerror = function () { this.style.display = "none"; };
             item.appendChild(img);
 
+            fetchArchivoAutenticado(API_BASE + ruta)
+                .then(function (r) {
+                    if (!r.ok) throw new Error("Error al cargar");
+                    return r.blob();
+                })
+                .then(function (blob) {
+                    img.src = URL.createObjectURL(blob);
+                })
+                .catch(function () { img.style.display = "none"; });
+
             var link = document.createElement("a");
-            link.href = API_BASE + "/" + e.rutaArchivo;
-            link.target = "_blank";
+            link.href = "#";
             link.textContent = e.tipo === "FIRMA" ? "Ver Firma" : "Ver Fotografia";
+            link.addEventListener("click", function (evClick) {
+                evClick.preventDefault();
+                fetchArchivoAutenticado(API_BASE + ruta)
+                    .then(function (r) {
+                        if (!r.ok) throw new Error("Error al cargar");
+                        return r.blob();
+                    })
+                    .then(function (blob) {
+                        window.open(URL.createObjectURL(blob), "_blank");
+                    })
+                    .catch(function () { showToast("No se pudo cargar el archivo", "error"); });
+            });
             item.appendChild(link);
 
             evidencesGrid.appendChild(item);
-        }
+        });
     }
 
     function getActaFromUrl() {
@@ -217,7 +252,13 @@
             .then(function (data) {
                 var acta = data.data || data;
                 var evidencias = data.evidencias || [];
-                renderDocument(acta, evidencias);
+                // Portal publico: el PDF se sirve validando el token de firma.
+                renderDocument(
+                    acta,
+                    evidencias,
+                    API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf",
+                    false
+                );
             })
             .catch(function (err) {
                 viewLoading.style.display = "none";
@@ -257,7 +298,13 @@
                 var acta = body.data;
 
                 loadEvidencias(acta.id, function (evidencias) {
-                    renderDocument(acta, evidencias);
+                    // Gestion: el PDF se sirve con JWT validando rol/propietario.
+                    renderDocument(
+                        acta,
+                        evidencias,
+                        API_BASE + "/actas/" + acta.id + "/pdf",
+                        true
+                    );
                 });
             })
             .catch(function (err) {
@@ -317,6 +364,26 @@
                 showToast("Error de conexion al enviar el acta.", "error");
                 if (sendFirmaBtn) sendFirmaBtn.disabled = false;
             });
+    }
+
+    function descargarActaPdf() {
+        if (currentActaId == null) return;
+        fetchArchivoAutenticado(API_BASE + "/actas/" + currentActaId + "/pdf")
+            .then(function (r) {
+                if (!r.ok) throw new Error("Error al descargar");
+                return r.blob();
+            })
+            .then(function (blob) {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = "acta_" + currentActaId + ".pdf";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            })
+            .catch(function () { showToast("No se pudo descargar el PDF", "error"); });
     }
 
     function confirmEnviar() {
@@ -379,6 +446,13 @@
         if (sendFirmaBtn) {
             sendFirmaBtn.addEventListener("click", function () {
                 if (currentActaId != null) openEnviarModal();
+            });
+        }
+
+        if (downloadPdfBtn) {
+            downloadPdfBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                descargarActaPdf();
             });
         }
 

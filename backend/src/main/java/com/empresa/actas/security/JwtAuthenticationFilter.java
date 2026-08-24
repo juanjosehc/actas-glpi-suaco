@@ -48,7 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String path = request.getRequestURI();
 
-        if (isPublicPath(path)) {
+        // /auth/logout va excluido del salto publico: se intenta autenticar el
+        // Bearer para registrar QUE usuario cierra sesion (ruta autenticada).
+        if (isPublicPath(path) && !path.equals("/auth/logout")) {
             filterChain.doFilter(request, response);
             return;
         }

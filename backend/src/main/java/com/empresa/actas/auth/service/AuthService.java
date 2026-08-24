@@ -3,6 +3,8 @@ package com.empresa.actas.auth.service;
 import com.empresa.actas.auth.dto.LoginRequest;
 import com.empresa.actas.auth.dto.LoginResponse;
 import com.empresa.actas.auth.dto.RegisterUserRequest;
+import com.empresa.actas.auditoria.entity.TipoEventoAuditoria;
+import com.empresa.actas.auditoria.service.AuditoriaService;
 import com.empresa.actas.security.JwtService;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.rol.entity.Rol;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,20 +28,47 @@ public class AuthService {
     private final RolRepository rolRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
 
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()));
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.username(),
+                            request.password()));
+        } catch (RuntimeException e) {
+            // Usuario intentado (puede no existir) va como nombre; id null.
+            auditoriaService.registrar(TipoEventoAuditoria.LOGIN_FALLIDO, null,
+                    request.username(), "AUTENTICACION", null, "/auth/login",
+                    "Intento de autenticacion fallido");
+            throw e;
+        }
 
         UserSecurity userSecurity = (UserSecurity) authentication.getPrincipal();
         String token = jwtService.generarToken(userSecurity);
+
+        auditoriaService.registrar(TipoEventoAuditoria.LOGIN_EXITOSO,
+                userSecurity.getUsuario().getIdUsuario(), userSecurity.getUsername(),
+                "AUTENTICACION", null, "/auth/login", "Inicio de sesion exitoso");
 
         return new LoginResponse(
                 token,
                 userSecurity.getUsername(),
                 userSecurity.getUsuario().getRol().getNombre());
+    }
+
+    /**
+     * Cierre de sesion. Requiere token valido (ruta autenticada); registra
+     * el usuario que abandona la sesion en la CAPA 2.
+     */
+    public void logout() {
+        UserSecurity userSecurity =
+                (UserSecurity) SecurityContextHolder.getContext()
+                        .getAuthentication().getPrincipal();
+        auditoriaService.registrar(TipoEventoAuditoria.LOGOUT,
+                userSecurity.getUsuario().getIdUsuario(), userSecurity.getUsername(),
+                "AUTENTICACION", null, "/auth/logout", "Cierre de sesion");
     }
 
     public Usuario registrarUsuario(RegisterUserRequest request) {

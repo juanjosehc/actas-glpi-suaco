@@ -30,7 +30,17 @@ const LoginService = {
         localStorage.setItem("role", role);
     },
 
-    cerrarSesion() {
+    async cerrarSesion() {
+        const token = this.obtenerToken();
+        if (token) {
+            try {
+                // Registrar LOGOUT en el backend (best-effort; no bloquea la salida).
+                await fetch(`${API_BASE}/auth/logout`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${token}` },
+                });
+            } catch (_) {}
+        }
         localStorage.removeItem("token");
         localStorage.removeItem("username");
         localStorage.removeItem("role");

@@ -125,7 +125,7 @@
             return;
         }
 
-        fetch(API_BASE + "/" + rutaPdf)
+        fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf")
             .then(function (r) {
                 if (!r.ok) throw new Error("Error al cargar PDF");
                 return r.blob();

@@ -115,13 +115,24 @@
                         { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
                         { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
                     ]
+                },
+                {
+                    section: "Firmas",
+                    items: [
+                        // El rol TECNICO gestiona las firmas de sus propias actas
+                        // (el backend ya restringe por propietario).
+                        { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
+                    ]
                 }
             ],
             AUDITOR: [
                 {
                     section: "Consultas",
                     items: [
-                        { label: "Consultar Actas", href: "actas.html", icon: "search" }
+                        { label: "Consultar Actas", href: "actas.html", icon: "search" },
+                        // Auditoria global de firmas (lectura; backend solo permite
+                        // aprobar/rechazar a ADMINISTRADOR y al TECNICO dueno).
+                        { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
                     ]
                 }
             ]

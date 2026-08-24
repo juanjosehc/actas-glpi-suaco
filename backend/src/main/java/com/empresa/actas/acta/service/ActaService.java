@@ -12,6 +12,8 @@ import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.mapper.ActaMapper;
 import com.empresa.actas.acta.repository.ActaHistorialRepository;
 import com.empresa.actas.acta.repository.ActaRepository;
+import com.empresa.actas.auditoria.entity.TipoEventoAuditoria;
+import com.empresa.actas.auditoria.service.AuditoriaService;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
@@ -19,12 +21,18 @@ import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -40,6 +48,10 @@ public class ActaService {
     private final ActaMapper actaMapper;
     private final PdfService pdfService;
     private final AccesoService accesoService;
+    private final AuditoriaService auditoriaService;
+
+    @Value("${app.uploads-dir:uploads}")
+    private String uploadsDir;
 
     @Transactional
     public ActaResponse crearActa(CrearActaRequest request) {
@@ -135,6 +147,61 @@ public class ActaService {
                         "Acta no encontrada con id: " + id));
         accesoService.verificarAccesoActa(acta);
         return acta;
+    }
+
+    /**
+     * Sirve el PDF del acta validando acceso. TECNICO solo el de sus actas.
+     * Registra DOCUMENTO_VISTO (CAPA 2) solo si el archivo existe.
+     * Devuelve null si el archivo no existe.
+     */
+    public Resource obtenerPdfConAcceso(Long idActa) {
+        Acta acta = cargarActaConAcceso(idActa);
+        Resource recurso = resolverArchivo(acta.getRutaPdf());
+        if (recurso != null) {
+            auditoriaService.registrar(TipoEventoAuditoria.DOCUMENTO_VISTO,
+                    "ACTA", String.valueOf(idActa), "/actas/" + idActa + "/pdf",
+                    "PDF del acta visualizado/descargado");
+        }
+        return recurso;
+    }
+
+    /** Sirve la imagen de firma del acta validando acceso (firma_{id}.png). */
+    public Resource obtenerFirmaConAcceso(Long idActa) {
+        Acta acta = cargarActaConAcceso(idActa);
+        Resource recurso = resolverArchivo("uploads/firmas/firma_" + acta.getIdActa() + ".png");
+        if (recurso != null) {
+            auditoriaService.registrar(TipoEventoAuditoria.EVIDENCIA_VISTA,
+                    "ACTA", String.valueOf(idActa), "/actas/" + idActa + "/firma",
+                    "Evidencia FIRMA (firma_" + idActa + ".png) visualizada");
+        }
+        return recurso;
+    }
+
+    /** Sirve la fotografia del acta validando acceso (foto_{id}.jpg). */
+    public Resource obtenerFotoConAcceso(Long idActa) {
+        Acta acta = cargarActaConAcceso(idActa);
+        Resource recurso = resolverArchivo("uploads/fotos/foto_" + acta.getIdActa() + ".jpg");
+        if (recurso != null) {
+            auditoriaService.registrar(TipoEventoAuditoria.EVIDENCIA_VISTA,
+                    "ACTA", String.valueOf(idActa), "/actas/" + idActa + "/foto",
+                    "Evidencia FOTO (foto_" + idActa + ".jpg) visualizada");
+        }
+        return recurso;
+    }
+
+    /**
+     * Resuelve una ruta virtual ({@code uploads/<...>}) al archivo en disco.
+     * Devuelve null si no existe o la ruta no es de uploads.
+     */
+    private Resource resolverArchivo(String rutaVirtual) {
+        if (rutaVirtual == null || !rutaVirtual.startsWith("uploads/")) {
+            return null;
+        }
+        Path archivo = Paths.get(uploadsDir).resolve(rutaVirtual.substring("uploads/".length()));
+        if (!Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+            return null;
+        }
+        return new FileSystemResource(archivo.toFile());
     }
 
     @Transactional

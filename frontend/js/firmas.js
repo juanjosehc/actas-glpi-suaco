@@ -395,6 +395,18 @@
     //  EVIDENCES
     // =========================
 
+    async function verEvidencia(url) {
+        const token = checkAuth();
+        if (!token) return;
+        try {
+            const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            if (handle401(resp)) return;
+            if (!resp.ok) { alert("No se pudo cargar el archivo."); return; }
+            const blob = await resp.blob();
+            window.open(URL.createObjectURL(blob), "_blank");
+        } catch (_) { alert("Error al cargar el archivo."); }
+    }
+
     async function openEvidencias(id) {
         const token = checkAuth();
         if (!token) return;
@@ -415,7 +427,11 @@
             body.data.forEach((ev) => {
                 const tipo = ev.tipo || "";
                 const label = labelMap[tipo] || tipo;
-                const fileUrl = `${API_BASE}/${ev.rutaArchivo}`;
+                // Los archivos se sirven por endpoints protegidos (rol/propietario),
+                // nunca por /uploads (cerrado). El enlace lleva Bearer via fetch+blob.
+                const ruta = tipo === "FIRMA" ? `/actas/${id}/firma`
+                        : tipo === "FOTO" ? `/actas/${id}/foto`
+                        : `/actas/${id}/pdf`;
                 const item = document.createElement("div");
                 item.className = "evidence-item";
                 item.innerHTML = `
@@ -423,8 +439,16 @@
                         <span class="evidence-type">${label}</span>
                         <span class="evidence-path">${ev.rutaArchivo || "-"}</span>
                     </div>
-                    <a class="btn btn-outline btn-sm" href="${fileUrl}" target="_blank" download>Ver</a>
                 `;
+                const btn = document.createElement("a");
+                btn.className = "btn btn-outline btn-sm";
+                btn.textContent = "Ver";
+                btn.href = "#";
+                btn.addEventListener("click", (evClick) => {
+                    evClick.preventDefault();
+                    verEvidencia(`${API_BASE}${ruta}`);
+                });
+                item.appendChild(btn);
                 list.appendChild(item);
             });
             evidenceModalBody.innerHTML = "";
