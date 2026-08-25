@@ -8,6 +8,15 @@
     const stateSuccess = $("stateSuccess");
     const stateRejected = $("stateRejected");
     const firmaCard = $("firmaCard");
+    // OTP
+    const stateOtp = $("stateOtp");
+    const otpInput = $("otpInput");
+    const otpCorreo = $("otpCorreo");
+    const otpInfo = $("otpInfo");
+    const otpError = $("otpError");
+    const btnOtpValidar = $("btnOtpValidar");
+    const btnOtpReenviar = $("btnOtpReenviar");
+    let otpCountdown = null;
     const errorMessage = $("errorMessage");
     const btnSubmit = $("btnSubmit");
     const btnReject = $("btnReject");
@@ -57,6 +66,9 @@
     // Token
     const token = new URLSearchParams(window.location.search).get("token");
 
+    // Sesion OTP validada (sobrevive recargas de la misma pestana)
+    let sesion = sessionStorage.getItem("otp_sesion_" + token);
+
     // =========================
     //  INIT
     // =========================
@@ -66,7 +78,214 @@
         return;
     }
 
-    loadActa();
+    initOtp();
+
+    // =========================
+    //  OTP
+    // =========================
+
+    function otpHeaders() {
+        return sesion ? { "X-OTP-Sesion": sesion } : {};
+    }
+
+    function initOtp() {
+        stopOtpCountdown();
+        otpInput.value = "";
+        hideFieldError(otpError);
+        otpInfo.textContent = "";
+        firmaCard.style.display = "none";
+        stateOtp.style.display = "none";
+        stateLoading.style.display = "flex";
+
+        // Sesion en memoria/sessionStorage: cargar directo; el server la valida (401 -> volver a OTP).
+        if (sesion) {
+            loadActa();
+            return;
+        }
+        fetchOtpEstado();
+    }
+
+    function fetchOtpEstado() {
+        fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/otp/estado", { headers: otpHeaders() })
+            .then(function (r) { return r.json(); })
+            .then(function (body) {
+                if (!body.success) {
+                    showError(body.mensaje || "El enlace de firma no es valido o ha expirado.");
+                    return;
+                }
+                const d = body.data;
+                if (d.valido && sesion) {
+                    loadActa();
+                    return;
+                }
+                renderOtpForm(d);
+            })
+            .catch(function () {
+                showError("No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo.");
+            });
+    }
+
+    function renderOtpForm(d) {
+        if (d.correoEnmascarado) {
+            otpCorreo.textContent = d.correoEnmascarado;
+        }
+
+        btnOtpReenviar.classList.remove("btn-primary");
+        btnOtpReenviar.classList.add("btn-outline");
+        btnOtpReenviar.disabled = false;
+        btnOtpValidar.classList.remove("loading");
+        btnOtpValidar.disabled = false;
+        stopOtpCountdown();
+
+        if (d.cooldownSegundos > 0) {
+            disableResend(d.cooldownSegundos);
+        } else if (d.codigoVencido) {
+            otpInfo.textContent = "El codigo expiro. Solicite uno nuevo.";
+            btnOtpReenviar.classList.remove("btn-outline");
+            btnOtpReenviar.classList.add("btn-primary");
+        } else if (d.enviado === false) {
+            otpInfo.textContent = "No se pudo enviar el codigo por correo. Puede solicitar un reenvio.";
+        } else if (d.expiraSegundos != null) {
+            let seg = d.expiraSegundos;
+            otpInfo.textContent = "El codigo expira en " + seg + " segundos.";
+            otpCountdown = setInterval(function () {
+                seg--;
+                if (seg <= 0) {
+                    stopOtpCountdown();
+                    otpInfo.textContent = "El codigo expiro. Solicite uno nuevo.";
+                    btnOtpReenviar.classList.remove("btn-outline");
+                    btnOtpReenviar.classList.add("btn-primary");
+                } else {
+                    otpInfo.textContent = "El codigo expira en " + seg + " segundos.";
+                }
+            }, 1000);
+        } else {
+            otpInfo.textContent = "";
+        }
+
+        if (d.reenviosRestantes === 0) {
+            btnOtpReenviar.disabled = true;
+        } else if (!otpInfo.textContent) {
+            otpInfo.textContent = "Reenvios restantes: " + d.reenviosRestantes + ".";
+        }
+
+        stateLoading.style.display = "none";
+        stateOtp.style.display = "flex";
+        otpInput.focus();
+    }
+
+    function stopOtpCountdown() {
+        if (otpCountdown) {
+            clearInterval(otpCountdown);
+            otpCountdown = null;
+        }
+    }
+
+    btnOtpValidar.addEventListener("click", validarOtp);
+    otpInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") validarOtp();
+    });
+
+    async function validarOtp() {
+        const codigo = otpInput.value.trim();
+        if (!/^\d{6}$/.test(codigo)) {
+            otpError.textContent = "Ingrese el codigo de 6 digitos.";
+            showFieldError(otpError);
+            return;
+        }
+        hideFieldError(otpError);
+        btnOtpValidar.classList.add("loading");
+        btnOtpValidar.disabled = true;
+
+        try {
+            const resp = await fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/otp/validar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigo })
+            });
+            const body = await resp.json();
+
+            if (body.success) {
+                sesion = body.data.sesion;
+                sessionStorage.setItem("otp_sesion_" + token, sesion);
+                stopOtpCountdown();
+                stateOtp.style.display = "none";
+                loadActa();
+                return;
+            }
+
+            otpInput.value = "";
+            otpInput.focus();
+            otpError.textContent = body.mensaje || "Codigo incorrecto o no valido.";
+            showFieldError(otpError);
+            if (String(body.mensaje || "").includes("expiro")) {
+                btnOtpReenviar.classList.remove("btn-outline");
+                btnOtpReenviar.classList.add("btn-primary");
+                otpInfo.textContent = "El codigo expiro. Solicite uno nuevo.";
+            }
+        } catch {
+            otpError.textContent = "No se pudo conectar con el servidor. Intente de nuevo.";
+            showFieldError(otpError);
+        } finally {
+            btnOtpValidar.classList.remove("loading");
+            btnOtpValidar.disabled = false;
+        }
+    }
+
+    btnOtpReenviar.addEventListener("click", reenviarOtp);
+
+    async function reenviarOtp() {
+        btnOtpReenviar.disabled = true;
+        try {
+            const resp = await fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/otp/reenviar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const body = await resp.json();
+            if (body.success) {
+                otpInput.value = "";
+                hideFieldError(otpError);
+                otpInfo.textContent = "Codigo enviado. Revise su correo.";
+                fetchOtpEstado();
+                return;
+            }
+            const msg = body.mensaje || "No se pudo reenviar el codigo.";
+            const m = msg.match(/(\d+)/);
+            if (msg.includes("Debe esperar") && m) {
+                disableResend(parseInt(m[1], 10));
+            } else {
+                otpInfo.textContent = msg;
+                btnOtpReenviar.disabled = false;
+            }
+        } catch {
+            otpInfo.textContent = "No se pudo conectar con el servidor. Intente de nuevo.";
+            btnOtpReenviar.disabled = false;
+        }
+    }
+
+    function disableResend(segundos) {
+        let restante = segundos;
+        btnOtpReenviar.disabled = true;
+        stopOtpCountdown();
+        otpInfo.textContent = "Debe esperar para solicitar un nuevo codigo.";
+        otpCountdown = setInterval(function () {
+            restante--;
+            if (restante <= 0) {
+                stopOtpCountdown();
+                btnOtpReenviar.disabled = false;
+                otpInfo.textContent = "";
+                fetchOtpEstado();
+            } else {
+                otpInfo.textContent = "Debe esperar " + restante + "s para solicitar un nuevo codigo.";
+            }
+        }, 1000);
+    }
+
+    function volverAOtp() {
+        sesion = null;
+        sessionStorage.removeItem("otp_sesion_" + token);
+        initOtp();
+    }
 
     // =========================
     //  LOAD ACTA
@@ -74,7 +293,13 @@
 
     async function loadActa() {
         try {
-            const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}`);
+            const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}`, { headers: otpHeaders() });
+
+            if (resp.status === 401) {
+                volverAOtp();
+                return;
+            }
+
             const body = await resp.json();
 
             if (!body.success) {
@@ -114,7 +339,7 @@
         setupCanvas();
     }
 
-    function loadPdf(rutaPdf) {
+    async function loadPdf(rutaPdf) {
         pdfLoading.style.display = "flex";
         pdfError.style.display = "none";
         pdfViewerWrap.style.display = "none";
@@ -125,20 +350,23 @@
             return;
         }
 
-        fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf")
-            .then(function (r) {
-                if (!r.ok) throw new Error("Error al cargar PDF");
-                return r.blob();
-            })
-            .then(function (blob) {
-                pdfLoading.style.display = "none";
-                pdfViewer.src = URL.createObjectURL(blob);
-                pdfViewerWrap.style.display = "block";
-            })
-            .catch(function () {
-                pdfLoading.style.display = "none";
-                pdfError.style.display = "block";
-            });
+        try {
+            const r = await fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf", { headers: otpHeaders() });
+
+            if (r.status === 401) {
+                volverAOtp();
+                return;
+            }
+            if (!r.ok) throw new Error("Error al cargar PDF");
+
+            const blob = await r.blob();
+            pdfLoading.style.display = "none";
+            pdfViewer.src = URL.createObjectURL(blob);
+            pdfViewerWrap.style.display = "block";
+        } catch {
+            pdfLoading.style.display = "none";
+            pdfError.style.display = "block";
+        }
     }
 
     function showError(msg) {
@@ -377,11 +605,16 @@
 
             const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: Object.assign({ "Content-Type": "application/json" }, otpHeaders()),
                 body: JSON.stringify({ firmaBase64, fotoBase64 }),
             });
 
             const body = await resp.json();
+
+            if (resp.status === 401) {
+                volverAOtp();
+                return;
+            }
 
             if (body.success) {
                 stopCamera();
@@ -459,11 +692,17 @@
         try {
             const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}/rechazar`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: Object.assign({ "Content-Type": "application/json" }, otpHeaders()),
                 body: JSON.stringify({ motivo }),
             });
 
             const body = await resp.json();
+
+            if (resp.status === 401) {
+                closeRejectModal();
+                volverAOtp();
+                return;
+            }
 
             if (body.success) {
                 stopCamera();

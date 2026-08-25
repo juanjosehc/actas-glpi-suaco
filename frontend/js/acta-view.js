@@ -243,30 +243,6 @@
             .catch(function () { callback([]); });
     }
 
-    function loadByToken(token) {
-        fetch(API_BASE + "/firma/" + encodeURIComponent(token))
-            .then(function (r) {
-                if (!r.ok) throw new Error("Token invalido o expirado");
-                return r.json();
-            })
-            .then(function (data) {
-                var acta = data.data || data;
-                var evidencias = data.evidencias || [];
-                // Portal publico: el PDF se sirve validando el token de firma.
-                renderDocument(
-                    acta,
-                    evidencias,
-                    API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf",
-                    false
-                );
-            })
-            .catch(function (err) {
-                viewLoading.style.display = "none";
-                viewNoPdf.style.display = "block";
-                viewNoPdf.innerHTML = '<p style="color:#DC2626;padding:20px;text-align:center;">Error: ' + err.message + '</p>';
-            });
-    }
-
     function loadById(id) {
         var tokenAuth = LoginService.obtenerToken();
         if (!tokenAuth) {
@@ -468,7 +444,9 @@
         if (params.preview === "true") {
             loadPreview();
         } else if (params.token) {
-            loadByToken(params.token);
+            // El acceso publico por token pasa por el portal de firma con OTP;
+            // acta-view ya no muestra el documento sin la segunda capa de seguridad.
+            window.location.href = "firma.html?token=" + encodeURIComponent(params.token);
         } else if (params.id) {
             loadById(params.id);
         } else {

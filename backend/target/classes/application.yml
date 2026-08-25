@@ -19,6 +19,10 @@ server:
   port: 8001
 
 spring:
+  # Carga opcional de backend/.env (gitignoreado) como properties: credenciales y
+  # config por entorno sin commitearlas en el yaml. Se sobre-escribe por env vars reales.
+  config:
+    import: optional:file:./.env[.properties]
   datasource:
     url: jdbc:postgresql://localhost:5432/SaucoDB
     username: postgres
@@ -71,6 +75,11 @@ mail:
         connectiontimeout: ${MAIL_SMTP_TIMEOUT_CONNECT:10000}
         timeout: ${MAIL_SMTP_TIMEOUT:15000}
         writetimeout: ${MAIL_SMTP_TIMEOUT_WRITE:15000}
+        ssl:
+          # Evita javax.net.ssl.SSLHandshakeException (certificate_unknown) con relays
+          # que rotan certificados (Brevo, SendGrid). Acepta el cert del host sin
+          # exigir la cadena completa del cacerts del JDK. Sobre-escribible por env.
+          trust: ${MAIL_SMTP_TRUST:smtp-relay.brevo.com}
 
 # Almacenamiento persistente de archivos (PDF, DOCX, firmas, fotos).
 # Ya no usa directorios temporales del SO.
@@ -96,6 +105,12 @@ app:
   firma-url-base: ${FIRMA_URL_BASE:}
   # Vigencia del enlace de firma en horas (default 72h = 3 dias).
   firma-token-expira-horas: ${FIRMA_TOKEN_EXPIRA_HORAS:72}
+  # OTP del portal de firma (segunda capa de seguridad).
+  firma-otp-expira-minutos: ${FIRMA_OTP_EXPIRA_MINUTOS:10}
+  firma-otp-sesion-minutos: ${FIRMA_OTP_SESION_MINUTOS:30}
+  firma-otp-max-intentos: ${FIRMA_OTP_MAX_INTENTOS:5}
+  firma-otp-max-reenvios: ${FIRMA_OTP_MAX_REENVIOS:3}
+  firma-otp-cooldown-segundos: ${FIRMA_OTP_COOLDOWN_SEGUNDOS:60}
 
 # Ruta a LibreOffice Portable (soffice.exe)
 libreoffice:

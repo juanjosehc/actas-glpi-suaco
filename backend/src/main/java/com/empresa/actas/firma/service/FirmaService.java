@@ -14,7 +14,7 @@ import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
-import com.empresa.actas.mail.service.MailService;
+import com.empresa.actas.firma.support.FirmaUrlBuilder;
 import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
@@ -41,15 +41,14 @@ public class FirmaService {
     private final ActaHistorialService actaHistorialService;
     private final FirmaTokenRepository firmaTokenRepository;
     private final EvidenciaRepository evidenciaRepository;
-    private final MailService mailService;
     private final AccesoService accesoService;
     private final AuditoriaService auditoriaService;
+    private final OtpService otpService;
+    private final TokenFirmaValidador validadorToken;
+    private final FirmaUrlBuilder firmaUrlBuilder;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
-
-    @Value("${app.firma-url-base:}")
-    private String firmaUrlBase;
 
     /** Vigencia del enlace de firma en horas (default 72h = 3 dias). */
     @Value("${app.firma-token-expira-horas:72}")
@@ -96,14 +95,19 @@ public class FirmaService {
         acta.setFechaEnvio(LocalDateTime.now());
         actaRepository.save(acta);
 
-        String urlFirma = construirUrlFirma(token);
+        String urlFirma = firmaUrlBuilder.construir(token);
 
-        boolean correoEnviado = mailService.enviarCorreoFirma(
-                correoUtilizado,
-                acta.getNombreUsuario(),
-                acta.getTipoActa() != null ? acta.getTipoActa().name() : null,
-                acta.getSerialEquipo(),
-                urlFirma);
+        // Correo unico: enlace + codigo OTP + vigencia (solicitud de firma + segunda capa de seguridad).
+        boolean correoEnviado = otpService.generarYEnviarParaToken(firmaToken);
+
+        // Si el correo no salio, NO marcar la acta como enviada: el flujo falla con error
+        // visible (rollback de este @Transactional: token, estado y historial se revierten)
+        // y el frontend no puede cerrar el modal como si hubiera sido un exito.
+        if (!correoEnviado) {
+            throw new IllegalArgumentException(
+                    "No se pudo enviar el correo de firma a " + correoUtilizado
+                            + ". Verifique el destinatario y el servicio SMTP, e intente de nuevo.");
+        }
 
         String observacion = "Acta enviada para firma"
                 + "; correo_detectado_glpi=" + (correoDetectadoGlpi == null ? "" : correoDetectadoGlpi)
@@ -124,26 +128,12 @@ public class FirmaService {
     }
 
     /**
-     * Construye la URL publica del portal de firma a partir de la
-     * configuracion {@code app.firma-url-base}. Nunca se usa localhost.
-     */
-    private String construirUrlFirma(String token) {
-        if (firmaUrlBase == null || firmaUrlBase.isBlank()) {
-            return "/firma.html?token=" + token;
-        }
-        String base = firmaUrlBase.endsWith("/")
-                ? firmaUrlBase.substring(0, firmaUrlBase.length() - 1)
-                : firmaUrlBase;
-        return base + "/firma.html?token=" + token;
-    }
-
-    /**
      * Sirve el PDF del acta al firmante (portal publico, sin JWT).
      * Valida el token de firma: debe existir, no estar usado y el acta ENVIADA.
      * Devuelve null si el archivo no existe.
      */
     public Resource obtenerPdfPorToken(String token) {
-        FirmaToken firmaToken = validarTokenFirma(token);
+        FirmaToken firmaToken = validadorToken.validar(token);
 
         Acta acta = actaRepository.findById(firmaToken.getIdActa())
                 .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada"));
@@ -172,7 +162,7 @@ public class FirmaService {
 
     @Transactional
     public FirmaPublicaResponse obtenerActaPorToken(String token) {
-        FirmaToken firmaToken = validarTokenFirma(token);
+        FirmaToken firmaToken = validadorToken.validar(token);
 
         Acta acta = actaRepository.findById(firmaToken.getIdActa())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -213,7 +203,7 @@ public class FirmaService {
 
     @Transactional
     public void rechazarActa(String token, String motivo) {
-        FirmaToken firmaToken = validarTokenFirma(token);
+        FirmaToken firmaToken = validadorToken.validar(token);
 
         Acta acta = actaRepository.findById(firmaToken.getIdActa())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -247,7 +237,7 @@ public class FirmaService {
 
     @Transactional
     public void firmarActa(String token, FirmaRequest request) {
-        FirmaToken firmaToken = validarTokenFirma(token);
+        FirmaToken firmaToken = validadorToken.validar(token);
 
         Acta acta = actaRepository.findById(firmaToken.getIdActa())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -332,40 +322,6 @@ public class FirmaService {
 
     private LocalDateTime calcularExpiracion() {
         return LocalDateTime.now().plusHours(firmaTokenExpiraHoras);
-    }
-
-    /**
-     * Valida el token de firma: debe existir, no estar usado y no vencido.
-     * Antes de bloquear registra el evento correspondiente en la CAPA 2:
-     *   - no existe / alterado                  -> TOKEN_INVALIDO
-     *   - ya utilizado                          -> TOKEN_INVALIDO
-     *   - vencido (fecha_expiracion pasada)     -> TOKEN_EXPIRADO
-     */
-    private FirmaToken validarTokenFirma(String token) {
-        FirmaToken firmaToken = firmaTokenRepository.findByToken(token)
-                .orElseThrow(() -> {
-                    auditoriaService.registrar(TipoEventoAuditoria.TOKEN_INVALIDO, null,
-                            "PORTAL_FIRMA", "FIRMA_TOKEN", token, "/firma/" + token,
-                            "Token inexistente o alterado");
-                    return new IllegalArgumentException("Token no valido");
-                });
-
-        if (firmaToken.getUtilizado()) {
-            auditoriaService.registrar(TipoEventoAuditoria.TOKEN_INVALIDO, null,
-                    "PORTAL_FIRMA", "FIRMA_TOKEN", token, "/firma/" + token,
-                    "Token ya utilizado");
-            throw new IllegalArgumentException("Este enlace ya fue utilizado");
-        }
-
-        LocalDateTime expiracion = firmaToken.getFechaExpiracion();
-        if (expiracion != null && expiracion.isBefore(LocalDateTime.now())) {
-            auditoriaService.registrar(TipoEventoAuditoria.TOKEN_EXPIRADO, null,
-                    "PORTAL_FIRMA", "FIRMA_TOKEN", token, "/firma/" + token,
-                    "Token vencido (expiro el " + expiracion + ")");
-            throw new IllegalArgumentException("Este enlace ha expirado, solicite uno nuevo");
-        }
-
-        return firmaToken;
     }
 
     private String identidadFirmante(Acta acta) {

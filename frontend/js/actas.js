@@ -352,6 +352,11 @@
         const token = checkAuth();
         if (!token) return;
 
+        // Estado de carga en el boton mientras el backend intenta el envio real;
+        // el modal no se cierra hasta recibir response (exito o error).
+        const btnTexto = enviarConfirm.textContent;
+        enviarConfirm.disabled = true;
+        enviarConfirm.textContent = "Enviando...";
         try {
             const resp = await fetch(`${API_BASE}/actas/${currentActaId}/enviar`, {
                 method: "POST",
@@ -370,6 +375,9 @@
             }
         } catch (_) {
             showToast("Error de conexion al enviar el acta.", "error");
+        } finally {
+            enviarConfirm.disabled = false;
+            enviarConfirm.textContent = btnTexto;
         }
     }
 

@@ -46,6 +46,32 @@
         <p class="state-text state-text--muted">Puede cerrar esta ventana.</p>
     </div>
 
+    <!-- OTP -->
+    <div class="firma-state" id="stateOtp" style="display:none">
+        <div class="state-icon state-icon--success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h2 class="state-title">Validacion de Identidad</h2>
+        <p class="state-text">Segunda capa de seguridad. Ingrese el codigo OTP de 6 digitos enviado a su correo:</p>
+        <p class="state-text" id="otpCorreo" style="font-weight:700"></p>
+
+        <input class="otp-input" id="otpInput" inputmode="numeric" maxlength="6"
+               autocomplete="one-time-code" placeholder="------" aria-label="Codigo OTP de 6 digitos">
+        <p class="field-error" id="otpError" style="display:none"></p>
+        <p class="otp-info" id="otpInfo"></p>
+
+        <div class="otp-actions">
+            <button class="btn btn-primary btn-lg btn-full" id="btnOtpValidar" type="button">
+                <span class="btn-text">Validar Codigo</span>
+                <span class="btn-loading">
+                    <span class="spinner"></span>
+                    Validando...
+                </span>
+            </button>
+            <button class="btn btn-outline btn-full" id="btnOtpReenviar" type="button">Reenviar Codigo</button>
+        </div>
+    </div>
+
     <!-- MAIN CONTENT -->
     <div class="firma-card" id="firmaCard" style="display:none">
 

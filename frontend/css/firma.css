@@ -444,6 +444,60 @@ html, body {
 }
 
 /* =========================
+   OTP
+   ========================= */
+
+.otp-input {
+    width: 100%;
+    max-width: 300px;
+    margin: 24px 0 4px;
+    padding: 14px 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 10px;
+    text-align: center;
+    color: var(--f-text);
+    border: 2px solid var(--f-border-light);
+    border-radius: var(--f-radius-sm);
+    background: #FFFFFF;
+}
+
+.otp-input:focus {
+    outline: none;
+    border-color: var(--f-primary);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
+}
+
+.otp-input::placeholder {
+    letter-spacing: 10px;
+    color: var(--f-border-light);
+    font-size: 1.6rem;
+}
+
+.otp-info {
+    font-size: 0.85rem;
+    color: var(--f-text-muted);
+    margin-top: 12px;
+    min-height: 1.2em;
+    line-height: 1.5;
+}
+
+.otp-info strong {
+    color: var(--f-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.otp-actions {
+    width: 100%;
+    max-width: 300px;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* =========================
    ESTADO BADGE
    ========================= */
 

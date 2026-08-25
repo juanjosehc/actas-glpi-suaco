@@ -40,20 +40,36 @@ public class MailService {
     }
 
     /**
-     * Envia el correo de solicitud de firma.
-     *
-     * @param destinatario correo del usuario firmante
-     * @param nombreUsuario nombre del usuario firmante
-     * @param tipoActa      tipo de acta (ENTREGA/DEVOLUCION)
-     * @param serialEquipo  serial del equipo (puede ser null/vacio)
-     * @param urlFirma      enlace publico para firmar el acta
-     * @return {@code true} si el correo se envio correctamente
+     * Envia el correo de solicitud de firma (compat: sin OTP).
      */
     public boolean enviarCorreoFirma(String destinatario,
                                      String nombreUsuario,
                                      String tipoActa,
                                      String serialEquipo,
                                      String urlFirma) {
+        return enviarCorreoFirma(destinatario, nombreUsuario, tipoActa, serialEquipo, urlFirma, null, 0);
+    }
+
+    /**
+     * Envia el correo de solicitud de firma. Correo unico: si llega
+     * {@code codigoOtp} se incluye el bloque "Codigo OTP" con su vigencia.
+     *
+     * @param destinatario  correo del usuario firmante
+     * @param nombreUsuario nombre del usuario firmante
+     * @param tipoActa      tipo de acta (ENTREGA/DEVOLUCION)
+     * @param serialEquipo  serial del equipo (puede ser null/vacio)
+     * @param urlFirma      enlace publico para firmar el acta
+     * @param codigoOtp     OTP de 6 digitos (null/vacio = sin bloque OTP)
+     * @param expiraMinutos vigencia del OTP en minutos (para el texto del correo)
+     * @return {@code true} si el correo se envio correctamente
+     */
+    public boolean enviarCorreoFirma(String destinatario,
+                                     String nombreUsuario,
+                                     String tipoActa,
+                                     String serialEquipo,
+                                     String urlFirma,
+                                     String codigoOtp,
+                                     int expiraMinutos) {
         if (destinatario == null || destinatario.isBlank()) {
             log.warn("Correo de firma omitido: destinatario vacio");
             return false;
@@ -64,7 +80,7 @@ public class MailService {
             return false;
         }
 
-        String cuerpoHtml = construirPlantilla(nombreUsuario, tipoActa, serialEquipo, urlFirma);
+        String cuerpoHtml = construirPlantilla(nombreUsuario, tipoActa, serialEquipo, urlFirma, codigoOtp, expiraMinutos);
 
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
@@ -90,16 +106,31 @@ public class MailService {
 
     /**
      * Construye la plantilla HTML corporativa de la solicitud de firma.
+     * Si {@code codigoOtp} no es null/vacio se agrega el bloque OTP destacado.
      */
     private String construirPlantilla(String nombreUsuario,
                                       String tipoActa,
                                       String serialEquipo,
-                                      String urlFirma) {
+                                      String urlFirma,
+                                      String codigoOtp,
+                                      int expiraMinutos) {
         String nombre = nombreUsuario != null && !nombreUsuario.isBlank()
                 ? nombreUsuario.trim() : "usuario";
         String tipo = tipoActa != null ? tipoActa : "-";
         String serial = serialEquipo != null && !serialEquipo.isBlank()
                 ? serialEquipo : "-";
+
+        String bloqueOtp = "";
+        if (codigoOtp != null && !codigoOtp.isBlank()) {
+            bloqueOtp = "<tr><td style=\"padding:12px 28px;\">"
+                    + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#EFF6FF;border:2px solid #2563EB;border-radius:8px;\">"
+                    + "<tr><td style=\"padding:14px 16px;\">"
+                    + "<div style=\"color:#1E3A8A;font-size:13px;font-weight:bold;letter-spacing:0.5px;\">CODIGO DE VERIFICACION (OTP)</div>"
+                    + "<div style=\"color:#0F172A;font-size:28px;font-weight:bold;letter-spacing:6px;margin:6px 0 4px;\">" + escapeHtml(codigoOtp) + "</div>"
+                    + "<div style=\"color:#334155;font-size:12px;\">Se solicitara al abrir el enlace. Vigencia: <strong>" + expiraMinutos + " minutos</strong>. Uso unico.</div>"
+                    + "</td></tr></table>"
+                    + "</td></tr>";
+        }
 
         return "<!DOCTYPE html>"
                 + "<html lang=\"es\"><head><meta charset=\"UTF-8\">"
@@ -118,7 +149,7 @@ public class MailService {
                 + "<p style=\"margin:0 0 16px;color:#0F172A;font-size:15px;line-height:1.5;\">"
                 + "Se le ha generado un <strong>Acta de " + escapeHtml(tipo) + "</strong> "
                 + "relacionada con el equipo de serial <strong>" + escapeHtml(serial) + "</strong>. "
-                + "Para revisar el documento, firmarlo o rechazarlo, haga clic en el siguiente boton:</p>"
+                + "Para firmar el acta necesita el codigo de verificacion (OTP) y el enlace siguientes:</p>"
                 + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:24px 0;\">"
                 + "<tr><td style=\"border-radius:6px;background-color:#2563EB;\">"
                 + "<a href=\"" + escapeHtml(urlFirma) + "\" style=\"display:inline-block;padding:12px 28px;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:bold;\">"
@@ -129,6 +160,7 @@ public class MailService {
                 + "<p style=\"margin:0;padding:10px 12px;background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;color:#1D4ED8;font-size:12px;word-break:break-all;\">"
                 + escapeHtml(urlFirma) + "</p>"
                 + "</td></tr>"
+                + bloqueOtp
                 + "<tr><td style=\"background-color:#F8FAFC;padding:14px 28px;border-top:1px solid #E2E8F0;\">"
                 + "<div style=\"color:#64748B;font-size:11px;\">Este es un correo generado automaticamente. Por favor no responda a este mensaje.</div>"
                 + "</td></tr>"
