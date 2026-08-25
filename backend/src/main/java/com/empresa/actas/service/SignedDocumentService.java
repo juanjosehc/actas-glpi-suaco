@@ -97,7 +97,14 @@ public class SignedDocumentService {
             }
 
             Path pdfDir = Paths.get(uploadsDir, "pdf");
-            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(docxPath, pdfDir);
+            String pdfFileNombreBase = libreOfficePdfService.convertirDocxAPdf(docxPath, pdfDir);
+
+            // Nombre unico por acta: el PDF hereda el nombre del DOCX (derivado del contenido,
+            // ejemplo "Devolucion_123_a"), asi que dos actas con los mismos datos compartian
+            // ruta y la regeneracion de una sobreescribia el PDF firmado de la otra.
+            String pdfFileName = pdfFileNombreBase.replaceFirst("(?i)\\.pdf$", "_acta" + acta.getIdActa() + ".pdf");
+            Files.move(pdfDir.resolve(pdfFileNombreBase), pdfDir.resolve(pdfFileName),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             String rutaPdf = "uploads/pdf/" + pdfFileName;
 

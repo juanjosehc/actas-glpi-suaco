@@ -69,6 +69,21 @@
     // Sesion OTP validada (sobrevive recargas de la misma pestana)
     let sesion = sessionStorage.getItem("otp_sesion_" + token);
 
+    // Estado terminal por pestana: tras una firma exitosa la pantalla de exito
+    // persiste ante recargas. Sin esta marca, recargar tras firmar re-ejecutaba
+    // initOtp -> loadActa y el backend (token ya usado) respondia 401/400,
+    // reemplazando la pantalla de exito por "Firma no disponible".
+    // Una apertura nueva (otra pestana/navegador, sin marca) sigue mostrando
+    // "Este enlace ya fue utilizado", que es la pantalla correcta.
+    const FIRMA_HECHA_KEY = "firma_hecha_" + token;
+
+    // TRACE TEMPORAL: evidencia de ejecucion en consola (DevTools). Quitar al confirmar fix.
+    const TRACE = true;
+    function traza(tag, detalle) {
+        if (TRACE) console.log("[TRACE][" + tag + "] " + (detalle || ""));
+    }
+    console.log("[firma.js] CACHE-BUST v20260825 | token=" + (token ? token.slice(0, 8) : "NULL"));
+
     // =========================
     //  INIT
     // =========================
@@ -89,6 +104,14 @@
     }
 
     function initOtp() {
+        traza("initOtp", "flag=" + String(sessionStorage.getItem(FIRMA_HECHA_KEY)) + " sesion=" + (sesion ? sesion.slice(0, 8) : "NULL"));
+        // Firma ya hecha en esta pestana: estado terminal sin llamadas al backend
+        // (cualquier GET ahora responderia "token ya usado").
+        if (sessionStorage.getItem(FIRMA_HECHA_KEY)) {
+            traza("initOtp", "FLAG presente -> mostrarExito");
+            mostrarExito();
+            return;
+        }
         stopOtpCountdown();
         otpInput.value = "";
         hideFieldError(otpError);
@@ -99,28 +122,41 @@
 
         // Sesion en memoria/sessionStorage: cargar directo; el server la valida (401 -> volver a OTP).
         if (sesion) {
+            traza("initOtp", "sesion presente -> loadActa directo");
             loadActa();
             return;
         }
+        traza("initOtp", "sin sesion -> fetchOtpEstado");
         fetchOtpEstado();
     }
 
     function fetchOtpEstado() {
+        traza("fetchOtpEstado", "GET /firma/.../otp/estado");
+        if (sessionStorage.getItem(FIRMA_HECHA_KEY)) {
+            traza("fetchOtpEstado", "FLAG presente -> mostrarExito");
+            mostrarExito();
+            return;
+        }
         fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/otp/estado", { headers: otpHeaders() })
             .then(function (r) { return r.json(); })
             .then(function (body) {
+                traza("fetchOtpEstado", "HTTP respuesta success=" + body.success + " mensaje=" + (body.mensaje || ""));
                 if (!body.success) {
+                    traza("fetchOtpEstado", "=> showError(" + body.mensaje + ") => PANTALLA FIRMA NO DISPONIBLE");
                     showError(body.mensaje || "El enlace de firma no es valido o ha expirado.");
                     return;
                 }
                 const d = body.data;
                 if (d.valido && sesion) {
+                    traza("fetchOtpEstado", "valido+sesion -> loadActa");
                     loadActa();
                     return;
                 }
+                traza("fetchOtpEstado", "-> renderOtpForm");
                 renderOtpForm(d);
             })
             .catch(function () {
+                traza("fetchOtpEstado", "catch -> showError (conexion)");
                 showError("No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo.");
             });
     }
@@ -204,10 +240,12 @@
                 body: JSON.stringify({ codigo })
             });
             const body = await resp.json();
+            traza("validarOtp", "HTTP " + resp.status + " success=" + body.success + " sesion=" + (body.data && body.data.sesion ? String(body.data.sesion).slice(0, 8) : "-"));
 
             if (body.success) {
                 sesion = body.data.sesion;
                 sessionStorage.setItem("otp_sesion_" + token, sesion);
+                traza("validarOtp", "sesion guardada -> loadActa");
                 stopOtpCountdown();
                 stateOtp.style.display = "none";
                 loadActa();
@@ -282,6 +320,7 @@
     }
 
     function volverAOtp() {
+        traza("volverAOtp", "sesion invalidada -> initOtp");
         sesion = null;
         sessionStorage.removeItem("otp_sesion_" + token);
         initOtp();
@@ -292,10 +331,13 @@
     // =========================
 
     async function loadActa() {
+        traza("loadActa", "GET /firma/" + token.slice(0, 8) + "...");
         try {
             const resp = await fetch(`${API_BASE}/firma/${encodeURIComponent(token)}`, { headers: otpHeaders() });
+            traza("loadActa", "HTTP " + resp.status);
 
             if (resp.status === 401) {
+                traza("loadActa", "401 -> volverAOtp");
                 volverAOtp();
                 return;
             }
@@ -303,16 +345,19 @@
             const body = await resp.json();
 
             if (!body.success) {
+                traza("loadActa", "success=false -> showError(" + body.mensaje + ") => PANTALLA FIRMA NO DISPONIBLE");
                 showError(body.mensaje || "El enlace de firma no es valido o ha expirado.");
                 return;
             }
 
             const data = body.data;
+            traza("loadActa", "200 ok estado=" + data.estado + " -> renderActa");
             renderActa(data);
         } catch (err) {
             const msg = err.message.includes("Failed to fetch")
                 ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
                 : "El enlace de firma no es valido o ha expirado.";
+            traza("loadActa", "catch -> showError(" + msg + ")");
             showError(msg);
         }
     }
@@ -370,9 +415,27 @@
     }
 
     function showError(msg) {
+        traza("showError", "mensaje='" + msg + "' flag=" + String(sessionStorage.getItem(FIRMA_HECHA_KEY)));
+        // Estado terminal por pestana: si la firma ya tuvo exito, ninguna
+        // consulta posterior (recarga, timer, doble request) puede reemplazar
+        // la pantalla de exito por un error derivado del token ya usado.
+        if (sessionStorage.getItem(FIRMA_HECHA_KEY)) {
+            traza("showError", "FLAG presente -> mostrarExito (exito preservado)");
+            mostrarExito();
+            return;
+        }
+        traza("showError", "=> PANTALLA FIRMA NO DISPONIBLE: '" + msg + "'");
         stateLoading.style.display = "none";
         errorMessage.textContent = msg;
         stateError.style.display = "flex";
+    }
+
+    function mostrarExito() {
+        traza("mostrarExito", ">> PANTALLA EXITO (Firma Registrada) visible <<");
+        stateLoading.style.display = "none";
+        firmaCard.style.display = "none";
+        stateOtp.style.display = "none";
+        stateSuccess.style.display = "flex";
     }
 
     // =========================
@@ -578,6 +641,7 @@
     btnSubmit.addEventListener("click", submitFirma);
 
     async function submitFirma() {
+        traza("submitFirma", "CLICK Enviar: firma=" + String(!isCanvasEmpty()) + " foto=" + String(photoCaptured));
         let valid = true;
 
         if (isCanvasEmpty()) {
@@ -610,13 +674,17 @@
             });
 
             const body = await resp.json();
+            traza("submitFirma", "POST HTTP " + resp.status + " success=" + body.success + " mensaje=" + (body.mensaje || ""));
 
             if (resp.status === 401) {
+                traza("submitFirma", "401 -> volverAOtp");
                 volverAOtp();
                 return;
             }
 
             if (body.success) {
+                sessionStorage.setItem(FIRMA_HECHA_KEY, "1");
+                traza("submitFirma", "EXITO: flag set -> PANTALLA FIRMA REGISTRADA");
                 stopCamera();
                 firmaCard.style.display = "none";
                 stateSuccess.style.display = "flex";

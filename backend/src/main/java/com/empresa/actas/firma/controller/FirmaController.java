@@ -43,6 +43,23 @@ public class FirmaController {
     private final OtpService otpService;
 
     /**
+     * Conversion DOCX->PDF (LibreOffice) es lenta (~18s) y global (semáforo).
+     * El POST de firma NO la espera: firma ya quedo registrada (estado FIRMADA,
+     * token usado); el documento firmado se genera en segundo plano.
+     *
+     * Antes, la respuesta bloqueaba 18s y un refresco/cierre en esa ventana
+     * hacia que la recarga viera el token ya usado -> GET 401/400 ->
+     * "Firma no disponible" tras una firma que SI entro. Quitar el bloqueo
+     * elimina esa ventana.
+     */
+    private final java.util.concurrent.ExecutorService firmaPdfExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                java.lang.Thread t = new java.lang.Thread(r, "firma-pdf");
+                t.setDaemon(true);
+                return t;
+            });
+
+    /**
      * Segunda capa de seguridad: ninguno de los endpoints de firma responde
      * sin una sesion OTP validada. El error es indistinto (no filtrar si es
      * el token o la sesion lo que fallo).
@@ -100,7 +117,7 @@ public class FirmaController {
                     .body(ErrorResponse.of("Sesion OTP invalida o expirada"));
         }
         firmaService.firmarActa(token, request);
-        signedDocumentService.generarDocumentoFirmado(token);
+        firmaPdfExecutor.execute(() -> signedDocumentService.generarDocumentoFirmado(token));
         return ResponseEntity.ok(ErrorResponse.ok("Acta firmada exitosamente"));
     }
 
