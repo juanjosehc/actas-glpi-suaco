@@ -9,6 +9,7 @@ import com.empresa.actas.acta.service.ActaHistorialService;
 import com.empresa.actas.dto.request.DevolucionRequest;
 import com.empresa.actas.dto.response.ActaResponse;
 import com.empresa.actas.security.UserSecurity;
+import com.empresa.actas.usuario.service.UsuarioService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,7 @@ public class DevolucionService {
     private final LibreOfficePdfService libreOfficePdfService;
     private final ActaRepository actaRepository;
     private final ActaHistorialService actaHistorialService;
+    private final UsuarioService usuarioService;
 
     public DevolucionService(
             DocumentoWordService wordService,
@@ -57,7 +59,8 @@ public class DevolucionService {
             ObjectMapper objectMapper,
             LibreOfficePdfService libreOfficePdfService,
             ActaRepository actaRepository,
-            ActaHistorialService actaHistorialService
+            ActaHistorialService actaHistorialService,
+            UsuarioService usuarioService
     ) {
         this.wordService = wordService;
         this.zipService = zipService;
@@ -65,6 +68,7 @@ public class DevolucionService {
         this.libreOfficePdfService = libreOfficePdfService;
         this.actaRepository = actaRepository;
         this.actaHistorialService = actaHistorialService;
+        this.usuarioService = usuarioService;
     }
 
     /**
@@ -86,6 +90,11 @@ public class DevolucionService {
             );
 
             Path rutaDevolucion = wordService.generarDevolucion(datos);
+
+            // Firma permanente del tecnico: se inserta en el DOCX antes de
+            // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
+            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaDevolucion.toString(), firmaTecnico);
 
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {

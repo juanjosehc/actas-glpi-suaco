@@ -3,6 +3,8 @@ package com.empresa.actas.usuario.controller;
 import com.empresa.actas.dto.response.ErrorResponse;
 import com.empresa.actas.usuario.dto.ActualizarUsuarioRequest;
 import com.empresa.actas.usuario.dto.CrearUsuarioRequest;
+import com.empresa.actas.usuario.dto.FirmaTecnicoResponse;
+import com.empresa.actas.usuario.dto.GuardarFirmaRequest;
 import com.empresa.actas.usuario.dto.UsuarioResponse;
 import com.empresa.actas.usuario.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,12 +13,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -74,6 +80,64 @@ public class UsuarioController {
     public ResponseEntity<ErrorResponse> obtenerUsuarioActual() {
         UsuarioResponse usuario = usuarioService.obtenerUsuarioActual();
         return ResponseEntity.ok(ErrorResponse.ok("Usuario autenticado obtenido correctamente", usuario));
+    }
+
+    @GetMapping("/me/firma")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener firma permanente del tecnico", description = "Retorna el estado de la firma permanente del usuario autenticado (tiene, ruta virtual y fecha de actualizacion)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estado de la firma obtenido"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<ErrorResponse> obtenerMiFirma() {
+        FirmaTecnicoResponse firma = usuarioService.obtenerFirmaActual();
+        return ResponseEntity.ok(ErrorResponse.ok("Firma del tecnico obtenida", firma));
+    }
+
+    @GetMapping("/me/firma/archivo")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener archivo de la firma del tecnico", description = "Sirve el PNG de la firma del usuario autenticado para la vista previa en Mi Perfil")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Imagen de la firma"),
+            @ApiResponse(responseCode = "404", description = "El usuario no tiene firma registrada"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<Resource> obtenerMiFirmaArchivo() {
+        Resource recurso = usuarioService.obtenerFirmaArchivo();
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"firma_tecnico.png\"")
+                .body(recurso);
+    }
+
+    @PutMapping("/me/firma")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Registrar o reemplazar firma permanente del tecnico", description = "Guarda la firma PNG (base64) del usuario autenticado, registrandola en AUDITORIA_SISTEMA")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Firma guardada"),
+            @ApiResponse(responseCode = "400", description = "Firma invalida"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<ErrorResponse> guardarMiFirma(
+            @Valid @RequestBody GuardarFirmaRequest request) {
+        FirmaTecnicoResponse firma = usuarioService.guardarFirma(request.firmaBase64());
+        return ResponseEntity.ok(ErrorResponse.ok("Firma del tecnico guardada", firma));
+    }
+
+    @DeleteMapping("/me/firma")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Eliminar firma permanente del tecnico", description = "Elimina el archivo y el registro de la firma del usuario autenticado, registrandolo en AUDITORIA_SISTEMA")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Firma eliminada"),
+            @ApiResponse(responseCode = "404", description = "El usuario no tiene firma registrada"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<ErrorResponse> eliminarMiFirma() {
+        usuarioService.eliminarFirma();
+        return ResponseEntity.ok(ErrorResponse.ok("Firma del tecnico eliminada"));
     }
 
     @PostMapping

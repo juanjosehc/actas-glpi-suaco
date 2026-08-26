@@ -105,6 +105,12 @@
                         { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
                         { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
                     ]
+                },
+                {
+                    section: "Cuenta",
+                    items: [
+                        { label: "Mi Perfil", href: "perfil.html", icon: "user" }
+                    ]
                 }
             ],
             TECNICO: [
@@ -123,6 +129,12 @@
                         // (el backend ya restringe por propietario).
                         { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
                     ]
+                },
+                {
+                    section: "Cuenta",
+                    items: [
+                        { label: "Mi Perfil", href: "perfil.html", icon: "user" }
+                    ]
                 }
             ],
             AUDITOR: [
@@ -134,6 +146,12 @@
                         // aprobar/rechazar a ADMINISTRADOR y al TECNICO dueno).
                         { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
                     ]
+                },
+                {
+                    section: "Cuenta",
+                    items: [
+                        { label: "Mi Perfil", href: "perfil.html", icon: "user" }
+                    ]
                 }
             ]
         };
@@ -144,7 +162,8 @@
             "pen-tool": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
             "plus-circle": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
             list: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
-            search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+            user: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
         };
 
         var sects = sections[role];

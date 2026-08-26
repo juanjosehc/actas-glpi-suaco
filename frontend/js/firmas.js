@@ -395,16 +395,38 @@
     //  EVIDENCES
     // =========================
 
-    async function verEvidencia(url) {
+    // Abre la evidencia en una pestana (mismo mecanismo de ampliar de acta-view).
+    // El archivo se sirve por endpoint protegido: fetch con Bearer -> blob -> objectURL.
+    async function abrirEvidencia(url) {
         const token = checkAuth();
         if (!token) return;
         try {
             const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
             if (handle401(resp)) return;
-            if (!resp.ok) { alert("No se pudo cargar el archivo."); return; }
+            if (!resp.ok) { showToast("No se pudo cargar la evidencia.", "error"); return; }
             const blob = await resp.blob();
             window.open(URL.createObjectURL(blob), "_blank");
-        } catch (_) { alert("Error al cargar el archivo."); }
+        } catch (_) {
+            showToast("Error al cargar la evidencia.", "error");
+        }
+    }
+
+    // Vista previa de firma o foto dentro del modal. Si la imagen no se puede
+    // cargar se muestra "No disponible"; el click amplia (abre en pestana).
+    function cargarImagenEvidencia(id, tipo, imgId, emptyId) {
+        const img = $(imgId);
+        const empty = $(emptyId);
+        fetch(`${API_BASE}/actas/${id}/${tipo}`, { headers: { Authorization: `Bearer ${checkAuth()}` } })
+            .then((r) => { if (!r.ok) throw new Error("no"); return r.blob(); })
+            .then((blob) => {
+                img.src = URL.createObjectURL(blob);
+                img.style.display = "block";
+            })
+            .catch(() => {
+                empty.textContent = "No se pudo cargar la imagen.";
+                empty.style.display = "block";
+            });
+        img.addEventListener("click", () => abrirEvidencia(`${API_BASE}/actas/${id}/${tipo}`));
     }
 
     async function openEvidencias(id) {
@@ -420,39 +442,44 @@
                 evidenceModalBody.innerHTML = '<p class="modal-desc">No hay evidencias registradas para esta acta.</p>';
                 return;
             }
-            const labelMap = { FIRMA: "Firma Digital", FOTO: "Foto de Verificacion", PDF_FINAL: "PDF Final" };
-            const iconMap = { FIRMA: "firma", FOTO: "foto", PDF_FINAL: "pdf" };
-            const list = document.createElement("div");
-            list.className = "evidence-list";
-            body.data.forEach((ev) => {
-                const tipo = ev.tipo || "";
-                const label = labelMap[tipo] || tipo;
-                // Los archivos se sirven por endpoints protegidos (rol/propietario),
-                // nunca por /uploads (cerrado). El enlace lleva Bearer via fetch+blob.
-                const ruta = tipo === "FIRMA" ? `/actas/${id}/firma`
-                        : tipo === "FOTO" ? `/actas/${id}/foto`
-                        : `/actas/${id}/pdf`;
-                const item = document.createElement("div");
-                item.className = "evidence-item";
-                item.innerHTML = `
-                    <div class="evidence-info">
-                        <span class="evidence-type">${label}</span>
-                        <span class="evidence-path">${ev.rutaArchivo || "-"}</span>
+            const tipos = body.data.map((ev) => ev.tipo).filter(Boolean);
+            evidenceModalBody.innerHTML = `
+                <div class="ev-section">
+                    <h4 class="ev-section-title">Firma Digital</h4>
+                    <div class="ev-img-box">
+                        <img id="evFirmaImg" class="ev-img--firma" alt="Firma digital" style="display:none">
+                        <span id="evFirmaEmpty" class="ev-empty" style="display:none"></span>
                     </div>
-                `;
-                const btn = document.createElement("a");
-                btn.className = "btn btn-outline btn-sm";
-                btn.textContent = "Ver";
-                btn.href = "#";
-                btn.addEventListener("click", (evClick) => {
-                    evClick.preventDefault();
-                    verEvidencia(`${API_BASE}${ruta}`);
-                });
-                item.appendChild(btn);
-                list.appendChild(item);
-            });
-            evidenceModalBody.innerHTML = "";
-            evidenceModalBody.appendChild(list);
+                </div>
+                <div class="ev-section">
+                    <h4 class="ev-section-title">Foto de Verificacion</h4>
+                    <div class="ev-img-box">
+                        <img id="evFotoImg" class="ev-img--foto" alt="Foto de verificacion" style="display:none">
+                        <span id="evFotoEmpty" class="ev-empty" style="display:none"></span>
+                    </div>
+                </div>
+                <div class="ev-section" id="evDocSection">
+                    <h4 class="ev-section-title">Documento Final</h4>
+                    <div class="ev-btn-wrap">
+                        <a class="btn btn-primary" href="acta-view.html?id=${id}">Ver Documento</a>
+                    </div>
+                </div>`;
+
+            if (tipos.includes("FIRMA")) {
+                cargarImagenEvidencia(id, "firma", "evFirmaImg", "evFirmaEmpty");
+            } else {
+                $("evFirmaEmpty").textContent = "Sin firma registrada.";
+                $("evFirmaEmpty").style.display = "block";
+            }
+            if (tipos.includes("FOTO")) {
+                cargarImagenEvidencia(id, "foto", "evFotoImg", "evFotoEmpty");
+            } else {
+                $("evFotoEmpty").textContent = "Sin fotografia registrada.";
+                $("evFotoEmpty").style.display = "block";
+            }
+            if (!tipos.includes("PDF_FINAL")) {
+                $("evDocSection").style.display = "none";
+            }
         } catch (_) {
             evidenceModalBody.innerHTML = '<p class="modal-desc">Error al cargar evidencias.</p>';
         }

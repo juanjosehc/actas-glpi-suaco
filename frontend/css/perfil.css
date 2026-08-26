@@ -1,0 +1,134 @@
+/* Mi Perfil — firma permanente del tecnico */
+
+.perfil-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .perfil-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.perfil-card {
+    background: #fff;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.perfil-card-head {
+    margin-bottom: 16px;
+}
+
+.perfil-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px;
+}
+
+.perfil-card-desc {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.firma-estado {
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.firma-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.firma-preview-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.firma-preview img#firmaPreviewImg {
+    max-height: 110px;
+    width: auto;
+    max-width: 260px;
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px;
+}
+
+.firma-preview-fecha {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.firma-preview-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.firma-draw canvas#firmaCanvas {
+    width: 100%;
+    height: 200px;
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
+    background: #fff;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+.firma-draw-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.firma-error {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 13px;
+}
+
+.perfil-datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.perfil-datos dt {
+    color: #64748b;
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.perfil-datos dd {
+    margin: 0;
+    color: #0f172a;
+    word-break: break-word;
+}

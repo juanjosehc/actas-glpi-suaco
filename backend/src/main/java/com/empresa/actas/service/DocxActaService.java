@@ -10,6 +10,7 @@ import com.empresa.actas.dto.request.ActaRequest;
 import com.empresa.actas.dto.request.EquipoItem;
 import com.empresa.actas.dto.response.ActaResponse;
 import com.empresa.actas.security.UserSecurity;
+import com.empresa.actas.usuario.service.UsuarioService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class DocxActaService {
     private final LibreOfficePdfService libreOfficePdfService;
     private final ActaRepository actaRepository;
     private final ActaHistorialService actaHistorialService;
+    private final UsuarioService usuarioService;
 
     public DocxActaService(
             DocumentoWordService wordService,
@@ -44,7 +46,8 @@ public class DocxActaService {
             ObjectMapper objectMapper,
             LibreOfficePdfService libreOfficePdfService,
             ActaRepository actaRepository,
-            ActaHistorialService actaHistorialService
+            ActaHistorialService actaHistorialService,
+            UsuarioService usuarioService
     ) {
         this.wordService = wordService;
         this.zipService = zipService;
@@ -52,6 +55,7 @@ public class DocxActaService {
         this.libreOfficePdfService = libreOfficePdfService;
         this.actaRepository = actaRepository;
         this.actaHistorialService = actaHistorialService;
+        this.usuarioService = usuarioService;
     }
 
     @Transactional
@@ -66,6 +70,11 @@ public class DocxActaService {
             );
 
             Path rutaActa = wordService.generarActa(datos);
+
+            // Firma permanente del tecnico: se inserta en el DOCX antes de
+            // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
+            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaActa.toString(), firmaTecnico);
 
             Path rutaChecklist = wordService.generarChecklist(datos);
 

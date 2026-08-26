@@ -31,6 +31,50 @@ public class DocxImageReplacer {
         return (int) Math.round(cm * EMU_PER_CM);
     }
 
+    /**
+     * Inserta la firma permanente del tecnico en el DOCX reemplazando
+     * {@code {{firma_tecnico}}}.
+     *
+     * Si {@code firmaTecnicoBytes} es null (tecnico sin firma registrada), el
+     * placeholder se elimina y la celda queda en blanco — asi el DOCX/PDF no
+     * muestra el texto crudo {@code {{firma_tecnico}}}.
+     */
+    public static void reemplazarFirmaTecnico(
+            String docxPath,
+            byte[] firmaTecnicoBytes
+    ) throws IOException {
+        try (FileInputStream fis = new FileInputStream(docxPath);
+             XWPFDocument doc = new XWPFDocument(fis)) {
+
+            reemplazarFirmaTecnicoEnParrafos(doc.getParagraphs(), doc, firmaTecnicoBytes);
+
+            for (XWPFTable table : doc.getTables()) {
+                for (XWPFTableRow row : table.getRows()) {
+                    for (XWPFTableCell cell : row.getTableCells()) {
+                        reemplazarFirmaTecnicoEnParrafos(cell.getParagraphs(), doc, firmaTecnicoBytes);
+                    }
+                }
+            }
+
+            try (FileOutputStream fos = new FileOutputStream(docxPath)) {
+                doc.write(fos);
+            }
+        }
+    }
+
+    private static void reemplazarFirmaTecnicoEnParrafos(
+            List<XWPFParagraph> parrafos,
+            XWPFDocument doc,
+            byte[] firmaTecnicoBytes
+    ) throws IOException {
+        int[] dims = null;
+        if (firmaTecnicoBytes != null) {
+            dims = dimensionesFirma(firmaTecnicoBytes);
+        }
+        reemplazarEnParrafos(parrafos, doc, "{{firma_tecnico}}",
+                firmaTecnicoBytes, XWPFDocument.PICTURE_TYPE_PNG, dims, 0);
+    }
+
     public static void reemplazarFirmaYFoto(
             String docxPath,
             byte[] firmaBytes,
@@ -219,7 +263,8 @@ public class DocxImageReplacer {
                             + runText.substring(localEnd);
                     run.setText(cleaned, 0);
 
-                    if (!imageInserted) {
+                    // imagenBytes null => solo se elimina el placeholder (blank).
+                    if (!imageInserted && imagenBytes != null) {
                         insertarImagenEnRun(run, doc, imagenBytes, pictureType, dimensionesEmu);
                         imageInserted = true;
                     }

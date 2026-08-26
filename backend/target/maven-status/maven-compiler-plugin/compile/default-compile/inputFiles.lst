@@ -88,8 +88,12 @@ C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIER
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\controller\UsuarioController.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\dto\ActualizarUsuarioRequest.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\dto\CrearUsuarioRequest.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\dto\FirmaTecnicoResponse.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\dto\GuardarFirmaRequest.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\dto\UsuarioResponse.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\entity\Usuario.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\entity\UsuarioFirma.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\mapper\UsuarioMapper.java
+C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\repository\UsuarioFirmaRepository.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\repository\UsuarioRepository.java
 C:\Users\juanhern\OneDrive - COMPANIA DE FINANCIAMIENTO COMERCIAL COLTEFINANCIERA S.A\Documentos\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\usuario\service\UsuarioService.java

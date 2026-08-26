@@ -8,6 +8,7 @@ import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
+import com.empresa.actas.usuario.service.UsuarioService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class SignedDocumentService {
     private final ActaHistorialService actaHistorialService;
     private final DocumentoWordService documentoWordService;
     private final LibreOfficePdfService libreOfficePdfService;
+    private final UsuarioService usuarioService;
     private final ObjectMapper objectMapper;
 
     @Value("${app.generated-dir}")
@@ -95,6 +97,12 @@ public class SignedDocumentService {
                 byte[] fotoBytes = Files.readAllBytes(fotoPath);
                 DocxImageReplacer.reemplazarFirmaYFoto(docxPath.toString(), firmaBytes, fotoBytes);
             }
+
+            // Firma permanente del tecnico: va en TODOS los DOCX (iniciales y
+            // regenerados). Se obtiene por idTecnico del acta; si no existe,
+            // el placeholder queda en blanco.
+            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(acta.getIdTecnico());
+            DocxImageReplacer.reemplazarFirmaTecnico(docxPath.toString(), firmaTecnico);
 
             Path pdfDir = Paths.get(uploadsDir, "pdf");
             String pdfFileNombreBase = libreOfficePdfService.convertirDocxAPdf(docxPath, pdfDir);

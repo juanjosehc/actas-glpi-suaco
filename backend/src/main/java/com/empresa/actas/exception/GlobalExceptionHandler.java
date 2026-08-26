@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,6 +37,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ErrorResponse.of("Credenciales invalidas"));
+    }
+
+    @ExceptionHandler(AccountStatusException.class)
+    public ResponseEntity<ErrorResponse> handleAccountStatus(AccountStatusException ex) {
+        // Spring Security usa mensajes internos en ingles (ej. "User account is locked").
+        // Traducirlos a mensajes claros para el usuario final.
+        String mensaje;
+        if (ex instanceof LockedException) {
+            mensaje = "Su cuenta se encuentra bloqueada. Por favor contacte al administrador.";
+        } else if (ex instanceof DisabledException) {
+            mensaje = "Su cuenta no se encuentra habilitada. Por favor contacte al administrador.";
+        } else {
+            mensaje = "El estado de su cuenta no permite iniciar sesion. Por favor contacte al administrador.";
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(mensaje));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
