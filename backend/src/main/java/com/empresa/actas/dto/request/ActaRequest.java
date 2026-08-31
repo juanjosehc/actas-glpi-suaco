@@ -37,6 +37,9 @@ public class ActaRequest {
     @NotBlank(message = "El campo entregado_por es obligatorio")
     private String entregado_por;
 
+    /** Correo del usuario receptor (autocompletado desde GLPI). */
+    private String correo = "";
+
     @NotBlank(message = "El campo cargo_entrega es obligatorio")
     private String cargo_entrega;
 

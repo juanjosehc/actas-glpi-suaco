@@ -30,6 +30,16 @@ Flujo principal:
 ====================================================
 */
 
+/*
+----------------------------------------------------
+LÍMITES DE REGISTROS (capacidad de plantillas DOCX)
+----------------------------------------------------
+*/
+const MAX_EQUIPOS = 3;
+const MAX_HARDWARE = 9;
+const MSG_MAX_EQUIPOS = "Se alcanzó el máximo permitido de 3 equipos.";
+const MSG_MAX_HARDWARE = "Se alcanzó el máximo permitido de 9 registros de Hardware y Software.";
+
 /**
  * Genera el acta de entrega y la lista de chequeo.
  *
@@ -266,6 +276,11 @@ async function generarActa() {
 
             entregado_a:
                 document.getElementById("entregado_a").value,
+
+            correo:
+                getCorreoUsuarioSeleccionado(
+                    document.getElementById("entregado_a")
+                ),
 
             cargo_recibe:
                 document.getElementById("cargo_recibe").value,
@@ -538,7 +553,7 @@ ADMINISTRACIÓN DINÁMICA DE HARDWARE
  * Agrega un nuevo registro de hardware al formulario.
  *
  * Cada registro contiene: tipo, descripción y programa.
- * Límite máximo: 11 registros. No se permite eliminar
+ * Límite máximo: 9 registros. No se permite eliminar
  * el último registro existente.
  */
 function agregarHardware() {
@@ -547,12 +562,12 @@ function agregarHardware() {
         document.getElementById("hardware-container");
 
     if (
-        container.querySelectorAll(".hardware-item").length >= 11
+        container.querySelectorAll(".hardware-item").length >= MAX_HARDWARE
     ) {
 
         mostrarMensaje(
-            "Máximo 11 registros",
-            "error"
+            MSG_MAX_HARDWARE,
+            "warning"
         );
 
         return;
@@ -653,7 +668,7 @@ function agregarHardware() {
 
                 mostrarMensaje(
                     "Debe existir al menos un hardware",
-                    "error"
+                    "warning"
                 );
 
                 return;
@@ -691,6 +706,18 @@ function agregarEquipo() {
 
     const container =
         document.getElementById("equipos-container");
+
+    if (
+        container.querySelectorAll(".equipo-item").length >= MAX_EQUIPOS
+    ) {
+
+        mostrarMensaje(
+            MSG_MAX_EQUIPOS,
+            "warning"
+        );
+
+        return;
+    }
 
     const numeroEquipo =
         container.querySelectorAll(".equipo-item").length + 1;
@@ -842,7 +869,7 @@ function agregarEquipo() {
 
                 mostrarMensaje(
                     "Debe existir al menos un equipo",
-                    "error"
+                    "warning"
                 );
 
                 return;
@@ -879,7 +906,7 @@ async function buscarEquipoBloque(bloque) {
         if (!response.ok) {
 
             mostrarMensaje(
-                `Error al buscar equipo: HTTP ${response.status}`,
+                "Respuesta no válida del servidor",
                 "error"
             );
 
@@ -899,10 +926,19 @@ async function buscarEquipoBloque(bloque) {
         bloque.querySelector("[data-modelo]").value =
             data.modelo ?? "";
 
+        if (data.marca || data.tipo || data.modelo) {
+
+            mostrarMensaje(
+                "Equipo encontrado correctamente",
+                "success"
+            );
+
+        }
+
     } catch (error) {
 
         mostrarMensaje(
-            "Error de conexion al buscar equipo: " + error.message,
+            "Error al consultar información del equipo",
             "error"
         );
 

@@ -1,6 +1,7 @@
 package com.empresa.actas.acta.service;
 
 import com.empresa.actas.acta.entity.Acta;
+import com.empresa.actas.acta.entity.TipoActa;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.lowagie.text.Chunk;
@@ -175,7 +176,10 @@ public class PdfService {
             document.add(sec2);
 
             document.add(createFieldRow.apply("NOMBRE", acta.getNombreUsuario()));
-            document.add(createFieldRow.apply("CEDULA", acta.getCedulaUsuario()));
+            // La cedula solo aplica al acta de devolucion; en entrega no se solicita.
+            if (acta.getTipoActa() == TipoActa.DEVOLUCION) {
+                document.add(createFieldRow.apply("CEDULA", acta.getCedulaUsuario()));
+            }
             document.add(createFieldRow.apply("CORREO", acta.getCorreoUsuario()));
             if (acta.getCargo() != null) document.add(createFieldRow.apply("CARGO", acta.getCargo()));
             if (acta.getLugarTrabajo() != null) document.add(createFieldRow.apply("DEPARTAMENTO / SEDE", acta.getLugarTrabajo()));

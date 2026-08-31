@@ -53,23 +53,27 @@ public class UsuarioService {
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
 
+    /** Username del administrador principal protegido (configurable). Vacio = proteger al mas antiguo. */
+    @Value("${app.admin-protegido-username:}")
+    private String adminProtegidoUsername;
+
     public Page<UsuarioResponse> listarUsuarios(Pageable pageable) {
         return usuarioRepository.findAll(pageable)
-                .map(usuarioMapper::toResponse);
+                .map(usuario -> marcarProtegido(usuarioMapper.toResponse(usuario), usuario));
     }
 
     public UsuarioResponse obtenerUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Usuario no encontrado con id: " + id));
-        return usuarioMapper.toResponse(usuario);
+        return marcarProtegido(usuarioMapper.toResponse(usuario), usuario);
     }
 
     public UsuarioResponse obtenerUsuarioActual() {
         UserSecurity userSecurity =
                 (UserSecurity) SecurityContextHolder.getContext()
                         .getAuthentication().getPrincipal();
-        return usuarioMapper.toResponse(userSecurity.getUsuario());
+        return marcarProtegido(usuarioMapper.toResponse(userSecurity.getUsuario()), userSecurity.getUsuario());
     }
 
     public UsuarioResponse crearUsuario(CrearUsuarioRequest request) {
@@ -106,13 +110,19 @@ public class UsuarioService {
                 .rol(rol)
                 .build();
 
-        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+        return marcarProtegido(usuarioMapper.toResponse(usuarioRepository.save(usuario)), usuario);
     }
 
     public UsuarioResponse actualizarUsuario(Long id, ActualizarUsuarioRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Usuario no encontrado con id: " + id));
+
+        if (esAdminPrincipal(usuario)
+                && !request.rol().equals(usuario.getRol().getNombre())) {
+            throw new IllegalArgumentException(
+                    "No esta permitido cambiar el rol del administrador principal del sistema.");
+        }
 
         if (!usuario.getCorreo().equals(request.correo())
                 && usuarioRepository.existsByCorreo(request.correo())) {
@@ -132,7 +142,7 @@ public class UsuarioService {
         usuario.setLugarTrabajo(request.lugarTrabajo());
         usuario.setRol(rol);
 
-        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+        return marcarProtegido(usuarioMapper.toResponse(usuarioRepository.save(usuario)), usuario);
     }
 
     public UsuarioResponse bloquearUsuario(Long id) {
@@ -140,8 +150,13 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Usuario no encontrado con id: " + id));
 
+        if (esAdminPrincipal(usuario)) {
+            throw new IllegalArgumentException(
+                    "El administrador principal del sistema no puede ser bloqueado.");
+        }
+
         usuario.setBloqueado(true);
-        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+        return marcarProtegido(usuarioMapper.toResponse(usuarioRepository.save(usuario)), usuario);
     }
 
     public UsuarioResponse desbloquearUsuario(Long id) {
@@ -150,7 +165,7 @@ public class UsuarioService {
                         "Usuario no encontrado con id: " + id));
 
         usuario.setBloqueado(false);
-        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+        return marcarProtegido(usuarioMapper.toResponse(usuarioRepository.save(usuario)), usuario);
     }
 
     // ===================== Firma permanente del tecnico =====================
@@ -297,6 +312,34 @@ public class UsuarioService {
             if (bytes[i] != PNG_MAGIC[i]) return false;
         }
         return true;
+    }
+
+    /**
+     * Username del administrador protegido: el configurado en
+     * {@code app.admin-protegido-username}, o si esta vacio el ADMINISTRADOR
+     * mas antiguo (menor id_usuario).
+     */
+    private String usernameAdminPrincipal() {
+        if (adminProtegidoUsername != null && !adminProtegidoUsername.isBlank()) {
+            return adminProtegidoUsername;
+        }
+        return usuarioRepository.findFirstByRol_NombreOrderByIdUsuarioAsc("ADMINISTRADOR")
+                .map(Usuario::getNombreUsuario)
+                .orElse(null);
+    }
+
+    /** true si el usuario es el administrador principal protegido. */
+    private boolean esAdminPrincipal(Usuario usuario) {
+        if (!"ADMINISTRADOR".equals(usuario.getRol().getNombre())) {
+            return false;
+        }
+        String principal = usernameAdminPrincipal();
+        return principal != null && principal.equalsIgnoreCase(usuario.getNombreUsuario());
+    }
+
+    private UsuarioResponse marcarProtegido(UsuarioResponse response, Usuario usuario) {
+        response.setProtegido(esAdminPrincipal(usuario));
+        return response;
     }
 
     private Usuario usuarioActual() {

@@ -139,6 +139,7 @@ public class DevolucionService {
                 // El tecnico (quien recibe la devolucion) queda en idTecnico (JWT).
                 .cedulaUsuario(request.getCedula())
                 .nombreUsuario(request.getEntregado_por())
+                .correoUsuario(blankToNull(request.getCorreo()))
                 .serialEquipo(primerSerial(request))
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
@@ -195,5 +196,9 @@ public class DevolucionService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 }

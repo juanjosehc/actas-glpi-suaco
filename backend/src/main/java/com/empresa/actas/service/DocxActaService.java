@@ -120,6 +120,7 @@ public class DocxActaService {
                 .estado(EstadoActa.GENERADA)
                 .cedulaUsuario(null)
                 .nombreUsuario(request.getEntregado_a())
+                .correoUsuario(blankToNull(request.getCorreo()))
                 .serialEquipo(primerSerial(request))
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
@@ -186,5 +187,9 @@ public class DocxActaService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 }

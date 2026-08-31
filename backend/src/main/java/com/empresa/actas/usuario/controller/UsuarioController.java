@@ -83,7 +83,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/me/firma")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     @Operation(summary = "Obtener firma permanente del tecnico", description = "Retorna el estado de la firma permanente del usuario autenticado (tiene, ruta virtual y fecha de actualizacion)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Estado de la firma obtenido"),
@@ -95,7 +95,7 @@ public class UsuarioController {
     }
 
     @GetMapping("/me/firma/archivo")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     @Operation(summary = "Obtener archivo de la firma del tecnico", description = "Sirve el PNG de la firma del usuario autenticado para la vista previa en Mi Perfil")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Imagen de la firma"),
@@ -114,7 +114,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/me/firma")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     @Operation(summary = "Registrar o reemplazar firma permanente del tecnico", description = "Guarda la firma PNG (base64) del usuario autenticado, registrandola en AUDITORIA_SISTEMA")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Firma guardada"),
@@ -128,7 +128,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/me/firma")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     @Operation(summary = "Eliminar firma permanente del tecnico", description = "Elimina el archivo y el registro de la firma del usuario autenticado, registrandolo en AUDITORIA_SISTEMA")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Firma eliminada"),

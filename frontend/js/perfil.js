@@ -7,6 +7,15 @@
     const token = LoginService.obtenerToken();
     if (!token) return;
 
+    // El modulo Perfil es la firma permanente del tecnico. AUDITOR no envia
+    // actas ni firma: sin acceso (el backend tambien responde 403 en
+    // /usuarios/me/firma* para este rol).
+    const rolPerfil = LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role");
+    if (rolPerfil === "AUDITOR") {
+        window.location.href = "actas.html";
+        return;
+    }
+
     const canvas = $("firmaCanvas");
     const ctx = canvas.getContext("2d");
     let hasDrawn = false;

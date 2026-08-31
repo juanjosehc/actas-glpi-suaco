@@ -5,6 +5,7 @@
     const tipoDevolucion = document.getElementById("tipoDevolucion");
     const tipoError = document.getElementById("tipoError");
     const estadoEquipoGroup = document.getElementById("estadoEquipoGroup");
+    const fCedulaGroup = document.getElementById("fCedulaGroup");
     const fCedula = document.getElementById("fCedula");
     const fNombre = document.getElementById("fNombre");
     const fCorreo = document.getElementById("fCorreo");
@@ -39,6 +40,8 @@
         tipoDevolucion.classList.toggle("active", tipo === "DEVOLUCION");
         tipoError.classList.remove("visible");
         estadoEquipoGroup.style.display = tipo === "DEVOLUCION" ? "block" : "none";
+        // La cedula solo aplica en devolucion (quien entrega); en entrega no se solicita.
+        fCedulaGroup.style.display = tipo === "DEVOLUCION" ? "block" : "none";
     }
 
     tipoEntrega.addEventListener("click", () => selectTipo("ENTREGA"));
@@ -81,7 +84,7 @@
             tipoError.classList.add("visible");
             return false;
         }
-        if (!data.cedulaUsuario) { showToast("La cedula es obligatoria", "error"); return false; }
+        if (selectedTipo === "DEVOLUCION" && !data.cedulaUsuario) { showToast("La cedula es obligatoria", "error"); return false; }
         if (!data.nombreUsuario) { showToast("El nombre es obligatorio", "error"); return false; }
         if (!data.correoUsuario) { showToast("El correo es obligatorio", "error"); return false; }
         if (!data.descripcionEquipo) { showToast("La descripcion del equipo es obligatoria", "error"); return false; }
@@ -111,7 +114,7 @@
             idActa: idActa,
             fechaCreacion: fechaStr,
             nombreUsuario: data.nombreUsuario || "________________",
-            cedulaUsuario: data.cedulaUsuario || "________________",
+            cedulaUsuario: selectedTipo === "DEVOLUCION" ? (data.cedulaUsuario || "________________") : "",
             correoUsuario: data.correoUsuario || "________________",
             cargo: data.cargo || "________________",
             lugarTrabajo: data.lugarTrabajo || "________________",

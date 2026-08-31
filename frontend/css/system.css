@@ -919,6 +919,43 @@ html, body {
 }
 
 /* =========================
+   MENSAJES #mensaje-app (mostrarMensaje)
+   ========================= */
+
+#mensaje-app > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.15);
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-top: 16px;
+}
+
+#mensaje-app > div[data-tipo="success"] {
+    border-left: 4px solid var(--success);
+    color: var(--success);
+}
+
+#mensaje-app > div[data-tipo="error"] {
+    border-left: 4px solid var(--error);
+    color: var(--error);
+}
+
+#mensaje-app > div[data-tipo="warning"] {
+    border-left: 4px solid var(--warning);
+    color: var(--warning);
+}
+
+#mensaje-app > div[data-tipo="info"] {
+    border-left: 4px solid var(--info);
+    color: var(--info);
+}
+
+/* =========================
    RESPONSIVE
    ========================= */
 

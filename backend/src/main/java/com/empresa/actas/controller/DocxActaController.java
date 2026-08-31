@@ -6,6 +6,7 @@ import com.empresa.actas.dto.response.ErrorResponse;
 import com.empresa.actas.service.DocxActaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -32,6 +33,7 @@ public class DocxActaController {
     }
 
     @PostMapping("/generar-acta")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     public ActaResponse generarActa(@Valid @RequestBody ActaRequest request) {
         return docxActaService.generarActa(request);
     }

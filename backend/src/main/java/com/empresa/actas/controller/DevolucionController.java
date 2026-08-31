@@ -4,6 +4,7 @@ import com.empresa.actas.dto.request.DevolucionRequest;
 import com.empresa.actas.dto.response.ActaResponse;
 import com.empresa.actas.service.DevolucionService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +35,7 @@ public class DevolucionController {
      * @return ActaResponse con success y nombre_zip, o error.
      */
     @PostMapping("/generar-devolucion")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     public ActaResponse generarDevolucion(@Valid @RequestBody DevolucionRequest request) {
         return devolucionService.generarDevolucion(request);
     }

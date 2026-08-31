@@ -37,6 +37,16 @@ Flujo principal:
 ====================================================
 */
 
+/*
+----------------------------------------------------
+LÍMITES DE REGISTROS (capacidad de plantillas DOCX)
+----------------------------------------------------
+*/
+const MAX_EQUIPOS = 3;
+const MAX_HARDWARE = 3;
+const MSG_MAX_EQUIPOS = "Se alcanzó el máximo permitido de 3 equipos.";
+const MSG_MAX_HARDWARE = "Se alcanzó el máximo permitido de 3 registros de Otros Equipos.";
+
 /**
  * Genera el acta de devolución.
  *
@@ -206,6 +216,11 @@ async function generarDevolucion() {
 
             entregado_por:
                 document.getElementById("entregado_por")?.value || "",
+
+            correo:
+                getCorreoUsuarioSeleccionado(
+                    document.getElementById("entregado_por")
+                ) || "",
 
             cargo_recibe:
                 document.getElementById("cargo_recibe")?.value || "",
@@ -423,8 +438,7 @@ ADMINISTRACIÓN DINÁMICA DE HARDWARE (OTROS ELEMENTOS)
  *
  * En devolución solo se captura el tipo de hardware
  * (sin descripción ni programa como en entrega).
- * Límite máximo: 11 registros. No se permite eliminar
- * el último registro existente.
+ * Límite máximo: 3 registros. No se permite eliminar el último registro existente.
  */
 function agregarHardware() {
 
@@ -432,12 +446,12 @@ function agregarHardware() {
         document.getElementById("hardware-container");
 
     if (
-        container.querySelectorAll(".hardware-item").length >= 11
+        container.querySelectorAll(".hardware-item").length >= MAX_HARDWARE
     ) {
 
         mostrarMensaje(
-            "Máximo 11 registros",
-            "error"
+            MSG_MAX_HARDWARE,
+            "warning"
         );
 
         return;
@@ -504,7 +518,7 @@ function agregarHardware() {
 
                 mostrarMensaje(
                     "Debe existir al menos un hardware",
-                    "error"
+                    "warning"
                 );
 
                 return;
@@ -537,12 +551,24 @@ ADMINISTRACIÓN DINÁMICA DE EQUIPOS
  * modelo, inventario y estado. Marca/tipo/modelo se
  * autocompletan desde GLPI al hacer click en "Buscar".
  * Se validan serial, inventario y estado antes de enviar.
- * Límite mínimo: 1 equipo (no se puede eliminar el último).
+ * Límite máximo: 3 equipos. Límite mínimo: 1 equipo (no se puede eliminar el último).
  */
 function agregarEquipo() {
 
     const container =
         document.getElementById("equipos-container");
+
+    if (
+        container.querySelectorAll(".equipo-item").length >= MAX_EQUIPOS
+    ) {
+
+        mostrarMensaje(
+            MSG_MAX_EQUIPOS,
+            "warning"
+        );
+
+        return;
+    }
 
     const numeroEquipo =
         container.querySelectorAll(".equipo-item").length + 1;
@@ -707,7 +733,7 @@ function agregarEquipo() {
 
                 mostrarMensaje(
                     "Debe existir al menos un equipo",
-                    "error"
+                    "warning"
                 );
 
                 return;
@@ -744,7 +770,7 @@ async function buscarEquipoBloque(bloque) {
         if (!response.ok) {
 
             mostrarMensaje(
-                `Error al buscar equipo: HTTP ${response.status}`,
+                "Respuesta no válida del servidor",
                 "error"
             );
 
@@ -764,10 +790,19 @@ async function buscarEquipoBloque(bloque) {
         bloque.querySelector("[data-modelo]").value =
             data.modelo ?? "";
 
+        if (data.marca || data.tipo || data.modelo) {
+
+            mostrarMensaje(
+                "Equipo encontrado correctamente",
+                "success"
+            );
+
+        }
+
     } catch (error) {
 
         mostrarMensaje(
-            "Error de conexion al buscar equipo: " + error.message,
+            "Error al consultar información del equipo",
             "error"
         );
 

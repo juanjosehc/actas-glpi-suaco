@@ -110,11 +110,13 @@
    para que no se vean "pegados al borde izquierdo".
    ========================= */
 
-#acta-entrega-page .input-floating-label {
+#acta-entrega-page .input-floating-label,
+#acta-formateo-page .input-floating-label {
     margin-inline-start: 20px;
 }
 
-#acta-entrega-page .textarea-floating-label {
+#acta-entrega-page .textarea-floating-label,
+#acta-formateo-page .textarea-floating-label {
     margin-inline-start: 20px;
 }
 
@@ -295,4 +297,41 @@
         padding: 16px 24px;
     }
 
+}
+
+/* =========================
+   FORMATEO SEGURO — 2 cards como unidad centrada
+   La base (styles.css #acta-layout) es grid de 3 columnas. Con solo 2
+   .group las cards quedan pegadas a la izquierda y la 3a columna vacia,
+   mientras .acciones-row (justify-content:center) centra el boton a lo
+   ancho de la pagina. Se redefine el grid a 2 columnas centradas con
+   ancho acotado y se alinea el bloque de acciones al MISMO ancho, de
+   modo que el boton queda centrado respecto al formulario, no a la pagina.
+   ========================= */
+#acta-formateo-page #acta-layout {
+    grid-template-columns: 1fr 1fr;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+#acta-formateo-page #acciones-section {
+    max-width: 960px;
+    margin: 36px auto 0;
+}
+
+/* Mantener 2 columnas en pantallas medianas (anula el span de .group:last-child) */
+@media (max-width: 1100px) {
+    #acta-formateo-page #acta-layout {
+        grid-template-columns: 1fr 1fr;
+    }
+    #acta-formateo-page #acta-layout .group:last-child {
+        grid-column: auto;
+    }
+}
+
+/* Una columna en pantallas pequenas */
+@media (max-width: 768px) {
+    #acta-formateo-page #acta-layout {
+        grid-template-columns: 1fr;
+    }
 }

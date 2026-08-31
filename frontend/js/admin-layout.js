@@ -99,11 +99,18 @@
                     ]
                 },
                 {
+                    section: "Auditoria",
+                    items: [
+                        { label: "Eventos de Auditoria", href: "auditoria.html", icon: "search" }
+                    ]
+                },
+                {
                     section: "Actas",
                     items: [
                         { label: "Listado de Actas", href: "actas.html", icon: "list" },
                         { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
-                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
+                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" },
+                        { label: "Nueva Acta de Formateo", href: "acta-formateo.html", icon: "file-text" }
                     ]
                 },
                 {
@@ -119,7 +126,8 @@
                     items: [
                         { label: "Listado de Actas", href: "actas.html", icon: "list" },
                         { label: "Nueva Acta de Entrega", href: "acta-entrega.html", icon: "file-text" },
-                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" }
+                        { label: "Nueva Acta de Devolución", href: "acta-devolucion.html", icon: "file-text" },
+                        { label: "Nueva Acta de Formateo", href: "acta-formateo.html", icon: "file-text" }
                     ]
                 },
                 {
@@ -144,15 +152,13 @@
                         { label: "Consultar Actas", href: "actas.html", icon: "search" },
                         // Auditoria global de firmas (lectura; backend solo permite
                         // aprobar/rechazar a ADMINISTRADOR y al TECNICO dueno).
-                        { label: "Firmas", href: "firmas.html", icon: "pen-tool" }
-                    ]
-                },
-                {
-                    section: "Cuenta",
-                    items: [
-                        { label: "Mi Perfil", href: "perfil.html", icon: "user" }
+                        { label: "Firmas", href: "firmas.html", icon: "pen-tool" },
+                        // Modulo de auditoria: solo lectura, disponible para
+                        // ADMINISTRADOR y AUDITOR (nunca para TECNICO).
+                        { label: "Auditoria", href: "auditoria.html", icon: "search" }
                     ]
                 }
+                // AUDITOR sin modulo Perfil: no envia actas, no necesita firma.
             ]
         };
 

@@ -43,4 +43,7 @@ public class UsuarioResponse {
 
     @Schema(description = "Rol del usuario", example = "TECNICO")
     private String rol;
+
+    @Schema(description = "Indica si es el administrador principal protegido", example = "false")
+    private Boolean protegido;
 }

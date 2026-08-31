@@ -72,6 +72,26 @@
     margin-top: 4px;
 }
 
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.pagination-bar button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
 @media (max-width: 768px) {
     .actas-table th:nth-child(2),
     .actas-table td:nth-child(2),

@@ -28,6 +28,7 @@
     const infoTipoActa = $("infoTipoActa");
     const infoNombreUsuario = $("infoNombreUsuario");
     const infoCedula = $("infoCedula");
+    const infoCedulaField = $("infoCedulaField");
     const infoCorreo = $("infoCorreo");
     const infoEquipo = $("infoEquipo");
     const infoSerial = $("infoSerial");
@@ -370,6 +371,9 @@
         infoTipoActa.textContent = data.tipoActa || "-";
         infoNombreUsuario.textContent = data.nombreUsuario || "-";
         infoCedula.textContent = data.cedulaUsuario || "-";
+        if (infoCedulaField) {
+            infoCedulaField.style.display = data.tipoActa === "DEVOLUCION" ? "" : "none";
+        }
         infoCorreo.textContent = data.correoUsuario || "-";
         infoEquipo.textContent = data.descripcionEquipo || "-";
         infoSerial.textContent = data.serialEquipo || "-";

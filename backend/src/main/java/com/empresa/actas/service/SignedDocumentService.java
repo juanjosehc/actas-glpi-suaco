@@ -81,6 +81,7 @@ public class SignedDocumentService {
             switch (acta.getTipoActa()) {
                 case ENTREGA -> docxPath = documentoWordService.generarActa(datos);
                 case DEVOLUCION -> docxPath = documentoWordService.generarDevolucion(datos);
+                case FORMATEO -> docxPath = documentoWordService.generarFormateoSeguro(datos);
                 default -> {
                     log.warn("Tipo de acta no soportado: {}", acta.getTipoActa());
                     return;

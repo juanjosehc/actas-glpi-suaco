@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 "/usuario/**",
                                 "/generar-acta",
                                 "/generar-devolucion",
+                                "/generar-formateo-seguro",
                                 "/descargar-acta/**",
                                 "/firma/**",
                                 "/uploads/**",

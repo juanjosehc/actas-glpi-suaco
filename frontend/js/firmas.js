@@ -52,6 +52,15 @@
     const toastContainer = $("toastContainer");
 
     // =========================
+    //  ROL — solo lectura para AUDITOR
+    //  El backend tambien bloquea los POST operativos (403). Aqui se ocultan
+    //  los botones para que un auditor no vea acciones que no puede ejecutar.
+    // =========================
+
+    const ROL_USUARIO = (typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role")) || "";
+    const PUEDE_OPERAR = ROL_USUARIO === "ADMINISTRADOR" || ROL_USUARIO === "TECNICO";
+
+    // =========================
     //  AUTH
     // =========================
 
@@ -172,13 +181,13 @@
             const actions = tr.querySelector(".cell-actions");
             actions.appendChild(actionBtn("Ver", "btn-outline", () => openDetail(a.id)));
 
-            if (a.estado === "GENERADA") {
+            if (a.estado === "GENERADA" && PUEDE_OPERAR) {
                 actions.appendChild(actionBtn("Enviar", "btn-primary", () => openEnviarModal(a)));
             }
             if (a.estado === "ENVIADA") {
                 actions.appendChild(actionBtn("Enlace", "btn-outline", () => openLinkModal(a)));
             }
-            if (a.estado === "FIRMADA") {
+            if (a.estado === "FIRMADA" && PUEDE_OPERAR) {
                 actions.appendChild(actionBtn("Aprobar", "btn-success", () => aprobarActa(a.id)));
                 actions.appendChild(actionBtn("Rechazar", "btn-danger", () => openRejectModal(a.id)));
             }
@@ -276,7 +285,7 @@
                 <div class="detail-field"><span class="detail-label">Tipo Acta</span><span class="detail-value">${a.tipoActa || "-"}</span></div>
                 <div class="detail-field"><span class="detail-label">Ticket GLPI</span><span class="detail-value">${a.ticketGlpi != null ? a.ticketGlpi : "-"}</span></div>
                 <div class="detail-field"><span class="detail-label">Usuario</span><span class="detail-value">${a.nombreUsuario || "-"}</span></div>
-                <div class="detail-field"><span class="detail-label">Cedula</span><span class="detail-value">${a.cedulaUsuario || "-"}</span></div>
+                ${a.tipoActa === "DEVOLUCION" ? `<div class="detail-field"><span class="detail-label">Cedula</span><span class="detail-value">${a.cedulaUsuario || "-"}</span></div>` : ""}
                 <div class="detail-field"><span class="detail-label">Correo</span><span class="detail-value">${a.correoUsuario || "-"}</span></div>
                 <div class="detail-field"><span class="detail-label">Equipo</span><span class="detail-value">${a.descripcionEquipo || "-"}</span></div>
                 <div class="detail-field"><span class="detail-label">Serial</span><span class="detail-value">${a.serialEquipo || "-"}</span></div>

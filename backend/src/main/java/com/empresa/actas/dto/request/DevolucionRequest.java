@@ -30,6 +30,9 @@ public class DevolucionRequest {
 
     private String entregado_por = "";
 
+    /** Correo del usuario que entrega (autocompletado desde GLPI). */
+    private String correo = "";
+
     private String cargo_recibe = "";
 
     private String cedula = "";

@@ -127,6 +127,7 @@
 
         data.forEach((u) => {
             const estado = u.bloqueado ? "BLOQUEADO" : "ACTIVO";
+            const protegido = !!u.protegido;
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td class="cell-id">${u.id}</td>
@@ -137,13 +138,19 @@
                 <td>${u.correo || "-"}</td>
                 <td>${u.cargo || "-"}</td>
                 <td>${u.rol || "-"}</td>
-                <td><span class="badge badge--${estado}">${estado}</span></td>
+                <td>
+                    <span class="badge badge--${estado}">${estado}</span>
+                    ${protegido ? '<span class="badge badge--ACTIVO" title="Administrador principal: no puede bloquearse ni cambiar su rol">PROTEGIDO</span>' : ""}
+                </td>
                 <td class="cell-actions" data-id="${u.id}"></td>
             `;
             const actions = tr.querySelector(".cell-actions");
             actions.appendChild(actionBtn("Ver", "btn-outline", () => openView(u.id)));
             actions.appendChild(actionBtn("Editar", "btn-outline", () => openEdit(u.id)));
-            if (u.bloqueado) {
+            if (protegido) {
+                actions.appendChild(actionBtn("🔒", "btn-outline", () => {}));
+                actions.lastChild.title = "Administrador protegido: no puede bloquearse ni cambiar su rol";
+            } else if (u.bloqueado) {
                 actions.appendChild(actionBtn("Desbloquear", "btn-warning", () => {
                     confirmAction = () => desbloquear(u.id);
                     openConfirm("Desbloquear Usuario", "¿Esta seguro de desbloquear este usuario?");
@@ -208,6 +215,7 @@
         formPassword.value = "";
         formCedula.disabled = false;
         formUsername.disabled = false;
+        formRol.disabled = false;
     }
 
     function openCreate() {
@@ -248,6 +256,11 @@
             formEmpresa.value = u.empresa || "";
             formLugarTrabajo.value = u.lugarTrabajo || "";
             formRol.value = u.rol || "";
+            if (u.protegido) {
+                formRol.disabled = true;
+                formError.classList.add("visible");
+                formError.textContent = "Administrador principal: el rol no puede modificarse.";
+            }
             modalUser.classList.add("open");
         } catch (_) {
             showToast("Error de conexion.", "error");
@@ -270,7 +283,7 @@
             modalViewBody.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-field"><span class="detail-label">ID</span><span class="detail-value">${u.id}</span></div>
-                    <div class="detail-field"><span class="detail-label">Estado</span><span class="badge badge--${estado}">${estado}</span></div>
+                    <div class="detail-field"><span class="detail-label">Estado</span><span class="badge badge--${estado}">${estado}</span>${u.protegido ? '<span class="badge badge--ACTIVO">PROTEGIDO</span>' : ""}</div>
                     <div class="detail-field"><span class="detail-label">Cedula</span><span class="detail-value">${u.cedula || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Nombres</span><span class="detail-value">${u.nombres || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Apellidos</span><span class="detail-value">${u.apellidos || "-"}</span></div>
@@ -280,7 +293,8 @@
                     <div class="detail-field"><span class="detail-label">Empresa</span><span class="detail-value">${u.empresa || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Lugar Trabajo</span><span class="detail-value">${u.lugarTrabajo || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Rol</span><span class="detail-value">${u.rol || "-"}</span></div>
-                </div>`;
+                </div>
+                ${u.protegido ? '<p class="modal-desc" style="margin-top:8px;color:#B45309;">Administrador principal: no puede bloquearse, desactivarse ni cambiarsele el rol.</p>' : ""}`;
             modalView.classList.add("open");
         } catch (_) {
             showToast("Error de conexion.", "error");

@@ -67,6 +67,18 @@ del usuario desde GLPI, sin agregar campos visibles.
 
 let _autocompleteUsuarioCorreo = "";
 
+let _autocompleteResultadosUsuario = [];
+
+let _autocompleteIndiceActivo = -1;
+
+let _solicitudAutocompleteUsuario = null;
+
+let _ultimoErrorAutocomplete = 0;
+
+const AUTOCOMPLETE_MAX_RESULTADOS = 10;
+
+const AUTOCOMPLETE_INTERVALO_ERROR = 2000;
+
 /**
  * Retorna el correo del usuario seleccionado via autocompletado.
  *
@@ -122,14 +134,103 @@ function iniciarAutocompleteUsuario(input, alSeleccionar) {
 
     });
 
+    input.addEventListener("focus", function () {
+
+        const lista =
+            document.getElementById("usuario-autocomplete");
+
+        if (lista) {
+            return;
+        }
+
+        const q =
+            input.value.trim();
+
+        if (q.length < 3) {
+            return;
+        }
+
+        clearTimeout(timer);
+
+        timer = setTimeout(function () {
+            buscarUsuariosGlpi(input, q, alSeleccionar);
+        }, 350);
+
+    });
+
     input.addEventListener("blur", function () {
         setTimeout(cerrarSugerenciasUsuario, 200);
     });
 
     input.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") {
-            cerrarSugerenciasUsuario();
+
+        const lista =
+            document.getElementById("usuario-autocomplete");
+
+        if (!lista) {
+            return;
         }
+
+        switch (e.key) {
+
+            case "ArrowDown":
+
+                e.preventDefault();
+
+                if (_autocompleteResultadosUsuario.length > 0) {
+
+                    _autocompleteIndiceActivo =
+                        (_autocompleteIndiceActivo + 1) %
+                        _autocompleteResultadosUsuario.length;
+
+                }
+
+                resaltarSugerenciaActiva(input);
+
+                break;
+
+            case "ArrowUp":
+
+                e.preventDefault();
+
+                if (_autocompleteResultadosUsuario.length > 0) {
+
+                    _autocompleteIndiceActivo =
+                        (_autocompleteIndiceActivo - 1 +
+                            _autocompleteResultadosUsuario.length) %
+                        _autocompleteResultadosUsuario.length;
+
+                }
+
+                resaltarSugerenciaActiva(input);
+
+                break;
+
+            case "Enter":
+
+                e.preventDefault();
+
+                const usuario =
+                    _autocompleteResultadosUsuario[
+                        _autocompleteIndiceActivo
+                    ];
+
+                if (usuario) {
+                    seleccionarSugerenciaUsuario(
+                        input,
+                        usuario,
+                        alSeleccionar
+                    );
+                }
+
+                break;
+
+            case "Escape":
+                cerrarSugerenciasUsuario();
+                break;
+
+        }
+
     });
 
 }
@@ -143,27 +244,68 @@ function iniciarAutocompleteUsuario(input, alSeleccionar) {
  */
 async function buscarUsuariosGlpi(input, q, alSeleccionar) {
 
+    if (_solicitudAutocompleteUsuario) {
+        _solicitudAutocompleteUsuario.abort();
+    }
+
+    _solicitudAutocompleteUsuario =
+        new AbortController();
+
     try {
 
         const response = await fetch(
             "http://127.0.0.1:8001/usuario?q=" +
-            encodeURIComponent(q)
+            encodeURIComponent(q),
+            { signal: _solicitudAutocompleteUsuario.signal }
         );
 
         if (!response.ok) {
-            return;
+            throw new Error("HTTP " + response.status);
         }
 
         const data = await response.json();
 
+        if (!Array.isArray(data)) {
+            throw new Error("Formato de respuesta inválido");
+        }
+
+        const items =
+            data.slice(0, AUTOCOMPLETE_MAX_RESULTADOS);
+
         mostrarSugerenciasUsuario(
             input,
-            data || [],
+            items,
             alSeleccionar
         );
 
-    } catch (_) {
+    } catch (error) {
+
+        if (error.name === "AbortError") {
+            return;
+        }
+
         cerrarSugerenciasUsuario();
+
+        const ahora = Date.now();
+
+        if (
+            ahora - _ultimoErrorAutocomplete >=
+            AUTOCOMPLETE_INTERVALO_ERROR
+        ) {
+
+            _ultimoErrorAutocomplete = ahora;
+
+            mostrarMensaje(
+                "Error al consultar los usuarios",
+                "error"
+            );
+
+        }
+
+    } finally {
+
+        _solicitudAutocompleteUsuario = null;
+
     }
 
 }
@@ -179,10 +321,6 @@ function mostrarSugerenciasUsuario(input, usuarios, alSeleccionar) {
 
     cerrarSugerenciasUsuario();
 
-    if (!usuarios.length) {
-        return;
-    }
-
     const lista =
         document.createElement("ul");
 
@@ -193,69 +331,86 @@ function mostrarSugerenciasUsuario(input, usuarios, alSeleccionar) {
         "background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;" +
         "box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:260px;overflow-y:auto;";
 
-    usuarios.forEach(function (usuario) {
+    if (!usuarios.length) {
 
-        const nombre =
-            usuario.nombre || usuario.login || "";
-
-        const correo =
-            usuario.correo || "";
-
-        const item =
+        const vacio =
             document.createElement("li");
 
-        item.style.cssText =
-            "padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;";
+        vacio.style.cssText =
+            "padding:8px 12px;color:#64748B;font-size:13px;font-style:italic;";
 
-        item.addEventListener("mouseenter", function () {
-            item.style.backgroundColor = "#F1F5F9";
+        vacio.textContent = "Sin coincidencias";
+
+        lista.appendChild(vacio);
+
+    } else {
+
+        _autocompleteResultadosUsuario = usuarios;
+
+        _autocompleteIndiceActivo = -1;
+
+        usuarios.forEach(function (usuario, indice) {
+
+            const nombre =
+                usuario.nombre || usuario.login || "";
+
+            const correo =
+                usuario.correo || "";
+
+            const item =
+                document.createElement("li");
+
+            item.dataset.indice = String(indice);
+
+            item.style.cssText =
+                "padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;";
+
+            item.addEventListener("mouseenter", function () {
+                item.style.backgroundColor = "#F1F5F9";
+            });
+
+            item.addEventListener("mouseleave", function () {
+                item.style.backgroundColor = "";
+            });
+
+            const nombreEl =
+                document.createElement("span");
+
+            nombreEl.textContent = nombre;
+
+            nombreEl.style.cssText =
+                "font-weight:600;color:#0F172A;font-size:13px;";
+
+            const correoEl =
+                document.createElement("span");
+
+            correoEl.textContent = correo;
+
+            correoEl.style.cssText =
+                "color:#64748B;font-size:11px;";
+
+            item.appendChild(nombreEl);
+            item.appendChild(correoEl);
+
+            item.addEventListener("mousedown", function (e) {
+
+                e.preventDefault();
+
+                _autocompleteIndiceActivo = indice;
+
+                seleccionarSugerenciaUsuario(
+                    input,
+                    usuario,
+                    alSeleccionar
+                );
+
+            });
+
+            lista.appendChild(item);
+
         });
 
-        item.addEventListener("mouseleave", function () {
-            item.style.backgroundColor = "";
-        });
-
-        const nombreEl =
-            document.createElement("span");
-
-        nombreEl.textContent = nombre;
-
-        nombreEl.style.cssText =
-            "font-weight:600;color:#0F172A;font-size:13px;";
-
-        const correoEl =
-            document.createElement("span");
-
-        correoEl.textContent = correo;
-
-        correoEl.style.cssText =
-            "color:#64748B;font-size:11px;";
-
-        item.appendChild(nombreEl);
-        item.appendChild(correoEl);
-
-        item.addEventListener("mousedown", function (e) {
-
-            e.preventDefault();
-
-            input.value = nombre;
-
-            if (input.dataset) {
-                input.dataset.correoUsuario = correo;
-            }
-            _autocompleteUsuarioCorreo = correo;
-
-            if (typeof alSeleccionar === "function") {
-                alSeleccionar(nombre, correo);
-            }
-
-            cerrarSugerenciasUsuario();
-
-        });
-
-        lista.appendChild(item);
-
-    });
+    }
 
     const rect =
         input.getBoundingClientRect();
@@ -274,6 +429,68 @@ function mostrarSugerenciasUsuario(input, usuarios, alSeleccionar) {
 }
 
 /**
+ * Escribe el nombre en el input y guarda el correo.
+ *
+ * @param {HTMLInputElement} input - Campo de texto.
+ * @param {Object} usuario - Usuario GLPI { nombre, correo, login }.
+ * @param {Function} [alSeleccionar] - Callback (nombre, correo).
+ */
+function seleccionarSugerenciaUsuario(input, usuario, alSeleccionar) {
+
+    const nombre =
+        usuario.nombre || usuario.login || "";
+
+    const correo =
+        usuario.correo || "";
+
+    input.value = nombre;
+
+    if (input.dataset) {
+        input.dataset.correoUsuario = correo;
+    }
+    _autocompleteUsuarioCorreo = correo;
+
+    if (typeof alSeleccionar === "function") {
+        alSeleccionar(nombre, correo);
+    }
+
+    cerrarSugerenciasUsuario();
+
+}
+
+/**
+ * Resalta visualmente el ítem activo según el índice.
+ *
+ * @param {HTMLInputElement} input - Campo de texto (para scroll).
+ */
+function resaltarSugerenciaActiva(input) {
+
+    const lista =
+        document.getElementById("usuario-autocomplete");
+
+    if (!lista) {
+        return;
+    }
+
+    lista
+        .querySelectorAll("li[data-indice]")
+        .forEach(function (item, indice) {
+
+            const activo =
+                indice === _autocompleteIndiceActivo;
+
+            item.style.backgroundColor =
+                activo ? "#E2E8F0" : "";
+
+            if (activo) {
+                item.scrollIntoView({ block: "nearest" });
+            }
+
+        });
+
+}
+
+/**
  * Elimina la lista de sugerencias del DOM.
  */
 function cerrarSugerenciasUsuario() {
@@ -284,5 +501,9 @@ function cerrarSugerenciasUsuario() {
     if (lista) {
         lista.remove();
     }
+
+    _autocompleteResultadosUsuario = [];
+
+    _autocompleteIndiceActivo = -1;
 
 }

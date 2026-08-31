@@ -139,8 +139,11 @@
             }
         }
 
+        // Enviar a Firma es operativo: AUDITOR (solo lectura) no lo ve.
+        var rolUsuario = typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role");
+        var puedeOperar = rolUsuario === "ADMINISTRADOR" || rolUsuario === "TECNICO";
         if (sendFirmaBtn) {
-            if (hasAuthToken && hasRealId && acta.estado === "GENERADA") {
+            if (hasAuthToken && hasRealId && acta.estado === "GENERADA" && puedeOperar) {
                 sendFirmaBtn.style.display = "inline-flex";
             } else {
                 sendFirmaBtn.style.display = "none";

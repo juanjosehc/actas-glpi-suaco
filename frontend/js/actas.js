@@ -4,10 +4,17 @@
     let actas = [];
     let currentActaId = null;
 
+    // Paginacion server-side: el backend devuelve Page (content + totalPages).
+    const PAGE_SIZE = 15;
+    let currentPage = 0;
+    let totalPages = 0;
+    let totalElements = 0;
+
     const searchInput = document.getElementById("searchInput");
     const searchClear = document.getElementById("searchClear");
     const actasBody = document.getElementById("actasBody");
     const emptyState = document.getElementById("emptyState");
+    const paginationEl = document.getElementById("pagination");
     const loadingOverlay = document.getElementById("loadingOverlay");
     const detailModal = document.getElementById("detailModal");
     const modalBody = document.getElementById("modalBody");
@@ -29,6 +36,11 @@
     const enviarClose = document.getElementById("enviarClose");
 
     const toastContainer = document.getElementById("toastContainer");
+
+    // Rol: AUDITOR es solo consulta. Se ocultan los botones operativos y el
+    // backend responde 403 si se intenta el POST directo.
+    const ROL_USUARIO = (typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role")) || "";
+    const PUEDE_OPERAR = ROL_USUARIO === "ADMINISTRADOR" || ROL_USUARIO === "TECNICO";
 
     // =========================
     //  AUTH
@@ -82,7 +94,7 @@
         emptyState.classList.remove("visible");
 
         try {
-            const resp = await fetch(`${API_BASE}/actas?size=1000`, { headers: { Authorization: `Bearer ${token}` } });
+            const resp = await fetch(`${API_BASE}/actas?page=${currentPage}&size=${PAGE_SIZE}`, { headers: { Authorization: `Bearer ${token}` } });
             if (handle401(resp)) return;
 
             const body = await resp.json();
@@ -91,8 +103,20 @@
                 return;
             }
 
-            actas = body.data.content || body.data || [];
+            const data = body.data || {};
+            actas = data.content || body.data || [];
+            totalPages = data.totalPages ? data.totalPages : (data.content ? 1 : 0);
+            totalElements = data.totalElements || actas.length;
+
+            // Pagina huerfana (datos borrados entre cargas) → retroceder.
+            if (actas.length === 0 && currentPage > 0) {
+                currentPage--;
+                await loadActas();
+                return;
+            }
+
             renderTable(actas);
+            renderPagination();
         } catch (err) {
             if (err.message.includes("Failed to fetch")) {
                 showToast("El servidor no esta disponible. Verifique la conexion.", "error");
@@ -181,6 +205,40 @@
     });
 
     // =========================
+    //  PAGINACION
+    // =========================
+
+    function goToPage(page) {
+        if (page < 0 || page >= totalPages) return;
+        currentPage = page;
+        loadActas();
+    }
+
+    function renderPagination() {
+        if (!paginationEl) return;
+
+        // Una sola pagina (o ninguna): no hay nada que paginar.
+        if (totalPages <= 1) {
+            paginationEl.innerHTML = "";
+            return;
+        }
+
+        const btn = (label, page, disabled, title) =>
+            `<button type="button" class="btn btn-outline btn-sm" ${disabled ? "disabled" : ""} data-page="${page}" title="${title}">${label}</button>`;
+
+        paginationEl.innerHTML =
+            btn("Inicio", 0, currentPage === 0, "Primera pagina") +
+            btn("Anterior", currentPage - 1, currentPage === 0, "Pagina anterior") +
+            `<span class="pagination-info">Pagina <strong>${currentPage + 1}</strong> de ${totalPages} · ${totalElements} actas</span>` +
+            btn("Siguiente", currentPage + 1, currentPage >= totalPages - 1, "Pagina siguiente") +
+            btn("Fin", totalPages - 1, currentPage >= totalPages - 1, "Ultima pagina");
+
+        paginationEl.querySelectorAll("button[data-page]").forEach((b) => {
+            b.addEventListener("click", () => goToPage(Number(b.dataset.page)));
+        });
+    }
+
+    // =========================
     //  DETAIL MODAL
     // =========================
 
@@ -245,10 +303,10 @@
                     <span class="detail-label">Usuario</span>
                     <span class="detail-value">${a.nombreUsuario || "-"}</span>
                 </div>
-                <div class="detail-field">
+                ${a.tipoActa === "DEVOLUCION" ? `<div class="detail-field">
                     <span class="detail-label">Cedula</span>
                     <span class="detail-value">${a.cedulaUsuario || "-"}</span>
-                </div>
+                </div>` : ""}
                 <div class="detail-field">
                     <span class="detail-label">Ticket GLPI</span>
                     <span class="detail-value">${a.ticketGlpi || "-"}</span>
@@ -288,7 +346,7 @@
         btnDoc.textContent = "Ver Documento";
         modalActions.appendChild(btnDoc);
 
-        if (a.estado === "GENERADA") {
+        if (a.estado === "GENERADA" && PUEDE_OPERAR) {
             const btn = document.createElement("button");
             btn.className = "btn btn-primary";
             btn.textContent = "Enviar a Firma";
@@ -296,7 +354,7 @@
             modalActions.appendChild(btn);
         }
 
-        if (a.estado === "FIRMADA") {
+        if (a.estado === "FIRMADA" && PUEDE_OPERAR) {
             const btnApr = document.createElement("button");
             btnApr.className = "btn btn-success";
             btnApr.textContent = "Aprobar";

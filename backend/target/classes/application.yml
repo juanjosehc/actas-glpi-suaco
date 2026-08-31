@@ -105,6 +105,10 @@ app:
   firma-url-base: ${FIRMA_URL_BASE:}
   # Vigencia del enlace de firma en horas (default 72h = 3 dias).
   firma-token-expira-horas: ${FIRMA_TOKEN_EXPIRA_HORAS:72}
+  # Username del administrador principal protegido: no puede ser bloqueado ni
+  # cambiarsele el rol. Si queda vacio, se protege el ADMINISTRADOR mas antiguo
+  # (menor id_usuario).
+  admin-protegido-username: ${ADMIN_PROTEGIDO_USERNAME:admin}
   # OTP del portal de firma (segunda capa de seguridad).
   firma-otp-expira-minutos: ${FIRMA_OTP_EXPIRA_MINUTOS:10}
   firma-otp-sesion-minutos: ${FIRMA_OTP_SESION_MINUTOS:30}

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actas GLPI - Acta de Formateo Seguro</title>
+
+    <!-- Admin Layout CSS -->
+    <link rel="stylesheet" href="../css/system.css">
+    <link rel="stylesheet" href="../css/acta-document.css">
+    <link rel="stylesheet" href="../css/acta-layout.css">
+
+    <!-- Page-specific CSS -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/output.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+            <span class="sidebar-title">ACTAS GLPI</span>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <span class="sidebar-version">v1.0.0</span>
+        </div>
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="topbar-left">
+                <div class="topbar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
+                <span class="topbar-system">Actas GLPI</span>
+            </div>
+            <div class="topbar-right">
+                <div class="user-badge">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName"></span>
+                        <span class="user-role" id="userRole"></span>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Cerrar sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content" id="acta-formateo-page">
+
+            <div class="page-header">
+                <h1 class="page-title">Nueva Acta de Formateo</h1>
+                <p class="page-subtitle">Memorando de autorización de formateo seguro de activos tecnológicos.</p>
+            </div>
+
+            <div id="acta-layout" class="three-panel-layout">
+
+                <!-- DATOS DEL ACTA -->
+                <div class="group">
+                    <section id="datos-acta-section" class="card transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.01]">
+                        <div class="card-body p-3">
+                            <div class="section-header">
+                                <h2 class="card-title">Información del Acta</h2>
+                                <span class="header-spacer" aria-hidden="true"></span>
+                            </div>
+                            <div class="card border border-base-300">
+                                <div class="card-body p-3">
+                                    <h3 class="text-lg font-semibold mb-4">Datos del Acta</h3>
+
+                                    <div class="input-floating w-full mb-1">
+                                        <input type="text" id="fecha" class="input" placeholder="DD-MM-YYYY" />
+                                        <label class="input-floating-label" for="fecha">Fecha</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+
+                                    <div class="input-floating w-full mb-1">
+                                        <input type="text" id="entregado_a" class="input" placeholder=" " />
+                                        <label class="input-floating-label" for="entregado_a">Entregado a</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+
+                                    <div class="input-floating w-full mb-1">
+                                        <input type="text" id="cargo_recibe" class="input" placeholder=" " />
+                                        <label class="input-floating-label" for="cargo_recibe">Cargo de quien recibe</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+
+                                    <div class="input-floating w-full mb-1">
+                                        <input type="text" id="entregado_por" class="input" placeholder=" " />
+                                        <label class="input-floating-label" for="entregado_por">Entregado por</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+
+                                    <div class="input-floating w-full mb-1">
+                                        <input type="text" id="cargo_entrega" class="input" placeholder=" " />
+                                        <label class="input-floating-label" for="cargo_entrega">Cargo de quien entrega</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+
+                                    <div class="input-floating w-full">
+                                        <input type="text" id="asunto" class="input" placeholder=" " />
+                                        <label class="input-floating-label" for="asunto">Asunto</label>
+                                        <span class="helper-text ps-3">Campo obligatorio</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- EQUIPOS -->
+                <div class="group">
+                    <section id="equipos-section" class="card transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.01]">
+                        <div class="card-body p-3">
+                            <div class="section-header">
+                                <h2 class="card-title">Equipos</h2>
+                                <button type="button" id="btn-add-equipo" class="btn btn-outline">Añadir Equipo</button>
+                            </div>
+                            <div id="equipos-container"></div>
+                        </div>
+                    </section>
+                </div>
+
+            </div>
+
+            <!-- ACCIONES -->
+            <section id="acciones-section">
+                <div class="acciones-row">
+                    <button type="button" id="btn-generar-acta" onclick="generarFormateoSeguro()">
+                        Generar Acta de Formateo Seguro
+                    </button>
+                </div>
+            </section>
+
+            <!-- NOTIFICACIONES -->
+            <section id="notificaciones">
+                <div id="mensaje-app"></div>
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="../js/login.js"></script>
+<script src="../js/admin-layout.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/formateo.js"></script>
+<script src="../node_modules/flyonui/flyonui.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        AdminLayout.init({
+            currentFile: "acta-formateo.html"
+        });
+    });
+</script>
+</body>
+</html>

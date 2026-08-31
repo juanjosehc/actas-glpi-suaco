@@ -1,0 +1,163 @@
+/* ====================================================
+   AUDITORIA - pagina de consulta de eventos
+   ==================================================== */
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-card.stat-warn .stat-value {
+    color: #d97706;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* -------- barra de filtros -------- */
+
+.filter-bar {
+    background: #fff;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: flex-end;
+    margin-bottom: 18px;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 130px;
+}
+
+.filter-field label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.filter-field input,
+.filter-field select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+    background: #fff;
+    color: #111827;
+    min-height: 34px;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.filter-field.filter-q {
+    flex: 1 1 220px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* -------- tabla -------- */
+
+td .aud-fecha {
+    white-space: nowrap;
+}
+
+.aud-evento {
+    font-weight: 600;
+    color: #111827;
+    font-size: 0.82rem;
+}
+
+.aud-mini {
+    font-size: 0.72rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.aud-rol {
+    margin-top: 3px;
+}
+
+.aud-detalle {
+    font-size: 0.78rem;
+    color: #374151;
+    max-width: 360px;
+}
+
+#auditoriaTable td {
+    vertical-align: top;
+}
+
+/* -------- oscuro (theme) -------- */
+@media (prefers-color-scheme: dark) {
+    .stat-card,
+    .filter-bar {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .stat-value {
+        color: #f9fafb;
+    }
+
+    .stat-label,
+    .filter-field label {
+        color: #9ca3af;
+    }
+
+    .filter-field input,
+    .filter-field select {
+        background: #111827;
+        border-color: #374151;
+        color: #f9fafb;
+    }
+
+    .aud-evento {
+        color: #f9fafb;
+    }
+
+    .aud-detalle {
+        color: #d1d5db;
+    }
+
+    .aud-mini {
+        color: #9ca3af;
+    }
+}
