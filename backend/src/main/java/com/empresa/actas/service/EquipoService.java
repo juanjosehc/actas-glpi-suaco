@@ -1,13 +1,14 @@
 package com.empresa.actas.service;
 
 import com.empresa.actas.dto.response.EquipoResponse;
+import com.empresa.actas.exception.GlpiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Iterator;
@@ -30,9 +31,16 @@ import java.util.regex.Pattern;
  * - Field 4:  Tipo de equipo.
  * - Field 40: Modelo.
  * - Field 17: Procesador.
+ *
+ * Manejo de errores (QA-12): timeouts y fallos de red via GlpiHttpClient; un
+ * equipo "no encontrado" (count=0) es un resultado VALIDO que retorna vacio,
+ * pero un fallo de GLPI (timeout, HTTP >= 300, JSON invalido, autenticacion)
+ * lanza GlpiException y se registra en log — nunca se traga como "no data".
  */
 @Service
 public class EquipoService {
+
+    private static final Logger log = LoggerFactory.getLogger(EquipoService.class);
 
     @Value("${glpi.url}")
     private String glpiUrl;
@@ -43,14 +51,19 @@ public class EquipoService {
     @Value("${glpi.user-token}")
     private String userToken;
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final GlpiHttpClient glpi;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public EquipoService(GlpiHttpClient glpi) {
+        this.glpi = glpi;
+    }
 
     /**
      * Busca un equipo en GLPI por su número de serial.
      *
      * @param serial Número de serial a buscar.
      * @return EquipoResponse con marca, tipo y modelo. Vacío si no se encuentra.
+     * @throws GlpiException si GLPI falla (timeout, red, autenticación, HTTP>=300).
      */
     public EquipoResponse buscarEquipo(String serial) {
         try {
@@ -66,16 +79,18 @@ public class EquipoService {
                     + "&forcedisplay[3]=17";
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(java.net.URI.create(url))
                     .header("App-Token", appToken)
                     .header("Session-Token", sessionToken)
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
-            );
+            HttpResponse<String> response = glpi.enviar(request);
+
+            if (response.statusCode() >= 300) {
+                throw new GlpiException("GLPI devolvio HTTP " + response.statusCode()
+                        + " al buscar el equipo: " + response.body());
+            }
 
             JsonNode root = objectMapper.readTree(response.body());
             int count = root.path("count").asInt(0);
@@ -112,8 +127,12 @@ public class EquipoService {
 
             return new EquipoResponse(marca, tipo, modeloActa);
 
+        } catch (GlpiException e) {
+            log.error("Error consultando equipo en GLPI (serial {}): {}", serial, e.getMessage());
+            throw e;
         } catch (Exception e) {
-            return new EquipoResponse("", "", "");
+            log.error("Error inesperado consultando equipo en GLPI (serial {}): {}", serial, e.getMessage());
+            throw new GlpiException("No se pudo consultar el equipo en GLPI: " + e.getMessage());
         }
     }
 
@@ -121,23 +140,34 @@ public class EquipoService {
      * Inicia sesión en la API de GLPI y retorna el session token.
      *
      * @return Session token para las siguientes peticiones.
-     * @throws Exception Si hay error de conexión o autenticación.
+     * @throws GlpiException Si falla la conexión o la autenticación.
      */
-    private String iniciarSesion() throws Exception {
+    private String iniciarSesion() {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(glpiUrl + "/initSession"))
+                .uri(java.net.URI.create(glpiUrl + "/initSession"))
                 .header("App-Token", appToken)
                 .header("Authorization", "user_token " + userToken)
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
+        HttpResponse<String> response = glpi.enviar(request);
 
-        JsonNode root = objectMapper.readTree(response.body());
-        return root.path("session_token").asText();
+        if (response.statusCode() >= 300) {
+            throw new GlpiException("Autenticacion con GLPI fallo (HTTP " + response.statusCode()
+                    + "): " + response.body());
+        }
+
+        String sessionToken;
+        try {
+            JsonNode root = objectMapper.readTree(response.body());
+            sessionToken = root.path("session_token").asText();
+        } catch (Exception e) {
+            throw new GlpiException("GLPI no devolvio una respuesta valida de autenticacion: " + e.getMessage());
+        }
+        if (sessionToken.isBlank()) {
+            throw new GlpiException("GLPI no devolvio session_token. Verifique App-Token y User-Token.");
+        }
+        return sessionToken;
     }
 
     /**

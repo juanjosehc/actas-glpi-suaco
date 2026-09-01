@@ -213,6 +213,85 @@
 }
 
 /* =========================
+   DOCUMENTOS ASOCIADOS (expediente ENTREGA)
+   ========================= */
+
+.view-docs {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.docs-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1E3A8A;
+}
+
+.docs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.doc-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #F8FAFC;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    min-width: 280px;
+    max-width: 420px;
+    font-family: inherit;
+    text-align: left;
+}
+
+.doc-card:hover {
+    border-color: #93C5FD;
+    background: #EFF6FF;
+}
+
+.doc-card--active {
+    border-color: #1E3A8A;
+    background: #EFF6FF;
+    box-shadow: 0 1px 3px rgba(30, 58, 138, 0.15);
+}
+
+.doc-card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.doc-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.doc-card-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.doc-card-desc {
+    font-size: 0.75rem;
+    color: #64748B;
+}
+
+/* =========================
    PREVIEW MODE
    ========================= */
 

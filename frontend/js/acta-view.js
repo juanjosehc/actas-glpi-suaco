@@ -1,6 +1,5 @@
 (function () {
-    var API_BASE = "http://localhost:8001";
-
+    
     var viewDocument = document.getElementById("viewDocument");
     var pdfViewer = document.getElementById("pdfViewer");
     var viewLoading = document.getElementById("viewLoading");
@@ -26,6 +25,11 @@
     var enviarClose = document.getElementById("enviarClose");
     var currentActaId = null;
     var currentActaCorreo = "";
+    var viewDocs = document.getElementById("viewDocs");
+    var docActaCard = document.getElementById("docActaCard");
+    var docChecklistCard = document.getElementById("docChecklistCard");
+    var pdfUrls = {};
+    var activeDoc = "acta";
 
     function showToast(message, type) {
         var toast = document.createElement("div");
@@ -128,16 +132,7 @@
             currentActaCorreo = "";
         }
 
-        loadPdfViewer(pdfUrl, pdfAuth);
-
-        if (downloadPdfBtn) {
-            if (currentActaId != null && acta.rutaPdf) {
-                downloadPdfBtn.style.display = "inline-flex";
-                downloadPdfBtn.href = "#";
-            } else {
-                downloadPdfBtn.style.display = "none";
-            }
-        }
+        setupDocsSection(acta, pdfUrl, pdfAuth);
 
         // Enviar a Firma es operativo: AUDITOR (solo lectura) no lo ve.
         var rolUsuario = typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role");
@@ -151,6 +146,55 @@
         }
 
         renderEvidencesGrid(evidencias, currentActaId);
+    }
+
+    /**
+     * Expediente documental (ENTREGA): el acta y su checklist de entrega son
+     * documentos asociados. En gestion ambos se muestran como tarjetas y se
+     * alternan en el visor. Solo se muestra la tarjeta del checklist cuando
+     * el acta es ENTREGA y tiene PDF asociado.
+     */
+    function setupDocsSection(acta, pdfUrl, pdfAuth) {
+        var esGestion = currentActaId != null;
+        pdfUrls = { acta: pdfUrl };
+
+        var tieneChecklist = esGestion
+            && acta.tipoActa === "ENTREGA"
+            && !!acta.rutaPdfChecklist;
+        if (tieneChecklist) {
+            pdfUrls.checklist = API_BASE + "/actas/" + currentActaId + "/checklist/pdf";
+        }
+
+        if (viewDocs) {
+            viewDocs.style.display = esGestion ? "block" : "none";
+        }
+        if (docChecklistCard) {
+            docChecklistCard.style.display = tieneChecklist ? "flex" : "none";
+        }
+        if (docActaCard) {
+            docActaCard.style.display = esGestion ? "flex" : "none";
+        }
+
+        // El acta inicia activa; el checklist se muestra si el usuario lo elige.
+        setActiveDoc("acta");
+        loadPdfViewer(pdfUrl, pdfAuth);
+
+        if (downloadPdfBtn) {
+            downloadPdfBtn.style.display = (esGestion && !!acta.rutaPdf) ? "inline-flex" : "none";
+            downloadPdfBtn.href = "#";
+        }
+    }
+
+    function setActiveDoc(doc) {
+        activeDoc = doc;
+        if (docActaCard) docActaCard.classList.toggle("doc-card--active", doc === "acta");
+        if (docChecklistCard) docChecklistCard.classList.toggle("doc-card--active", doc === "checklist");
+    }
+
+    function cargarDocAsociado(doc) {
+        if (!pdfUrls[doc]) return;
+        setActiveDoc(doc);
+        loadPdfViewer(pdfUrls[doc], true);
     }
 
     function renderEvidencesGrid(evidencias, actaId) {
@@ -347,20 +391,27 @@
 
     function descargarActaPdf() {
         if (currentActaId == null) return;
-        fetchArchivoAutenticado(API_BASE + "/actas/" + currentActaId + "/pdf")
+        var esChecklist = activeDoc === "checklist";
+        var url = esChecklist
+            ? API_BASE + "/actas/" + currentActaId + "/checklist/pdf"
+            : API_BASE + "/actas/" + currentActaId + "/pdf";
+        var nombre = esChecklist
+            ? "checklist_" + currentActaId + ".pdf"
+            : "acta_" + currentActaId + ".pdf";
+        fetchArchivoAutenticado(url)
             .then(function (r) {
                 if (!r.ok) throw new Error("Error al descargar");
                 return r.blob();
             })
             .then(function (blob) {
-                var url = URL.createObjectURL(blob);
+                var urlDesc = URL.createObjectURL(blob);
                 var a = document.createElement("a");
-                a.href = url;
-                a.download = "acta_" + currentActaId + ".pdf";
+                a.href = urlDesc;
+                a.download = nombre;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(urlDesc);
             })
             .catch(function () { showToast("No se pudo descargar el PDF", "error"); });
     }
@@ -433,6 +484,13 @@
                 e.preventDefault();
                 descargarActaPdf();
             });
+        }
+
+        if (docActaCard) {
+            docActaCard.addEventListener("click", function () { cargarDocAsociado("acta"); });
+        }
+        if (docChecklistCard) {
+            docChecklistCard.addEventListener("click", function () { cargarDocAsociado("checklist"); });
         }
 
         if (enviarClose) enviarClose.addEventListener("click", closeEnviarModal);

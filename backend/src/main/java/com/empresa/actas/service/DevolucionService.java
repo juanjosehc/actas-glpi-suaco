@@ -93,18 +93,20 @@ public class DevolucionService {
 
             // Firma permanente del tecnico: se inserta en el DOCX antes de
             // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
+            // La firma/foto del USUARIO aun no existe: se dejan en blanco para que
+            // el DOCX/PDF inicial no muestre {{firma_usuario}} / {{foto_usuario}} crudos.
             byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
             DocxImageReplacer.reemplazarFirmaTecnico(rutaDevolucion.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaDevolucion.toString(), null, null);
 
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {
-                serial = request.getEquipos().get(0).getSerial();
+                serial = NombreArchivoSeguro.segmento(request.getEquipos().get(0).getSerial());
             }
 
-            String motivo = request.getMotivo()
-                    .replaceAll("[^a-zA-Z0-9]", "");
+            String motivo = NombreArchivoSeguro.segmento(request.getMotivo());
 
-            String nombreZip = "Devolucion_" + serial + "_" + motivo + ".zip";
+            String nombreZip = "Devolucion_" + serial + "_" + motivo + "_" + sufijoUnico() + ".zip";
             Path rutaZip = outputDir.resolve(nombreZip);
 
             zipService.crearZip(rutaZip, rutaDevolucion);
@@ -161,6 +163,11 @@ public class DevolucionService {
                 "Acta de devolucion generada: " + rutaPdfUrl);
 
         return guardada.getIdActa();
+    }
+
+    /** Sufijo aleatorio corto: evita colisiones de nombre entre actas iguales. */
+    private static String sufijoUnico() {
+        return java.util.UUID.randomUUID().toString().substring(0, 8);
     }
 
     private Long tecnicoAutenticado() {

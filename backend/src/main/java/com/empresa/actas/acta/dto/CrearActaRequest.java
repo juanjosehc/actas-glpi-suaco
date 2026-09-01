@@ -1,13 +1,20 @@
 package com.empresa.actas.acta.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Request para crear un nuevo acta")
 public record CrearActaRequest(
         @Schema(description = "Numero de ticket GLPI asociado", example = "12345")
         Long ticketGlpi,
+
+        @NotBlank(message = "La fecha es obligatoria")
+        @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "La fecha debe tener formato AAAA-MM-DD (ej. 2026-08-31)")
+        @Schema(description = "Fecha del acta en formato AAAA-MM-DD", example = "2026-08-31", requiredMode = Schema.RequiredMode.REQUIRED)
+        String fecha,
 
         @NotBlank(message = "El tipo de acta es obligatorio")
         @Schema(description = "Tipo de acta", example = "ENTREGA", allowableValues = {"ENTREGA", "DEVOLUCION"}, requiredMode = Schema.RequiredMode.REQUIRED)
@@ -23,6 +30,7 @@ public record CrearActaRequest(
         String nombreUsuario,
 
         @Size(max = 100, message = "El correo no puede exceder 100 caracteres")
+        @Email(message = "El correo no es valido")
         @Schema(description = "Correo del usuario receptor", example = "cperez@empresa.com")
         String correoUsuario,
 

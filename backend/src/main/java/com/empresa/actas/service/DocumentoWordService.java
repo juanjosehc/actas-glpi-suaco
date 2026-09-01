@@ -1,5 +1,7 @@
 package com.empresa.actas.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -29,13 +31,21 @@ import java.util.Map;
  * 4. Genera el nombre del archivo de salida.
  * 5. Procesa el template y retorna la ruta del DOCX generado.
  *
- * Límites por template:
- * - Acta entrega: 11 hardware items, 10 equipos.
+ * Límites por template (capacidad FISICA de cada plantilla DOCX, verificada
+ * contando filas con placeholders en el XML — los datos mas alla de estos
+ * limites no tienen fila en la plantilla y NO se muestran en el documento):
+ * - Acta entrega: 9 filas de hardware, 3 filas de equipos.
  * - Checklist: 36 checkboxes, 1 equipo (primero).
- * - Devolución: 10 equipos con estado, 10 otros elementos.
+ * - Devolución: 3 filas de equipos, 3 filas de otros elementos.
+ * - Formateo seguro: 4 filas de equipos.
+ * Los DTOs refuerzan estos limites con @Size; el frontend ya los usa.
+ * (Nota: el codigo siguiente indexa hasta 10/11 filas por compatibilidad;
+ * las filas sin lugar en la plantilla simplemente no se renderizan.)
  */
 @Service
 public class DocumentoWordService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentoWordService.class);
 
     @Value("${app.generated-dir}")
     private String generatedDir;
@@ -110,15 +120,16 @@ public class DocumentoWordService {
 
         Path templatePath = resolveTemplate("Acta de Entrega 2 2 - copia.docx");
 
-        String asunto = datos.getOrDefault("asunto", "").toString()
-                .replaceAll("[^a-zA-Z0-9]", "");
+        String asunto = NombreArchivoSeguro.segmento(
+                    datos.getOrDefault("asunto", "").toString());
 
         String serial = "SinSerial";
         if (!eqList.isEmpty()) {
-            serial = eqList.get(0).getOrDefault("serial", "SinSerial").toString();
+            serial = NombreArchivoSeguro.segmento(
+                    eqList.get(0).getOrDefault("serial", "").toString());
         }
 
-        String fileName = "ActaEntrega_" + serial + "_" + asunto + ".docx";
+        String fileName = "ActaEntrega_" + serial + "_" + asunto + "_" + sufijoUnico() + ".docx";
         Path outputPath = outputDir.resolve(fileName);
 
         return DocxTemplateEngine.processTemplate(templatePath, vars, outputPath);
@@ -193,15 +204,16 @@ public class DocumentoWordService {
 
         Path templatePath = resolveTemplate("ListaChequeo.docx");
 
-        String asunto = datos.getOrDefault("asunto", "").toString()
-                .replaceAll("[^a-zA-Z0-9]", "");
+        String asunto = NombreArchivoSeguro.segmento(
+                    datos.getOrDefault("asunto", "").toString());
 
         String serial = "SinSerial";
         if (!eqList.isEmpty()) {
-            serial = eqList.get(0).getOrDefault("serial", "SinSerial").toString();
+            serial = NombreArchivoSeguro.segmento(
+                    eqList.get(0).getOrDefault("serial", "").toString());
         }
 
-        String fileName = "Checklist_" + serial + "_" + asunto + ".docx";
+        String fileName = "Checklist_" + serial + "_" + asunto + "_" + sufijoUnico() + ".docx";
         Path outputPath = outputDir.resolve(fileName);
 
         return DocxTemplateEngine.processTemplate(templatePath, vars, outputPath);
@@ -272,13 +284,14 @@ public class DocumentoWordService {
 
         String serial = "SinSerial";
         if (!eqList.isEmpty()) {
-            serial = eqList.get(0).getOrDefault("serial", "SinSerial").toString();
+            serial = NombreArchivoSeguro.segmento(
+                    eqList.get(0).getOrDefault("serial", "").toString());
         }
 
-        String motivo = datos.getOrDefault("motivo", "").toString()
-                .replaceAll("[^a-zA-Z0-9]", "");
+        String motivo = NombreArchivoSeguro.segmento(
+                    datos.getOrDefault("motivo", "").toString());
 
-        String fileName = "Devolucion_" + serial + "_" + motivo + ".docx";
+        String fileName = "Devolucion_" + serial + "_" + motivo + "_" + sufijoUnico() + ".docx";
         Path outputPath = outputDir.resolve(fileName);
 
         return DocxTemplateEngine.processTemplate(templatePath, vars, outputPath);
@@ -340,18 +353,28 @@ public class DocumentoWordService {
 
         Path templatePath = resolveTemplate("ActaFormateoSeguro.docx");
 
-        String asunto = datos.getOrDefault("asunto", "").toString()
-                .replaceAll("[^a-zA-Z0-9]", "");
+        String asunto = NombreArchivoSeguro.segmento(
+                    datos.getOrDefault("asunto", "").toString());
 
         String serial = "SinSerial";
         if (!eqList.isEmpty()) {
-            serial = eqList.get(0).getOrDefault("serial", "SinSerial").toString();
+            serial = NombreArchivoSeguro.segmento(
+                    eqList.get(0).getOrDefault("serial", "").toString());
         }
 
-        String fileName = "FormateoSeguro_" + serial + "_" + asunto + ".docx";
+        String fileName = "FormateoSeguro_" + serial + "_" + asunto + "_" + sufijoUnico() + ".docx";
         Path outputPath = outputDir.resolve(fileName);
 
         return DocxTemplateEngine.processTemplate(templatePath, vars, outputPath);
+    }
+
+    /**
+     * Sufijo corto aleatorio para nombres de archivo generados: dos actas con el
+     * mismo serial y asunto ya no comparten DOCX/ZIP/PDF (QA-10 colision de
+     * nombres). Solo aporta unicidad; el nombre base sigue siendo legible.
+     */
+    private static String sufijoUnico() {
+        return java.util.UUID.randomUUID().toString().substring(0, 8);
     }
 
     /**
@@ -423,6 +446,7 @@ public class DocumentoWordService {
             datos.put("mes", String.format("%02d", fecha.getMonthValue()));
             datos.put("anio", String.valueOf(fecha.getYear()));
         } catch (Exception e) {
+            log.warn("Fecha invalida en datos del documento (formato esperado yyyy-MM-dd): '{}' — dia/mes/anio quedan en blanco", fechaStr);
             datos.put("dia", "");
             datos.put("mes", "");
             datos.put("anio", "");

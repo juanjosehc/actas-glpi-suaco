@@ -94,6 +94,14 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("Recurso no encontrado"));
     }
 
+    @ExceptionHandler(GlpiException.class)
+    public ResponseEntity<ErrorResponse> handleGlpi(GlpiException ex) {
+        // Fallos de integracion con GLPI (timeout, red, autenticacion) -> 502
+        // con mensaje claro; no un 200/500 que el frontend no pueda distinguir.
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ErrorResponse.of(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

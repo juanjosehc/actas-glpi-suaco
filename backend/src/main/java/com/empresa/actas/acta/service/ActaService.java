@@ -20,6 +20,8 @@ import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
+import com.empresa.actas.service.SignedDocumentService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -49,6 +51,8 @@ public class ActaService {
     private final PdfService pdfService;
     private final AccesoService accesoService;
     private final AuditoriaService auditoriaService;
+    private final SignedDocumentService signedDocumentService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -74,7 +78,7 @@ public class ActaService {
                 .descripcionEquipo(request.descripcionEquipo())
                 .contenidoHtml(request.contenidoHtml())
                 .rutaPdf(request.rutaPdf())
-                .datosOriginales(request.datosOriginales())
+                .datosOriginales(datosOriginalesO(request))
                 .build();
 
         Acta actaGuardada = actaRepository.save(acta);
@@ -90,6 +94,23 @@ public class ActaService {
                 "Acta generada");
 
         return actaMapper.toResponse(actaGuardada);
+    }
+
+    /**
+     * QA-04: el documento firmado se regenera desde datosOriginales. Si el
+     * request no los trae (p.ej. acta creada a mano sin plantilla), se
+     * serializa el request completo para que la regeneracion SIEMPRE tenga
+     * base y nunca quede una acta firmada sin documento.
+     */
+    private String datosOriginalesO(CrearActaRequest request) {
+        if (request.datosOriginales() != null && !request.datosOriginales().isBlank()) {
+            return request.datosOriginales();
+        }
+        try {
+            return objectMapper.writeValueAsString(request);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Page<ActaResponse> listarActas(String q, Pageable pageable) {
@@ -172,6 +193,22 @@ public class ActaService {
         return recurso;
     }
 
+    /**
+     * Sirve el PDF del checklist de entrega validando acceso (expediente
+     * documental de ENTREGA). Mismas reglas que {@link #obtenerPdfConAcceso}.
+     * Devuelve null si el acta no tiene checklist o el archivo no existe.
+     */
+    public Resource obtenerChecklistPdfConAcceso(Long idActa) {
+        Acta acta = cargarActaConAcceso(idActa);
+        Resource recurso = resolverArchivo(acta.getRutaPdfChecklist());
+        if (recurso != null) {
+            auditoriaService.registrar(TipoEventoAuditoria.DOCUMENTO_VISTO,
+                    "ACTA", String.valueOf(idActa), "/actas/" + idActa + "/checklist/pdf",
+                    "Checklist de Entrega visualizado/descargado (documento asociado del expediente)");
+        }
+        return recurso;
+    }
+
     /** Sirve la imagen de firma del acta validando acceso (firma_{id}.png). */
     public Resource obtenerFirmaConAcceso(Long idActa) {
         Acta acta = cargarActaConAcceso(idActa);
@@ -224,10 +261,18 @@ public class ActaService {
                     "Solo se pueden aprobar actas en estado FIRMADA. Estado actual: " + acta.getEstado());
         }
 
+        // QA-06: antes de aprobar se garantiza que el PDF del acta sea el
+        // documento FIRMADO (regenerado con la firma embebida). Si la
+        // regeneracion async sigue en curso, este metodo espera o regenera
+        // aqui mismo; la aprobacion ya no cae en la ventana de la carrera.
+        signedDocumentService.regenerarDocumentoFirmadoParaAprobacion(acta);
+
         EstadoActa estadoAnterior = acta.getEstado();
 
         String rutaPdf = acta.getRutaPdf();
         if (rutaPdf == null || rutaPdf.isBlank()) {
+            // Solo llega aqui un acta legacy sin datosOriginales ni documento:
+            // se genera un PDF_FINAL basico para no dejar el acta sin archivo.
             rutaPdf = pdfService.generarPdfFinal(acta);
 
             Evidencia evidenciaPdf = Evidencia.builder()

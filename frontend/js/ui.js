@@ -65,8 +65,6 @@ devolucion) para capturar internamente el correo
 del usuario desde GLPI, sin agregar campos visibles.
 */
 
-let _autocompleteUsuarioCorreo = "";
-
 let _autocompleteResultadosUsuario = [];
 
 let _autocompleteIndiceActivo = -1;
@@ -82,9 +80,9 @@ const AUTOCOMPLETE_INTERVALO_ERROR = 2000;
 /**
  * Retorna el correo del usuario seleccionado via autocompletado.
  *
- * Si se pasa el input del campo, lee el correo capturado en ESE campo
- * (cada campo con autocompletado guarda su propio correo). Sin argumento
- * conserva el comportamiento anterior (ultimo seleccionado).
+ * El correo se lee SIEMPRE del dataset del campo que tiene el
+ * autocompletado: cada campo guarda su propio correo (QA-20). No hay
+ * estado global compartido entre campos; sin input no hay correo.
  *
  * @param {HTMLInputElement} [input] - Campo con autocompletado.
  * @returns {string} Correo capturado o cadena vacia.
@@ -93,7 +91,50 @@ function getCorreoUsuarioSeleccionado(input) {
     if (input && input.dataset) {
         return input.dataset.correoUsuario || "";
     }
-    return _autocompleteUsuarioCorreo;
+    return "";
+}
+
+/**
+ * Valida el FORMATO de un campo (QA-13/QA-31/QA-35).
+ *
+ * Solo falla si el campo trae valor que no cumple el regex: los campos
+ * vacios obligatorios se validan aparte con validarCampo. Para el correo
+ * capturado por autocompletado se usa valorAlternativo (el valor del campo
+ * es el nombre, no el correo). Marca is-invalid, muestra el helper-text,
+ * hace scroll+focus y muestra mensaje.
+ *
+ * @param {string} id - ID del elemento.
+ * @param {RegExp} regex - Expresion que debe cumplir el valor (si viene con valor).
+ * @param {string} mensaje - Mensaje mostrado al usuario.
+ * @param {string} [valorAlternativo] - Valor a validar en vez de campo.value.
+ * @returns {boolean} true si esta vacio o cumple el formato.
+ */
+function validarFormatoCampo(id, regex, mensaje, valorAlternativo) {
+    const campo = document.getElementById(id);
+    if (!campo) return false;
+    const valor =
+        (valorAlternativo !== undefined
+            ? valorAlternativo
+            : campo.value || "") || "";
+    const texto = valor.trim();
+    if (texto === "" || regex.test(texto)) {
+        campo.classList.remove("is-invalid");
+        const helper = campo.parentElement.querySelector(".helper-text");
+        if (helper) {
+            helper.style.display = "none";
+        }
+        return true;
+    }
+    campo.classList.add("is-invalid");
+    const helper = campo.parentElement.querySelector(".helper-text");
+    if (helper) {
+        helper.textContent = mensaje;
+        helper.style.display = "block";
+    }
+    campo.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => campo.focus(), 300);
+    mostrarMensaje(mensaje, "error");
+    return false;
 }
 
 /**
@@ -116,7 +157,6 @@ function iniciarAutocompleteUsuario(input, alSeleccionar) {
         if (input.dataset) {
             input.dataset.correoUsuario = "";
         }
-        _autocompleteUsuarioCorreo = "";
 
         const q = input.value.trim();
 
@@ -253,10 +293,20 @@ async function buscarUsuariosGlpi(input, q, alSeleccionar) {
 
     try {
 
+        // QA-07/QA-18: /usuario?q= es endpoint protegido; debe ir con JWT.
+        const token = LoginService.obtenerToken();
+        if (!token) {
+            cerrarSugerenciasUsuario();
+            return;
+        }
+
         const response = await fetch(
-            "http://127.0.0.1:8001/usuario?q=" +
+            API_BASE + "/usuario?q=" +
             encodeURIComponent(q),
-            { signal: _solicitudAutocompleteUsuario.signal }
+            {
+                signal: _solicitudAutocompleteUsuario.signal,
+                headers: { "Authorization": `Bearer ${token}` }
+            }
         );
 
         if (!response.ok) {
@@ -448,7 +498,6 @@ function seleccionarSugerenciaUsuario(input, usuario, alSeleccionar) {
     if (input.dataset) {
         input.dataset.correoUsuario = correo;
     }
-    _autocompleteUsuarioCorreo = correo;
 
     if (typeof alSeleccionar === "function") {
         alSeleccionar(nombre, correo);

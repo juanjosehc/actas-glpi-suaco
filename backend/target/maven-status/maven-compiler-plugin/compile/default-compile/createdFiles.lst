@@ -14,6 +14,7 @@ com\empresa\actas\acta\service\PdfService.class
 com\empresa\actas\auditoria\dto\EventoAuditoriaResponse.class
 com\empresa\actas\usuario\mapper\UsuarioMapperImpl.class
 com\empresa\actas\firma\repository\FirmaOtpRepository.class
+com\empresa\actas\exception\GlpiException.class
 com\empresa\actas\security\JwtAuthenticationFilter.class
 com\empresa\actas\dto\request\DevolucionRequest.class
 com\empresa\actas\acta\dto\ActaHistorialResponse$ActaHistorialResponseBuilder.class
@@ -26,6 +27,7 @@ com\empresa\actas\service\ZipService.class
 com\empresa\actas\acta\entity\Acta$ActaBuilder.class
 com\empresa\actas\acta\dto\ActaResponse.class
 com\empresa\actas\acta\dto\EvidenciaResponse$EvidenciaResponseBuilder.class
+com\empresa\actas\service\NombreArchivoSeguro.class
 com\empresa\actas\usuario\mapper\UsuarioMapper.class
 com\empresa\actas\rol\entity\Rol.class
 com\empresa\actas\usuario\entity\Usuario$UsuarioBuilder.class
@@ -55,6 +57,7 @@ com\empresa\actas\firma\dto\EnviarActaRequest.class
 com\empresa\actas\service\DocxActaService.class
 com\empresa\actas\acta\service\ActaHistorialService.class
 com\empresa\actas\firma\dto\EnviarActaResponse.class
+com\empresa\actas\service\GlpiHttpClient.class
 com\empresa\actas\firma\support\FirmaUrlBuilder.class
 com\empresa\actas\service\DocxToPdfService$1.class
 com\empresa\actas\config\OpenApiConfig.class

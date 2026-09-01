@@ -1,6 +1,8 @@
 package com.empresa.actas.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -20,9 +22,14 @@ import java.util.List;
 public class FormateoSeguroRequest {
 
     @NotBlank(message = "La fecha es obligatoria")
+    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "La fecha debe tener formato AAAA-MM-DD (ej. 2026-08-31)")
     private String fecha;
 
     private String entregado_a = "";
+
+    /** Correo del usuario (entregado_a) que firma el formateo (autocompletado desde GLPI). Opcional; si viene con valor se valida formato. */
+    @Email(message = "El correo no es valido")
+    private String correo = "";
 
     private String cargo_recibe = "";
 

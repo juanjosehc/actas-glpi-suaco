@@ -45,7 +45,7 @@ LÍMITES DE REGISTROS (capacidad de plantillas DOCX)
 const MAX_EQUIPOS = 3;
 const MAX_HARDWARE = 3;
 const MSG_MAX_EQUIPOS = "Se alcanzó el máximo permitido de 3 equipos.";
-const MSG_MAX_HARDWARE = "Se alcanzó el máximo permitido de 3 registros de Otros Equipos.";
+const MSG_MAX_HARDWARE = "Se alcanzó el máximo permitido de 3 registros de Hardware.";
 
 /**
  * Genera el acta de devolución.
@@ -129,6 +129,27 @@ async function generarDevolucion() {
                 "error"
             );
 
+            return;
+        }
+
+        // Formato (QA-13/QA-31/QA-35): fecha ISO y correo del autocompletado
+        // (en dataset, no en el valor del campo).
+        const validoFormato =
+            validarFormatoCampo(
+                "fecha",
+                /^\d{4}-\d{2}-\d{2}$/,
+                "La fecha debe tener formato AAAA-MM-DD (ej. 2026-08-31)"
+            ) &&
+            validarFormatoCampo(
+                "entregado_por",
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                "El correo capturado del usuario no es valido",
+                getCorreoUsuarioSeleccionado(
+                    document.getElementById("entregado_por")
+                )
+            );
+
+        if (!validoFormato) {
             return;
         }
 
@@ -255,7 +276,7 @@ async function generarDevolucion() {
         };
 
         const response = await fetch(
-            "http://127.0.0.1:8001/generar-devolucion",
+            API_BASE + "/generar-devolucion",
             {
                 method: "POST",
                 headers: {
@@ -300,7 +321,7 @@ async function generarDevolucion() {
         // Ya no se hace una segunda llamada independiente a POST /actas.
 
         const descargaResponse = await fetch(
-            "http://127.0.0.1:8001/descargar-acta/" +
+            API_BASE + "/descargar-acta/" +
             result.nombre_zip
         );
 
@@ -765,12 +786,16 @@ async function buscarEquipoBloque(bloque) {
     try {
 
         const response =
-            await fetch(`http://127.0.0.1:8001/equipo/${serial}`);
+            await fetch(`${API_BASE}/equipo/${serial}`);
 
         if (!response.ok) {
 
+            const glpiError = await response.json().catch(() => null);
+
             mostrarMensaje(
-                "Respuesta no válida del servidor",
+                (glpiError && glpiError.mensaje)
+                    ? "GLPI: " + glpiError.mensaje
+                    : "Respuesta no válida del servidor",
                 "error"
             );
 

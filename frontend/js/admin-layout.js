@@ -4,8 +4,7 @@
     if (window.AdminLayout) return;
     window.AdminLayout = {};
 
-    var API_BASE = "http://localhost:8001";
-
+    
     AdminLayout.init = function(opts) {
         opts = opts || {};
 
@@ -15,9 +14,17 @@
             return;
         }
 
-        renderUser(token);
-        var role = localStorage.getItem("role") || "ADMINISTRADOR";
+        // El sidebar se construye con el rol real autenticado (servidor),
+        // nunca con un fallback a ADMINISTRADOR. Si el storage no tiene rol
+        // aun, se renderiza en cuanto llega la respuesta de /usuarios/me.
+        var role = localStorage.getItem("role");
         buildSidebar(role, opts.currentFile);
+        renderUser(token, function (rolReal) {
+            if (rolReal && rolReal !== role) {
+                localStorage.setItem("role", rolReal);
+                buildSidebar(rolReal, opts.currentFile);
+            }
+        });
 
         var logoutBtn = document.getElementById("logoutBtn");
         if (logoutBtn) {
@@ -43,7 +50,7 @@
         if (opts.onReady) opts.onReady();
     };
 
-    function renderUser(token) {
+    function renderUser(token, onRole) {
         var userName = document.getElementById("userName");
         var userRole = document.getElementById("userRole");
         var userAvatar = document.getElementById("userAvatar");
@@ -79,8 +86,12 @@
                     var b = (u.apellidos || "")[0] || "";
                     userAvatar.textContent = (a + b).toUpperCase();
                 }
-                localStorage.setItem("username", (u.nombres || "") + " " + (u.apellidos || ""));
-                localStorage.setItem("role", u.rol || "");
+                if (!u.rol) { /* rol vacio: no se sobrescribe lo almacenado */ }
+                else {
+                    localStorage.setItem("username", (u.nombres || "") + " " + (u.apellidos || ""));
+                    localStorage.setItem("role", u.rol);
+                }
+                if (typeof onRole === "function") onRole(u.rol);
             }
         }).catch(function() {});
     }
@@ -173,7 +184,10 @@
         };
 
         var sects = sections[role];
-        if (!sects) sects = sections.ADMINISTRADOR;
+        // Sin rol conocido de servidor: no se muestra ningun modulo en lugar
+        // de asumir ADMINISTRADOR (los permisos se resuelven en buildSidebar
+        // solo con el rol real devuelto por /usuarios/me).
+        if (!sects) sects = [];
 
         if (!currentFile) {
             currentFile = window.location.pathname.split("/").pop();

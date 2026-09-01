@@ -100,6 +100,22 @@ public class FirmaController {
                 .body(recurso);
     }
 
+    @GetMapping("/{token}/checklist/pdf")
+    @Operation(summary = "Obtener PDF del checklist para firmar", description = "Sirve el PDF del checklist de entrega al firmante. Requiere sesion OTP validada (header X-OTP-Sesion)")
+    public ResponseEntity<Resource> obtenerChecklistPdf(@PathVariable String token, HttpServletRequest request) {
+        if (!sesionValida(request, token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Resource recurso = firmaService.obtenerChecklistPdfPorToken(token);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"checklist.pdf\"")
+                .body(recurso);
+    }
+
     @PostMapping("/{token}")
     @Operation(summary = "Firmar acta", description = "Registra la firma digital y foto del usuario, cambia estado a FIRMADA. Requiere sesion OTP validada (header X-OTP-Sesion)")
     @ApiResponses({

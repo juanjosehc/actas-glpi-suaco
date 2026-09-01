@@ -45,6 +45,8 @@ public class Evidencia {
     public enum TipoEvidencia {
         FIRMA,
         FOTO,
-        PDF_FINAL
+        PDF_FINAL,
+        /** PDF del checklist de entrega firmado (expediente documental de ENTREGA). */
+        CHECKLIST_FINAL
     }
 }

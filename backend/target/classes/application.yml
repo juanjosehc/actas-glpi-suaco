@@ -52,6 +52,11 @@ glpi:
   url: http://10.86.1.33/glpi/apirest.php
   app-token: ZRsogtQqJgimxPwWxROo0F2WJdvLrsH0XLtcBKu8
   user-token: sX4sG98XFSnNyVaLwDckHwpdxNgO6rxrOUsN1vht
+  # Timeouts de la integracion (QA-12): limitan la espera de GLPI para que un
+  # servidor caido o lento no cuelgue los requests del usuario. Sobre-escribibles
+  # por variables de entorno (GLPI_CONNECT_TIMEOUT_MS / GLPI_REQUEST_TIMEOUT_MS).
+  connect-timeout-ms: ${GLPI_CONNECT_TIMEOUT_MS:5000}
+  request-timeout-ms: ${GLPI_REQUEST_TIMEOUT_MS:15000}
 
 # =====================================================
 # CORREO ELECTRONICO (SMTP)

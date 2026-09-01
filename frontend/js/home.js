@@ -1,6 +1,5 @@
 (() => {
-    const API_BASE = "http://localhost:8001";
-    const welcomeTitle = document.getElementById("welcomeTitle");
+        const welcomeTitle = document.getElementById("welcomeTitle");
     const welcomeText = document.getElementById("welcomeText");
 
     async function loadUser() {

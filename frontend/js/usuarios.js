@@ -1,6 +1,5 @@
 (() => {
-    const API_BASE = "http://localhost:8001";
-    const PAGE_SIZE = 10;
+        const PAGE_SIZE = 10;
 
     let allUsuarios = [];
     let filteredUsuarios = [];

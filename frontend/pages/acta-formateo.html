@@ -13,7 +13,7 @@
     <!-- Page-specific CSS -->
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/output.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="../node_modules/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body>
@@ -78,14 +78,14 @@
                                     <h3 class="text-lg font-semibold mb-4">Datos del Acta</h3>
 
                                     <div class="input-floating w-full mb-1">
-                                        <input type="text" id="fecha" class="input" placeholder="DD-MM-YYYY" />
+                                        <input type="text" id="fecha" class="input" placeholder="AAAA-MM-DD" />
                                         <label class="input-floating-label" for="fecha">Fecha</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
                                     <div class="input-floating w-full mb-1">
                                         <input type="text" id="entregado_a" class="input" placeholder=" " />
-                                        <label class="input-floating-label" for="entregado_a">Entregado a</label>
+                                        <label class="input-floating-label" for="entregado_a">Nombre de quien recibe</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
@@ -97,7 +97,7 @@
 
                                     <div class="input-floating w-full mb-1">
                                         <input type="text" id="entregado_por" class="input" placeholder=" " />
-                                        <label class="input-floating-label" for="entregado_por">Entregado por</label>
+                                        <label class="input-floating-label" for="entregado_por">Nombre de quien entrega</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
@@ -153,7 +153,8 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="../node_modules/flatpickr/dist/flatpickr.min.js"></script>
+<script src="../js/api.js"></script>
 <script src="../js/login.js"></script>
 <script src="../js/admin-layout.js"></script>
 <script src="../js/ui.js"></script>

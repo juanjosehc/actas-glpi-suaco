@@ -160,6 +160,38 @@ public class FirmaService {
         return new FileSystemResource(archivo.toFile());
     }
 
+    /**
+     * Sirve el PDF del checklist al firmante (portal publico, sin JWT).
+     * Mismas reglas que {@link #obtenerPdfPorToken} pero para el checklist
+     * del expediente de entrega.
+     */
+    public Resource obtenerChecklistPdfPorToken(String token) {
+        FirmaToken firmaToken = validadorToken.validar(token);
+
+        Acta acta = actaRepository.findById(firmaToken.getIdActa())
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada"));
+
+        if (acta.getEstado() != EstadoActa.ENVIADA) {
+            throw new IllegalArgumentException(
+                    "Esta acta no esta disponible para firma. Estado: " + acta.getEstado());
+        }
+
+        if (acta.getRutaPdfChecklist() == null || !acta.getRutaPdfChecklist().startsWith("uploads/")) {
+            return null;
+        }
+        Path archivo = Paths.get(uploadsDir)
+                .resolve(acta.getRutaPdfChecklist().substring("uploads/".length()));
+        if (!Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+            return null;
+        }
+
+        auditoriaService.registrar(TipoEventoAuditoria.DOCUMENTO_VISTO, null, "PORTAL_FIRMA",
+                "ACTA", String.valueOf(acta.getIdActa()), "/firma/" + token + "/checklist/pdf",
+                "El firmante visualizo el PDF del Checklist de Entrega (documento asociado del expediente)");
+
+        return new FileSystemResource(archivo.toFile());
+    }
+
     @Transactional
     public FirmaPublicaResponse obtenerActaPorToken(String token) {
         FirmaToken firmaToken = validadorToken.validar(token);
@@ -188,6 +220,7 @@ public class FirmaService {
                 .tipoActa(acta.getTipoActa().name())
                 .estado(acta.getEstado().name())
                 .rutaPdf(acta.getRutaPdf())
+                .rutaPdfChecklist(acta.getRutaPdfChecklist())
                 .nombreUsuario(acta.getNombreUsuario())
                 .cedulaUsuario(acta.getCedulaUsuario())
                 .correoUsuario(acta.getCorreoUsuario())

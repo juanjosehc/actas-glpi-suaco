@@ -88,6 +88,20 @@ public class ActaController {
                 .body(recurso);
     }
 
+    @GetMapping("/{id}/checklist/pdf")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener PDF del checklist de entrega", description = "Sirve el PDF del checklist de entrega validando acceso por rol/propietario")
+    public ResponseEntity<Resource> obtenerChecklistPdf(@PathVariable Long id) {
+        Resource recurso = actaService.obtenerChecklistPdfConAcceso(id);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"checklist_" + id + ".pdf\"")
+                .body(recurso);
+    }
+
     @GetMapping("/{id}/firma")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
     @Operation(summary = "Obtener imagen de firma del acta", description = "Sirve la firma del acta validando acceso por rol/propietario")
@@ -140,7 +154,7 @@ public class ActaController {
     })
     public ResponseEntity<ErrorResponse> enviarActa(
             @PathVariable Long id,
-            @RequestBody(required = false) EnviarActaRequest request) {
+            @Valid @RequestBody(required = false) EnviarActaRequest request) {
         String correo = request != null ? request.correo() : null;
         EnviarActaResponse response = firmaService.enviarActa(id, correo);
         return ResponseEntity.ok(ErrorResponse.ok("Acta enviada correctamente", response));

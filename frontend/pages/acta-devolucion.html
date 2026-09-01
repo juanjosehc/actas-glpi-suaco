@@ -13,7 +13,7 @@
     <!-- Page-specific CSS -->
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/output.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="../node_modules/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body>
@@ -78,14 +78,14 @@
                                     <h3 class="text-lg font-semibold mb-4">Datos del Acta</h3>
 
                                     <div class="input-floating w-full mb-1">
-                                        <input type="text" id="fecha" class="input" placeholder="DD-MM-YYYY" />
+                                        <input type="text" id="fecha" class="input" placeholder="AAAA-MM-DD" />
                                         <label class="input-floating-label" for="fecha">Fecha</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
                                     <div class="input-floating w-full mb-1">
                                         <input type="text" id="entregado_por" class="input" placeholder=" " />
-                                        <label class="input-floating-label" for="entregado_por">Nombre quien entrega</label>
+                                        <label class="input-floating-label" for="entregado_por">Nombre de quien entrega</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
@@ -103,7 +103,7 @@
 
                                     <div class="input-floating w-full mb-1">
                                         <input type="text" id="recibido_por" class="input" placeholder=" " />
-                                        <label class="input-floating-label" for="recibido_por">Recibido por</label>
+                                        <label class="input-floating-label" for="recibido_por">Nombre de quien recibe (Tecnico)</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
@@ -165,8 +165,8 @@
                     <section id="hardware-section" class="card transition-all duration-300 group-hover:shadow-2xl group-hover:scale-[1.01]">
                         <div class="card-body p-3">
                             <div class="section-header">
-                                <h2 class="card-title">Otros Equipos</h2>
-                                <button type="button" id="btn-add-hardware" class="btn btn-outline">Añadir Otros</button>
+                                <h2 class="card-title">Hardware</h2>
+                                <button type="button" id="btn-add-hardware" class="btn btn-outline">Añadir Hardware</button>
                             </div>
                             <div id="hardware-container"></div>
                         </div>
@@ -198,7 +198,8 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="../node_modules/flatpickr/dist/flatpickr.min.js"></script>
+<script src="../js/api.js"></script>
 <script src="../js/login.js"></script>
 <script src="../js/admin-layout.js"></script>
 <script src="../js/ui.js"></script>

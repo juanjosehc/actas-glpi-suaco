@@ -103,7 +103,8 @@ Las rutas guardadas en `acta.ruta_pdf` / `evidencia.ruta_archivo` son **virtuale
 
 ## Frontend
 
-- Páginas estáticas en `frontend/pages/`: `login.html` (auth), `home.html` (menú), `actas.html` + `acta-view.html` (paneles de gestión), `generar-acta.html` (nuevo flujo con firma) y las originales `acta-entrega.html` / `acta-devolucion.html` / `checklist-entrega.html`, además de `firma.html` / `firmas.html` (portal público y listado) y `usuarios.html`.
+- Páginas estáticas en `frontend/pages/`: `login.html` (auth), `home.html` (menú), `actas.html` + `acta-view.html` (paneles de gestión), `acta-entrega.html` / `acta-devolucion.html` / `acta-formateo.html` (formularios V1 vigentes) y `firma.html` / `firmas.html` (portal público y listado), `usuarios.html`, `perfil.html`, `auditoria.html`. Sprint 4 eliminó `generar-acta.html` (V2, huérfana y rota: dependía de `frontend/templates/` que no existe) y `checklist-entrega.html` (sin JS). La migración V1→V2 quedó descartada: los formularios V1 son la navegación canónica.
+- Los botones "Vista Previa" de Entrega/Devolución dependen de `frontend/templates/*.html` (NO existen) y de `acta-view.html?preview=true`; están rotos (QA-42). Formateo no tiene Vista Previa por consistencia. Arreglar preview = crear el dir de templates, fuera de Sprint 4.
 - Cada página tiene su JS homónimo en `frontend/js/`; `ui.js` trae utilidades compartidas. Los fetch al backend usan `http://127.0.0.1:8001` y envían el JWT de `login` en `Authorization: Bearer` para las rutas protegidas.
 - CSS: `output.css` es el build de Tailwind 4 + FlyonUI compilado desde `css/app.css` (fuente con `@import "tailwindcss"` y `@plugin "flyonui"`). No editar `output.css` a mano; regenerarlo con el comando de arriba. El resto de `css/*.css` son estilos custom.
 - CORS del backend acepta `localhost`/`127.0.0.1` en puertos 80, 5500, 8080 y 8001.

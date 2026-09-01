@@ -93,18 +93,20 @@ public class FormateoSeguroService {
             // Firma permanente del tecnico: se inserta en el DOCX antes de
             // empaquetar/convertir (patron DocxActaService/DevolucionService).
             // Si no tiene firma, el placeholder queda en blanco.
+            // La firma/foto del USUARIO aun no existe: se dejan en blanco para que
+            // el DOCX/PDF inicial no muestre {{firma_usuario}} / {{foto_usuario}} crudos.
             byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
             DocxImageReplacer.reemplazarFirmaTecnico(rutaActa.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaActa.toString(), null, null);
 
-            String asunto = request.getAsunto()
-                    .replaceAll("[^a-zA-Z0-9]", "");
+            String asunto = NombreArchivoSeguro.segmento(request.getAsunto());
 
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {
-                serial = request.getEquipos().get(0).getSerial();
+                serial = NombreArchivoSeguro.segmento(request.getEquipos().get(0).getSerial());
             }
 
-            String nombreZip = "FormateoSeguro_" + serial + "_" + asunto + ".zip";
+            String nombreZip = "FormateoSeguro_" + serial + "_" + asunto + "_" + sufijoUnico() + ".zip";
             Path rutaZip = outputDir.resolve(nombreZip);
 
             zipService.crearZip(rutaZip, rutaActa);
@@ -139,7 +141,7 @@ public class FormateoSeguroService {
                 // Usuario principal = ENTREGADO A (dueño del equipo). El
                 // tecnico (ENTREGADO POR) queda en idTecnico.
                 .nombreUsuario(request.getEntregado_a())
-                .correoUsuario(null)
+                .correoUsuario(blankToNull(request.getCorreo()))
                 .serialEquipo(primerSerial(request))
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
@@ -161,6 +163,11 @@ public class FormateoSeguroService {
                 "Acta de formateo seguro generada: " + rutaPdfUrl);
 
         return guardada.getIdActa();
+    }
+
+    /** Sufijo aleatorio corto: evita colisiones de nombre entre actas iguales. */
+    private static String sufijoUnico() {
+        return java.util.UUID.randomUUID().toString().substring(0, 8);
     }
 
     private Long tecnicoAutenticado() {
@@ -196,5 +203,9 @@ public class FormateoSeguroService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 }

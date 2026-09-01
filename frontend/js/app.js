@@ -180,6 +180,32 @@ async function generarActa() {
             return;
         }
 
+        // Formato (QA-13/QA-31/QA-35): fecha ISO, numero_sac numerico,
+        // correo del autocompletado (en dataset, no en el valor del campo).
+        const validoFormato =
+            validarFormatoCampo(
+                "fecha",
+                /^\d{4}-\d{2}-\d{2}$/,
+                "La fecha debe tener formato AAAA-MM-DD (ej. 2026-08-31)"
+            ) &&
+            validarFormatoCampo(
+                "numero_sac",
+                /^\d{1,18}$/,
+                "El numero_sac debe contener solo numeros (maximo 18 digitos)"
+            ) &&
+            validarFormatoCampo(
+                "entregado_a",
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                "El correo capturado del usuario no es valido",
+                getCorreoUsuarioSeleccionado(
+                    document.getElementById("entregado_a")
+                )
+            );
+
+        if (!validoFormato) {
+            return;
+        }
+
         const hardware = [];
         const checklist = {};
 
@@ -323,7 +349,7 @@ async function generarActa() {
         const token = LoginService.obtenerToken();
 
         const response = await fetch(
-            "http://127.0.0.1:8001/generar-acta",
+            API_BASE + "/generar-acta",
             {
                 method: "POST",
                 headers: {
@@ -369,7 +395,7 @@ async function generarActa() {
         // que era la causa de que la acta no quedara registrada.
 
         const descargaResponse = await fetch(
-            "http://127.0.0.1:8001/descargar-acta/" +
+            API_BASE + "/descargar-acta/" +
             result.nombre_zip
         );
 
@@ -901,12 +927,16 @@ async function buscarEquipoBloque(bloque) {
     try {
 
         const response =
-            await fetch(`http://127.0.0.1:8001/equipo/${serial}`);
+            await fetch(`${API_BASE}/equipo/${serial}`);
 
         if (!response.ok) {
 
+            const glpiError = await response.json().catch(() => null);
+
             mostrarMensaje(
-                "Respuesta no válida del servidor",
+                (glpiError && glpiError.mensaje)
+                    ? "GLPI: " + glpiError.mensaje
+                    : "Respuesta no válida del servidor",
                 "error"
             );
 

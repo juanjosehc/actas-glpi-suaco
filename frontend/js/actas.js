@@ -1,6 +1,5 @@
 (() => {
-    const API_BASE = "http://localhost:8001";
-
+    
     let actas = [];
     let currentActaId = null;
 

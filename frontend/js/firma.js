@@ -1,6 +1,5 @@
 (() => {
-    const API_BASE = "http://localhost:8001";
-
+    
     // DOM refs
     const $ = (id) => document.getElementById(id);
     const stateLoading = $("stateLoading");
@@ -41,6 +40,16 @@
     const pdfViewerWrap = $("pdfViewerWrap");
     const pdfViewer = $("pdfViewer");
 
+    // Documentos a firmar (expediente ENTREGA: acta + checklist)
+    const docActaCard = $("docActaCard");
+    const docChecklistCard = $("docChecklistCard");
+    const firmaDocsNotice = $("firmaDocsNotice");
+    const firmaConfirmWrap = $("firmaConfirmWrap");
+    const firmaConfirm = $("firmaConfirm");
+    const confirmError = $("confirmError");
+    let activeDoc = "acta";
+    let tieneChecklist = false;
+
     // Reject modal
     const rejectOverlay = $("rejectOverlay");
     const rejectMotivo = $("rejectMotivo");
@@ -77,6 +86,24 @@
     // Una apertura nueva (otra pestana/navegador, sin marca) sigue mostrando
     // "Este enlace ya fue utilizado", que es la pantalla correcta.
     const FIRMA_HECHA_KEY = "firma_hecha_" + token;
+
+    // TOAST (patron SAUCO; la pagina publica no carga system.css)
+    function showToast(message, type) {
+        var container = document.getElementById("firmaToasts");
+        if (!container) {
+            container = document.createElement("div");
+            container.className = "firma-toast-container";
+            container.id = "firmaToasts";
+            document.body.appendChild(container);
+        }
+        var toast = document.createElement("div");
+        toast.className = "firma-toast toast-" + (type || "info");
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(function () {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 4000);
+    }
 
     // TRACE TEMPORAL: evidencia de ejecucion en consola (DevTools). Quitar al confirmar fix.
     const TRACE = true;
@@ -380,7 +407,7 @@
         infoPlaca.textContent = data.placaEquipo || "-";
         infoTicket.textContent = data.ticketGlpi != null ? String(data.ticketGlpi) : "-";
 
-        loadPdf(data.rutaPdf);
+        setupDocs(data);
 
         stateLoading.style.display = "none";
         firmaCard.style.display = "block";
@@ -388,19 +415,62 @@
         setupCanvas();
     }
 
-    async function loadPdf(rutaPdf) {
+    /**
+     * Expediente documental (ENTREGA): el firmante firma el acta y el checklist.
+     * Ambos se muestran como documentos a firmar; el checklist solo existe en
+     * ENTREGA (data.rutaPdfChecklist). Solo entonces se exige la confirmacion
+     * explicita de revision antes de habilitar la firma.
+     */
+    function setupDocs(data) {
+        tieneChecklist = data.tipoActa === "ENTREGA"
+            && !!data.rutaPdfChecklist;
+
+        if (docChecklistCard) {
+            docChecklistCard.style.display = tieneChecklist ? "flex" : "none";
+        }
+        if (firmaDocsNotice) {
+            firmaDocsNotice.style.display = tieneChecklist ? "block" : "none";
+        }
+        if (firmaConfirmWrap) {
+            firmaConfirmWrap.style.display = tieneChecklist ? "flex" : "none";
+        }
+        if (firmaConfirm) {
+            firmaConfirm.checked = false;
+        }
+        if (confirmError) {
+            confirmError.style.display = "none";
+        }
+
+        setActiveDoc("acta");
+        loadPdf("acta");
+    }
+
+    function setActiveDoc(doc) {
+        activeDoc = doc;
+        if (docActaCard) docActaCard.classList.toggle("doc-card--active", doc === "acta");
+        if (docChecklistCard) docChecklistCard.classList.toggle("doc-card--active", doc === "checklist");
+    }
+
+    function cargarDocFirmar(doc) {
+        setActiveDoc(doc);
+        loadPdf(doc);
+    }
+
+    /**
+     * Carga el PDF según el documento activo. El endpoint del checklist solo
+     * existe para actas ENTREGA (el backend devuelve null en DEVOLUCION).
+     */
+    async function loadPdf(doc) {
         pdfLoading.style.display = "flex";
         pdfError.style.display = "none";
         pdfViewerWrap.style.display = "none";
 
-        if (!rutaPdf) {
-            pdfLoading.style.display = "none";
-            pdfError.style.display = "block";
-            return;
-        }
+        const url = doc === "checklist"
+            ? API_BASE + "/firma/" + encodeURIComponent(token) + "/checklist/pdf"
+            : API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf";
 
         try {
-            const r = await fetch(API_BASE + "/firma/" + encodeURIComponent(token) + "/pdf", { headers: otpHeaders() });
+            const r = await fetch(url, { headers: otpHeaders() });
 
             if (r.status === 401) {
                 volverAOtp();
@@ -570,11 +640,11 @@
             btnRetake.style.display = "none";
         } catch (err) {
             if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-                alert("Debe permitir el acceso a la camara para tomarse una fotografia.");
+                showToast("Debe permitir el acceso a la camara para tomarse una fotografia.", "warning");
             } else if (err.name === "NotFoundError") {
-                alert("No se detecto una camara en este dispositivo.");
+                showToast("No se detecto una camara en este dispositivo.", "warning");
             } else {
-                alert("No se pudo acceder a la camara. Verifique los permisos e intente de nuevo.");
+                showToast("No se pudo acceder a la camara. Verifique los permisos e intente de nuevo.", "error");
             }
         }
     }
@@ -644,8 +714,14 @@
 
     btnSubmit.addEventListener("click", submitFirma);
 
+    if (docActaCard) docActaCard.addEventListener("click", () => cargarDocFirmar("acta"));
+    if (docChecklistCard) docChecklistCard.addEventListener("click", () => cargarDocFirmar("checklist"));
+    if (firmaConfirm) {
+        firmaConfirm.addEventListener("change", () => { if (confirmError) confirmError.style.display = "none"; });
+    }
+
     async function submitFirma() {
-        traza("submitFirma", "CLICK Enviar: firma=" + String(!isCanvasEmpty()) + " foto=" + String(photoCaptured));
+        traza("submitFirma", "CLICK Enviar: firma=" + String(!isCanvasEmpty()) + " foto=" + String(photoCaptured) + " checklist=" + String(tieneChecklist));
         let valid = true;
 
         if (isCanvasEmpty()) {
@@ -660,6 +736,15 @@
             valid = false;
         } else {
             hideFieldError(photoError);
+        }
+
+        // Expediente ENTREGA: sin confirmacion explicita de revision de ambos
+        // documentos, la firma no se habilita.
+        if (tieneChecklist && firmaConfirm && !firmaConfirm.checked) {
+            if (confirmError) showFieldError(confirmError);
+            valid = false;
+        } else if (confirmError) {
+            hideFieldError(confirmError);
         }
 
         if (!valid) return;
@@ -693,13 +778,13 @@
                 firmaCard.style.display = "none";
                 stateSuccess.style.display = "flex";
             } else {
-                alert(body.mensaje || "Error al registrar la firma. Intente de nuevo.");
+                showToast(body.mensaje || "Error al registrar la firma. Intente de nuevo.", "error");
             }
         } catch (err) {
             const msg = err.message.includes("Failed to fetch")
                 ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
                 : "Error al registrar la firma. Intente de nuevo.";
-            alert(msg);
+            showToast(msg, "error");
         } finally {
             btnSubmit.classList.remove("loading");
             btnSubmit.disabled = false;
@@ -783,14 +868,14 @@
                 stateRejected.style.display = "flex";
             } else {
                 closeRejectModal();
-                alert(body.mensaje || "Error al rechazar el acta. Intente de nuevo.");
+                showToast(body.mensaje || "Error al rechazar el acta. Intente de nuevo.", "error");
             }
         } catch (err) {
             closeRejectModal();
             const msg = err.message.includes("Failed to fetch")
                 ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
                 : "Error al rechazar el acta. Intente de nuevo.";
-            alert(msg);
+            showToast(msg, "error");
         }
     }
 })();

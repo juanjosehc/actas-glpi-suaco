@@ -1,8 +1,7 @@
 (() => {
     "use strict";
 
-    const API_BASE = "http://localhost:8001";
-    const $ = (id) => document.getElementById(id);
+        const $ = (id) => document.getElementById(id);
 
     const token = LoginService.obtenerToken();
     if (!token) return;

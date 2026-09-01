@@ -263,12 +263,14 @@
     font-size: 1.05rem;
 }
 
-/* En pantallas medianas: 2 columnas */
+/* En pantallas medianas: 2 columnas.
+   #acta-entrega-page #acta-layout (0,2,0) se repite aqui para vencer la
+   regla base de 3 columnas con igual especificidad dentro de la media query. */
 @media (max-width: 1100px) {
-    #acta-layout {
+    #acta-entrega-page #acta-layout {
         grid-template-columns: 1.2fr 1fr;
     }
-    #acta-layout .group:last-child {
+    #acta-entrega-page #acta-layout .group:last-child {
         grid-column: 1 / -1;
     }
 }
@@ -279,12 +281,12 @@
         padding: 20px 16px !important;
     }
 
-    #acta-layout {
+    #acta-entrega-page #acta-layout {
         grid-template-columns: 1fr;
         gap: 16px;
     }
 
-    #acta-layout .card-body.p-3 {
+    #acta-entrega-page #acta-layout .card-body.p-3 {
         padding: 20px 12px;
     }
 

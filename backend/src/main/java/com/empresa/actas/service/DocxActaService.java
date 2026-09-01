@@ -13,6 +13,8 @@ import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.usuario.service.UsuarioService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ import java.util.Map;
 
 @Service
 public class DocxActaService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocxActaService.class);
 
     @Value("${app.generated-dir}")
     private String generatedDir;
@@ -73,20 +77,27 @@ public class DocxActaService {
 
             // Firma permanente del tecnico: se inserta en el DOCX antes de
             // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
+            // La firma/foto del USUARIO aun no existe: se dejan en blanco para que
+            // el DOCX/PDF inicial no muestre {{firma_usuario}} / {{foto_usuario}} crudos.
             byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
             DocxImageReplacer.reemplazarFirmaTecnico(rutaActa.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaActa.toString(), null, null);
 
             Path rutaChecklist = wordService.generarChecklist(datos);
 
-            String asunto = request.getAsunto()
-                    .replaceAll("[^a-zA-Z0-9]", "");
+            // El checklist tambien trae {{firma_tecnico}} y {{firma_usuario}}:
+            // misma regla — tecnico insertado o en blanco, usuario en blanco.
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaChecklist.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaChecklist.toString(), null, null);
+
+            String asunto = NombreArchivoSeguro.segmento(request.getAsunto());
 
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {
-                serial = request.getEquipos().get(0).getSerial();
+                serial = NombreArchivoSeguro.segmento(request.getEquipos().get(0).getSerial());
             }
 
-            String nombreZip = "ActaLista_" + serial + "_" + asunto + ".zip";
+            String nombreZip = "ActaLista_" + serial + "_" + asunto + "_" + sufijoUnico() + ".zip";
             Path rutaZip = outputDir.resolve(nombreZip);
 
             zipService.crearZip(rutaZip, rutaActa, rutaChecklist);
@@ -95,7 +106,13 @@ public class DocxActaService {
             String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaActa, pdfDir);
             String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
 
-            Long idActa = persistirActa(request, rutaPdfUrl);
+            // Expediente documental (ENTREGA): el checklist tambien se convierte
+            // a PDF y queda vinculado a la acta (rutaPdfChecklist), igual que el
+            // acta. Desde el inicio ambos documentos existen como PDF.
+            String checklistPdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaChecklist, pdfDir);
+            String rutaChecklistPdfUrl = "uploads/pdf/" + checklistPdfFileName;
+
+            Long idActa = persistirActa(request, rutaPdfUrl, rutaChecklistPdfUrl);
 
             return ActaResponse.ok(nombreZip, rutaPdfUrl, idActa);
 
@@ -110,7 +127,7 @@ public class DocxActaService {
      * registrada en PostgreSQL de forma atomica (ya no depende de una llamada
      * /actas aparte del frontend).
      */
-    private Long persistirActa(ActaRequest request, String rutaPdfUrl) {
+    private Long persistirActa(ActaRequest request, String rutaPdfUrl, String rutaChecklistPdfUrl) {
         Long idTecnico = tecnicoAutenticado();
 
         Acta acta = Acta.builder()
@@ -126,6 +143,7 @@ public class DocxActaService {
                 .descripcionEquipo(descripcionEquipo(request))
                 .contenidoHtml(null)
                 .rutaPdf(rutaPdfUrl)
+                .rutaPdfChecklist(rutaChecklistPdfUrl)
                 .datosOriginales(serializar(request))
                 .build();
 
@@ -139,7 +157,8 @@ public class DocxActaService {
                 idTecnico,
                 idTecnico != null ? String.valueOf(idTecnico) : "SISTEMA",
                 null,
-                "Acta de entrega generada: " + rutaPdfUrl);
+                "Acta de entrega generada: " + rutaPdfUrl
+                        + " ; checklist de entrega: " + rutaChecklistPdfUrl);
 
         return guardada.getIdActa();
     }
@@ -154,11 +173,19 @@ public class DocxActaService {
         return null;
     }
 
+    /** Sufijo aleatorio corto: evita colisiones de nombre entre actas iguales. */
+    private static String sufijoUnico() {
+        return java.util.UUID.randomUUID().toString().substring(0, 8);
+    }
+
     private Long parseLongNullable(String v) {
         if (v == null || v.isBlank()) return null;
         try {
             return Long.valueOf(v.trim());
         } catch (NumberFormatException e) {
+            // Defensa: el DTO ya valida \d{1,18}; si aun asi llega un valor no
+            // numerico, se loguea en vez de tragarlo en silencio (QA-35).
+            log.warn("numero_sac invalido '{}' — se persiste ticket_glpi como null", v);
             return null;
         }
     }

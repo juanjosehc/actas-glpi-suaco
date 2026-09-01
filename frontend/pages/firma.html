@@ -123,10 +123,38 @@
             </div>
         </section>
 
-        <!-- DOCUMENTO OFICIAL -->
+        <!-- DOCUMENTOS A FIRMAR -->
         <section class="firma-section">
-            <h2 class="section-title">Documento Oficial</h2>
-            <p class="section-desc">Este es el documento que va a firmar. Puede navegar entre paginas y hacer zoom antes de decidir.</p>
+            <h2 class="section-title">Documentos a Firmar</h2>
+            <p class="section-desc">Revise los documentos asociados al proceso de entrega. Puede alternar entre ellos y hacer zoom antes de decidir.</p>
+
+            <div class="docs-list" id="docsList">
+                <button type="button" class="doc-card doc-card--active" id="docActaCard" data-doc="acta">
+                    <span class="doc-card-icon">📄</span>
+                    <span class="doc-card-body">
+                        <span class="doc-card-name">Acta de Entrega</span>
+                        <span class="doc-card-desc">Documento oficial del acta</span>
+                    </span>
+                </button>
+                <button type="button" class="doc-card" id="docChecklistCard" data-doc="checklist" style="display:none;">
+                    <span class="doc-card-icon">📋</span>
+                    <span class="doc-card-body">
+                        <span class="doc-card-name">Checklist de Entrega</span>
+                        <span class="doc-card-desc">Checklist asociado al proceso de entrega</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="firma-docs-notice" id="firmaDocsNotice" style="display:none;">
+                <p><strong>IMPORTANTE:</strong> Al firmar electrónicamente esta solicitud usted acepta y firma los documentos asociados al proceso de entrega: Acta de Entrega y Checklist de Entrega</p>
+            </div>
+
+            <label class="firma-confirm" id="firmaConfirmWrap" style="display:none;">
+                <input type="checkbox" id="firmaConfirm" autocomplete="off">
+                <span>Confirmo que he revisado el Acta de Entrega y el Checklist asociado.</span>
+            </label>
+            <p class="field-error" id="confirmError" style="display:none">Debe confirmar que ha revisado ambos documentos antes de firmar.</p>
+
             <div class="pdf-loading" id="pdfLoading">
                 <div class="spinner-lg"></div>
                 <p class="state-text">Cargando documento...</p>
@@ -223,6 +251,9 @@
 
 </div>
 
+<div class="firma-toast-container" id="firmaToasts"></div>
+
+<script src="../js/api.js"></script>
 <script src="../js/firma.js?v=20260825"></script>
 
 </body>

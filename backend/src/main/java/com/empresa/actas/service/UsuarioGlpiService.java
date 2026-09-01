@@ -1,6 +1,7 @@
 package com.empresa.actas.service;
 
 import com.empresa.actas.dto.response.UsuarioGlpiResponse;
+import com.empresa.actas.exception.GlpiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -63,8 +64,12 @@ public class UsuarioGlpiService {
     @Value("${glpi.user-token}")
     private String userToken;
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final GlpiHttpClient glpi;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public UsuarioGlpiService(GlpiHttpClient glpi) {
+        this.glpi = glpi;
+    }
 
     private volatile List<UsuarioIndexado> cache = List.of();
     private volatile long cacheCargadoEn = 0L;
@@ -200,10 +205,7 @@ public class UsuarioGlpiService {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
-            );
+            HttpResponse<String> response = glpi.enviar(request);
 
             if (response.statusCode() >= 300) {
                 throw new RuntimeException("HTTP " + response.statusCode()
@@ -311,13 +313,19 @@ public class UsuarioGlpiService {
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
+        HttpResponse<String> response = glpi.enviar(request);
+
+        if (response.statusCode() >= 300) {
+            throw new GlpiException("Autenticacion con GLPI fallo (HTTP " + response.statusCode()
+                    + "): " + response.body());
+        }
 
         JsonNode root = objectMapper.readTree(response.body());
-        return root.path("session_token").asText();
+        String sessionToken = root.path("session_token").asText();
+        if (sessionToken.isBlank()) {
+            throw new GlpiException("GLPI no devolvio session_token. Verifique App-Token y User-Token.");
+        }
+        return sessionToken;
     }
 
     private String getPrimerCorreo(JsonNode node, String fieldId) {

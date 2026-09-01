@@ -33,6 +33,15 @@ public class LibreOfficePdfService {
     }
 
     public String convertirDocxAPdf(Path docxPath, Path outputDir) throws IOException {
+        // Preflight (QA-26): si la ruta de soffice no existe, el fallo de
+        // ProcessBuilder seria un "Cannot run program" poco diagnostico. Se
+        // detecta temprano con un mensaje claro para el usuario.
+        if (libreOfficePath == null || libreOfficePath.isBlank()
+                || !Files.exists(Path.of(libreOfficePath))) {
+            throw new IOException("LibreOffice no encontrado en: '" + libreOfficePath
+                    + "'. Verifique la propiedad libreoffice.path (soffice.exe).");
+        }
+
         Files.createDirectories(outputDir);
 
         String pdfName = docxPath.getFileName().toString()

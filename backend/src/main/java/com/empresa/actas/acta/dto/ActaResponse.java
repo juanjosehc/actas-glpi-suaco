@@ -67,6 +67,9 @@ public class ActaResponse {
     @Schema(description = "Ruta del archivo PDF", example = "uploads/acta_1.pdf")
     private String rutaPdf;
 
+    @Schema(description = "Ruta del PDF del checklist de entrega (solo ENTREGA)", example = "uploads/pdf/checklist_1.pdf")
+    private String rutaPdfChecklist;
+
     @Schema(description = "Token activo de firma (solo si estado = ENVIADA)")
     private String tokenFirma;
 }

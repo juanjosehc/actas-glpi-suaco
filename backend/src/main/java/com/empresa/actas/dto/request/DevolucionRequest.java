@@ -1,6 +1,9 @@
 package com.empresa.actas.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -24,13 +27,15 @@ import java.util.List;
 public class DevolucionRequest {
 
     @NotBlank(message = "La fecha es obligatoria")
+    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "La fecha debe tener formato AAAA-MM-DD (ej. 2026-08-31)")
     private String fecha;
 
     private String recibido_por = "";
 
     private String entregado_por = "";
 
-    /** Correo del usuario que entrega (autocompletado desde GLPI). */
+    /** Correo del usuario que entrega (quien firma la devolucion, autocompletado desde GLPI). Opcional; si viene con valor se valida formato. */
+    @Email(message = "El correo no es valido")
     private String correo = "";
 
     private String cargo_recibe = "";
@@ -47,8 +52,10 @@ public class DevolucionRequest {
 
     private String cargo_jefe = "";
 
+    @Size(max = 3, message = "Maximo 3 equipos por acta de devolucion (capacidad del template)")
     private List<EquipoItem> equipos = new ArrayList<>();
 
+    @Size(max = 3, message = "Maximo 3 otros elementos por acta de devolucion (capacidad del template)")
     private List<OtroElementoItem> hardware = new ArrayList<>();
 
     private String observaciones = "";

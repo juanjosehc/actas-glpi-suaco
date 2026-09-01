@@ -757,3 +757,131 @@ html, body {
         height: 120px;
     }
 }
+
+/* =========================
+   TOAST (patron SAUCO)
+   ========================= */
+
+.firma-toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 200;
+    max-width: min(360px, calc(100vw - 32px));
+}
+
+.firma-toast {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+    animation: fadeUp 0.25s ease;
+}
+
+.firma-toast.toast-success { background: #16A34A; }
+.firma-toast.toast-error   { background: #DC2626; }
+.firma-toast.toast-info    { background: #1E3A8A; }
+.firma-toast.toast-warning { background: #D97706; }
+
+/* =========================
+   DOCUMENTOS A FIRMAR (expediente ENTREGA)
+   ========================= */
+
+.docs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.doc-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    background: #F8FAFC;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    min-width: 280px;
+    max-width: 100%;
+    flex: 1;
+}
+
+.doc-card:hover {
+    border-color: #93C5FD;
+    background: #EFF6FF;
+}
+
+.doc-card--active {
+    border-color: #1E3A8A;
+    background: #EFF6FF;
+    box-shadow: 0 1px 3px rgba(30, 58, 138, 0.15);
+}
+
+.doc-card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.doc-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.doc-card-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1E293B;
+}
+
+.doc-card-desc {
+    font-size: 0.75rem;
+    color: #64748B;
+}
+
+.firma-docs-notice {
+    background: #FFFBEB;
+    border: 1px solid #FCD34D;
+    border-left: 4px solid #D97706;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.875rem;
+    color: #78350F;
+    line-height: 1.5;
+}
+
+.firma-docs-notice strong {
+    color: #92400E;
+}
+
+.firma-confirm {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 0.875rem;
+    color: #1E293B;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.firma-confirm input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: #1E3A8A;
+    flex: none;
+}

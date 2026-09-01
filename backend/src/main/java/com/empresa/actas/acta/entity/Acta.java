@@ -112,6 +112,10 @@ public class Acta {
     @Column(name = "ruta_pdf", length = 500)
     private String rutaPdf;
 
+    /** Ruta virtual del PDF del checklist de entrega (expediente documental). */
+    @Column(name = "ruta_pdf_checklist", length = 500)
+    private String rutaPdfChecklist;
+
     @Column(name = "datos_originales", columnDefinition = "text")
     private String datosOriginales;
 

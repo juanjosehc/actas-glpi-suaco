@@ -27,6 +27,9 @@ public class FirmaPublicaResponse {
     @Schema(description = "Ruta del archivo PDF oficial (misma fuente que el modulo de Actas)", example = "uploads/pdf/acta_1.pdf")
     private String rutaPdf;
 
+    @Schema(description = "Ruta del PDF del checklist de entrega (solo ENTREGA)", example = "uploads/pdf/checklist_1.pdf")
+    private String rutaPdfChecklist;
+
     @Schema(description = "Nombre del usuario que debe firmar", example = "Carlos Perez")
     private String nombreUsuario;
 

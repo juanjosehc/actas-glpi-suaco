@@ -75,6 +75,14 @@ public class DocxImageReplacer {
                 firmaTecnicoBytes, XWPFDocument.PICTURE_TYPE_PNG, dims, 0);
     }
 
+    /**
+     * Inserta o elimina {@code {{firma_usuario}}} y {@code {{foto_usuario}}}.
+     *
+     * Si el byte[] correspondiente es null, el placeholder se elimina y la celda
+     * queda en blanco (legible en DOCX/PDF sin imagenes). Si ambos son null, el
+     * documento no muestra las firmas del usuario aun (documento inicial) pero
+     * tampoco deja el texto crudo {@code {{...}}}.
+     */
     public static void reemplazarFirmaYFoto(
             String docxPath,
             byte[] firmaBytes,
@@ -83,16 +91,19 @@ public class DocxImageReplacer {
         try (FileInputStream fis = new FileInputStream(docxPath);
              XWPFDocument doc = new XWPFDocument(fis)) {
 
+            int[] dimsFirma = firmaBytes != null ? dimensionesFirma(firmaBytes) : null;
+            int[] dimsFoto = fotoBytes != null ? dimensionesFoto(fotoBytes) : null;
+
             reemplazarEnParrafos(doc.getParagraphs(), doc, "{{firma_usuario}}",
-                    firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes), 0);
+                    firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimsFirma, 0);
             reemplazarEnParrafos(doc.getParagraphs(), doc, "{{foto_usuario}}",
-                    fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, dimensionesFoto(fotoBytes), 0);
+                    fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, dimsFoto, 0);
 
             for (XWPFTable table : doc.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
                         reemplazarEnParrafos(cell.getParagraphs(), doc, "{{firma_usuario}}",
-                                firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimensionesFirma(firmaBytes), 0);
+                                firmaBytes, XWPFDocument.PICTURE_TYPE_PNG, dimsFirma, 0);
                         boolean tieneFoto = false;
                         for (XWPFParagraph pp : cell.getParagraphs()) {
                             String texto = pp.getText();
@@ -106,9 +117,10 @@ public class DocxImageReplacer {
                             if (tcPr != null && tcPr.isSetVAlign()) tcPr.unsetVAlign();
                             cell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.TOP);
                         }
-                        int[] fotoDims = dimensionesFotoEnCelda(fotoBytes, row, cell);
+                        int[] fotoDims = fotoBytes != null ? dimensionesFotoEnCelda(fotoBytes, row, cell) : null;
                         reemplazarEnParrafos(cell.getParagraphs(), doc, "{{foto_usuario}}",
-                                fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, fotoDims, fotoDims[2]);
+                                fotoBytes, XWPFDocument.PICTURE_TYPE_JPEG, fotoDims,
+                                fotoDims != null ? fotoDims[2] : 0);
                     }
                 }
             }
