@@ -131,7 +131,6 @@
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td class="cell-id">${u.id}</td>
-                <td>${u.cedula || "-"}</td>
                 <td>${u.nombres || "-"}</td>
                 <td>${u.apellidos || "-"}</td>
                 <td>${u.username || "-"}</td>

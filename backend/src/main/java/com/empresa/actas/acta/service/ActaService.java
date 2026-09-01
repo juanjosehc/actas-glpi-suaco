@@ -92,15 +92,22 @@ public class ActaService {
         return actaMapper.toResponse(actaGuardada);
     }
 
-    public Page<ActaResponse> listarActas(Pageable pageable) {
+    public Page<ActaResponse> listarActas(String q, Pageable pageable) {
         // ROL TECNICO: solo ve actas que el mismo creo (idTecnico == su id).
         // ADMINISTRADOR / AUDITOR: ve todas.
-        if (accesoService.esTecnico()) {
-            Long idTecnico = accesoService.usuarioActual().getUsuario().getIdUsuario();
-            return actaRepository.findByIdTecnico(idTecnico, pageable)
+        Long idTecnico = accesoService.esTecnico()
+                ? accesoService.usuarioActual().getUsuario().getIdUsuario()
+                : null;
+
+        if (q == null || q.isBlank()) {
+            if (idTecnico != null) {
+                return actaRepository.findByIdTecnico(idTecnico, pageable)
+                        .map(this::toResponseWithToken);
+            }
+            return actaRepository.findAll(pageable)
                     .map(this::toResponseWithToken);
         }
-        return actaRepository.findAll(pageable)
+        return actaRepository.buscar(q.trim(), idTecnico, pageable)
                 .map(this::toResponseWithToken);
     }
 

@@ -10,6 +10,11 @@
     let totalPages = 0;
     let totalElements = 0;
 
+    // Busqueda global server-side: el backend filtra sobre TODAS las actas
+    // (GET /actas?q=...), no solo la pagina activa.
+    let query = "";
+    let searchDebounce = null;
+
     const searchInput = document.getElementById("searchInput");
     const searchClear = document.getElementById("searchClear");
     const actasBody = document.getElementById("actasBody");
@@ -94,7 +99,8 @@
         emptyState.classList.remove("visible");
 
         try {
-            const resp = await fetch(`${API_BASE}/actas?page=${currentPage}&size=${PAGE_SIZE}`, { headers: { Authorization: `Bearer ${token}` } });
+            const qs = query ? `&q=${encodeURIComponent(query)}` : "";
+            const resp = await fetch(`${API_BASE}/actas?page=${currentPage}&size=${PAGE_SIZE}${qs}`, { headers: { Authorization: `Bearer ${token}` } });
             if (handle401(resp)) return;
 
             const body = await resp.json();
@@ -173,34 +179,25 @@
     }
 
     // =========================
-    //  SEARCH (client-side)
+    //  SEARCH (server-side, global — filtra todas las actas, no la pagina)
     // =========================
 
-    function filterActas() {
-        const q = searchInput.value.toLowerCase().trim();
-        searchClear.classList.toggle("visible", q.length > 0);
-
-        if (!q) {
-            renderTable(actas);
-            return;
-        }
-
-        const filtered = actas.filter((a) => {
-            const id = String(a.id);
-            const user = (a.nombreUsuario || "").toLowerCase();
-            const equipo = (a.descripcionEquipo || "").toLowerCase();
-            const serial = (a.serialEquipo || "").toLowerCase();
-            const estado = (a.estado || "").toLowerCase();
-            return id.includes(q) || user.includes(q) || equipo.includes(q) || serial.includes(q) || estado.includes(q);
-        });
-        renderTable(filtered);
-    }
-
-    searchInput.addEventListener("input", filterActas);
+    searchInput.addEventListener("input", () => {
+        searchClear.classList.toggle("visible", searchInput.value.length > 0);
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            query = searchInput.value.trim();
+            currentPage = 0;
+            loadActas();
+        }, 300);
+    });
     searchClear.addEventListener("click", () => {
         searchInput.value = "";
         searchClear.classList.remove("visible");
-        renderTable(actas);
+        clearTimeout(searchDebounce);
+        query = "";
+        currentPage = 0;
+        loadActas();
         searchInput.focus();
     });
 

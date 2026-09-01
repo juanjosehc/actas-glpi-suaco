@@ -39,11 +39,21 @@ public class DocxActaController {
     }
 
     @GetMapping("/descargar-acta/{nombreZip}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
     public ResponseEntity<?> descargarActa(@PathVariable String nombreZip) {
-        Path rutaZip = Paths.get(generatedDir, nombreZip);
+        // Contencion de ruta: se sirve solo el nombre de archivo dentro de
+        // generatedDir. getFileName() descarta segmentos (../, subcarpetas,
+        // encodings) y el startsWith evita escapar de la base.
+        Path baseDir = Paths.get(generatedDir).toAbsolutePath().normalize();
+        String soloNombre = Paths.get(nombreZip).getFileName().toString();
+        Path rutaZip = baseDir.resolve(soloNombre).normalize();
+
+        if (!rutaZip.startsWith(baseDir)) {
+            return ResponseEntity.badRequest().build();
+        }
 
         if (!rutaZip.toFile().exists()) {
-            return ResponseEntity.ok(ErrorResponse.of("Archivo no encontrado"));
+            return ResponseEntity.notFound().build();
         }
 
         Resource resource = new FileSystemResource(rutaZip.toFile());
@@ -51,7 +61,7 @@ public class DocxActaController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + nombreZip + "\"")
+                        "attachment; filename=\"" + soloNombre + "\"")
                 .body(resource);
     }
 

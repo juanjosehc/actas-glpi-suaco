@@ -2,6 +2,7 @@ package com.empresa.actas.controller;
 
 import com.empresa.actas.dto.response.UsuarioGlpiResponse;
 import com.empresa.actas.service.UsuarioGlpiService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,6 +40,7 @@ public class UsuarioGlpiController {
      * @return lista de usuarios activos, con o sin correo
      */
     @GetMapping("/usuario")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     public List<UsuarioGlpiResponse> buscarUsuarios(
             @RequestParam(name = "q", required = false, defaultValue = "") String q) {
         return usuarioGlpiService.buscarUsuarios(q);
@@ -48,6 +50,7 @@ public class UsuarioGlpiController {
      * Diagnostico del cache de usuarios GLPI.
      */
     @GetMapping("/usuario/diagnostico")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public Map<String, Object> diagnostico() {
         return usuarioGlpiService.getDiagnostico();
     }

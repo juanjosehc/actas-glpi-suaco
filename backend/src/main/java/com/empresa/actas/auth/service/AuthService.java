@@ -82,9 +82,13 @@ public class AuthService {
                     "El correo ya esta registrado: " + request.correo());
         }
 
-        Rol rol = rolRepository.findByNombre(request.rol())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Rol no encontrado: " + request.rol()));
+        // REGISTRO PUBLICO => SIEMPRE TECNICO. El rol se decide en el servidor,
+        // nunca desde el request (el DTO exponia rol libre y permitia crear
+        // cuentas ADMINISTRADOR via POST /auth/register).
+        // La creacion con rol elegido queda en POST /usuarios (solo ADMINISTRADOR).
+        Rol rol = rolRepository.findByNombre("TECNICO")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Rol TECNICO no configurado en la base de datos"));
 
         Usuario usuario = Usuario.builder()
                 .cedula(request.cedula())

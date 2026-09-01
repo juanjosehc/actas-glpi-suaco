@@ -54,10 +54,11 @@ public class ActaController {
     public ResponseEntity<ErrorResponse> listarActas(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "fechaCreacion") String sort) {
+            @RequestParam(defaultValue = "fechaCreacion") String sort,
+            @RequestParam(required = false) String q) {
 
         Page<ActaResponse> actas = actaService.listarActas(
-                PageRequest.of(page, size, Sort.by(sort).descending()));
+                q, PageRequest.of(page, size, Sort.by(sort).descending()));
         return ResponseEntity.ok(ErrorResponse.ok("Actas listadas", actas));
     }
 

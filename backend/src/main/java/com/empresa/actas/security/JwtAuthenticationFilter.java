@@ -23,11 +23,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/auth/",
             "/equipo/",
-            "/usuario",
-            // /generar-acta y /generar-devolucion ya no van aqui: se deja que el
+            // /usuario y /descargar-acta no van aqui: protegidos por
+            // @PreAuthorize en el controlador; el filtro autentica el Bearer.
+            // /generar-acta y /generar-devolucion tampoco: se deja que el
             // filtro intente autenticar el header Bearer para tener el tecnico
             // y poder persistir la entidad Acta de forma atomica en el backend.
-            "/descargar-acta/",
             "/firma/",
             "/uploads/",
             "/swagger-ui/",

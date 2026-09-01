@@ -136,7 +136,9 @@ public class FormateoSeguroService {
                 .tipoActa(TipoActa.FORMATEO)
                 .estado(EstadoActa.GENERADA)
                 .cedulaUsuario(null)
-                .nombreUsuario(request.getEntregado_por())
+                // Usuario principal = ENTREGADO A (dueño del equipo). El
+                // tecnico (ENTREGADO POR) queda en idTecnico.
+                .nombreUsuario(request.getEntregado_a())
                 .correoUsuario(null)
                 .serialEquipo(primerSerial(request))
                 .placaEquipo(primerInventario(request))
