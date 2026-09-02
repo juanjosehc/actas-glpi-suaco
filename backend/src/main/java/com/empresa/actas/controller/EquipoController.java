@@ -32,6 +32,15 @@ public class EquipoController {
      */
     @GetMapping("/equipo/{serial}")
     public EquipoResponse obtenerEquipo(@PathVariable String serial) {
+        // SEC-005: el endpoint es publico y el serial viaja a GLPI. La validacion
+        // en la frontera de entrada (allow-list + longitud) rechaza seriales
+        // malformados o con caracteres de inyeccion antes de tocar cualquier
+        // servicio externo. Se lanza IllegalArgumentException porque el
+        // GlobalExceptionHandler la traduce a 400 con el mensaje redactado.
+        if (!EquipoService.serialValido(serial)) {
+            throw new IllegalArgumentException(
+                    "Serial invalido: solo letras, numeros y . _ - (1 a 64 caracteres)");
+        }
         return equipoService.buscarEquipo(serial);
     }
 }

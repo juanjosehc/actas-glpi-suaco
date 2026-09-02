@@ -16,6 +16,7 @@ import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.firma.support.FirmaUrlBuilder;
 import com.empresa.actas.security.AccesoService;
+import com.empresa.actas.security.HtmlSanitizadorService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,7 @@ public class FirmaService {
     private final OtpService otpService;
     private final TokenFirmaValidador validadorToken;
     private final FirmaUrlBuilder firmaUrlBuilder;
+    private final HtmlSanitizadorService sanitizador;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -53,6 +55,77 @@ public class FirmaService {
     /** Vigencia del enlace de firma en horas (default 72h = 3 dias). */
     @Value("${app.firma-token-expira-horas:72}")
     private long firmaTokenExpiraHoras;
+
+    // ======================= SEC-008: validacion de evidencias =======================
+    // El portal recibe firma (PNG) y foto (JPG) en Base64 dentro del JSON. Antes se
+    // decodificaba y escribia directo: sin limite de tamaño, sin firma de formato,
+    // base64 invalido terminaba en 500. Se valida tamaño (bytes decodificados) y
+    // magic bytes del formato declarado antes de persistir. El error se lanza como
+    // IllegalArgumentException: el GlobalExceptionHandler la traduce a 400.
+
+    /** Tamaño máximo decodificado de la firma (PNG). */
+    static final long TAMANO_MAX_FIRMA = 2L * 1024 * 1024;   // 2 MiB
+    /** Tamaño máximo decodificado de la foto (JPG). */
+    static final long TAMANO_MAX_FOTO = 5L * 1024 * 1024;    // 5 MiB
+
+    /** Firma PNG: 89 50 4E 47 0D 0A 1A 0A */
+    static final byte[] MAGIC_PNG = {
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+
+    /** Foto JPEG: FF D8 FF */
+    static final byte[] MAGIC_JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+
+    /**
+     * SEC-008: decodifica y valida una evidencia Base64 (formato + tamaño).
+     *
+     * @param base64  contenido Base64 (acepta el prefijo data-URL si viene).
+     * @param maxSize límite de bytes decodificados.
+     * @param magic   firma de bytes que debe iniciar el archivo.
+     * @param campo   nombre legible del campo para el mensaje de error.
+     * @return bytes validados listos para persistir.
+     */
+    static byte[] decodificarEvidenciaValida(String base64, long maxSize, byte[] magic, String campo) {
+        if (base64 == null || base64.isBlank()) {
+            throw new IllegalArgumentException(campo + " es obligatoria");
+        }
+        // Tolerancia: si el cliente manda un data-URL (data:image/png;base64,...),
+        // se quita el prefijo antes de decodificar.
+        int comaDataUrl = base64.indexOf(',');
+        String datos = comaDataUrl >= 0 ? base64.substring(comaDataUrl + 1) : base64;
+
+        byte[] bytes;
+        try {
+            bytes = Base64.getDecoder().decode(datos);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    campo + " no es Base64 valida");
+        }
+        if (bytes.length == 0) {
+            throw new IllegalArgumentException(campo + " vacia");
+        }
+        if (bytes.length > maxSize) {
+            throw new IllegalArgumentException(
+                    campo + " excede el tamanio maximo permitido (" + maxSize / (1024 * 1024) + " MiB)");
+        }
+        if (!empiezaCon(bytes, magic)) {
+            throw new IllegalArgumentException(
+                    campo + " no corresponde al formato esperado");
+        }
+        return bytes;
+    }
+
+    /** true si {@code datos} empieza con el prefijo {@code prefijo}. */
+    static boolean empiezaCon(byte[] datos, byte[] prefijo) {
+        if (datos == null || datos.length < prefijo.length) {
+            return false;
+        }
+        for (int i = 0; i < prefijo.length; i++) {
+            if (datos[i] != prefijo[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Transactional
     public EnviarActaResponse enviarActa(Long idActa, String correo) {
@@ -224,11 +297,13 @@ public class FirmaService {
                 .nombreUsuario(acta.getNombreUsuario())
                 .cedulaUsuario(acta.getCedulaUsuario())
                 .correoUsuario(acta.getCorreoUsuario())
-                .descripcionEquipo(acta.getDescripcionEquipo())
                 .serialEquipo(acta.getSerialEquipo())
                 .placaEquipo(acta.getPlacaEquipo())
                 .ticketGlpi(acta.getTicketGlpi())
-                .contenidoHtml(acta.getContenidoHtml())
+                // SEC-001: contenidoHtml se sanea en el servidor (allowlist OWASP)
+                // porque el portal lo inserta como HTML; los campos de texto se
+                // renderizan con textContent (frontera segura).
+                .contenidoHtml(sanitizador.sanitizarHtml(acta.getContenidoHtml()))
                 .fechaRechazo(acta.getFechaRechazo())
                 .observacionRechazo(acta.getObservacionRechazo())
                 .build();
@@ -287,11 +362,14 @@ public class FirmaService {
             Files.createDirectories(directorioFirmas);
             Files.createDirectories(directorioFotos);
 
-            byte[] firmaBytes = Base64.getDecoder().decode(request.firmaBase64());
+            // SEC-008: se validan AMBAS evidencias ANTES de escribir nada al filesystem:
+            // si la foto falla no queda una firma huérfana a medio persistir.
+            byte[] firmaBytes = decodificarEvidenciaValida(
+                    request.firmaBase64(), TAMANO_MAX_FIRMA, MAGIC_PNG, "La firma");
+            byte[] fotoBytes = decodificarEvidenciaValida(
+                    request.fotoBase64(), TAMANO_MAX_FOTO, MAGIC_JPEG, "La foto");
             Path rutaFirma = directorioFirmas.resolve("firma_" + acta.getIdActa() + ".png");
             Files.write(rutaFirma, firmaBytes);
-
-            byte[] fotoBytes = Base64.getDecoder().decode(request.fotoBase64());
             Path rutaFoto = directorioFotos.resolve("foto_" + acta.getIdActa() + ".jpg");
             Files.write(rutaFoto, fotoBytes);
 

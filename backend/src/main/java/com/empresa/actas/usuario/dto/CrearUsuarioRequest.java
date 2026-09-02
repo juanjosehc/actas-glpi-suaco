@@ -3,6 +3,7 @@ package com.empresa.actas.usuario.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Request para crear un usuario (solo ADMINISTRADOR)")
@@ -33,9 +34,14 @@ public record CrearUsuarioRequest(
         @Schema(description = "Correo electronico", example = "jhernandez@coltefinanciera.com", requiredMode = Schema.RequiredMode.REQUIRED)
         String correo,
 
+        // SEC-016: misma politica de contrasena que el registro publico, para que la
+        // fortaleza no dependa del camino de creacion (auto-registro vs admin).
         @NotBlank(message = "La password es obligatoria")
-        @Size(min = 6, max = 128, message = "La password debe tener entre 6 y 128 caracteres")
-        @Schema(description = "Contrasena (minimo 6 caracteres)", example = "clave123", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Size(min = 8, max = 128, message = "La password debe tener entre 8 y 128 caracteres")
+        @Pattern(
+                regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,128}$",
+                message = "La password debe incluir al menos una mayuscula, una minuscula, un numero y un caracter especial")
+        @Schema(description = "Contrasena (minimo 8 caracteres: mayuscula, minuscula, numero y especial)", example = "Clave123!", requiredMode = Schema.RequiredMode.REQUIRED)
         String password,
 
         @Size(max = 100, message = "El cargo no puede exceder 100 caracteres")

@@ -32,6 +32,7 @@ com\empresa\actas\usuario\mapper\UsuarioMapper.class
 com\empresa\actas\rol\entity\Rol.class
 com\empresa\actas\usuario\entity\Usuario$UsuarioBuilder.class
 com\empresa\actas\auditoria\controller\AuditoriaController.class
+com\empresa\actas\security\RateLimitFilter.class
 com\empresa\actas\security\CustomUserDetailsService.class
 com\empresa\actas\dto\request\FormateoSeguroRequest.class
 com\empresa\actas\dto\response\ActaResponse.class
@@ -43,12 +44,15 @@ com\empresa\actas\security\AccesoService.class
 com\empresa\actas\firma\entity\Evidencia.class
 com\empresa\actas\acta\entity\EstadoActa.class
 com\empresa\actas\firma\dto\FirmaRequest.class
+com\empresa\actas\security\RateLimitFilter$Limite.class
 com\empresa\actas\auditoria\dto\EventosAuditoriaResponse.class
+com\empresa\actas\auth\controller\SesionController.class
 com\empresa\actas\firma\dto\FirmaOtpValidarRequest.class
 com\empresa\actas\rol\repository\RolRepository.class
 com\empresa\actas\acta\mapper\ActaMapperImpl.class
 com\empresa\actas\firma\entity\Evidencia$TipoEvidencia.class
 com\empresa\actas\service\DocxImageReplacer.class
+com\empresa\actas\security\JwtRevocadoRepository.class
 com\empresa\actas\service\FormateoSeguroService.class
 com\empresa\actas\auditoria\dto\EventoAuditoriaResponse$EventoAuditoriaResponseBuilder.class
 com\empresa\actas\service\DocumentoWordService.class
@@ -59,6 +63,7 @@ com\empresa\actas\acta\service\ActaHistorialService.class
 com\empresa\actas\firma\dto\EnviarActaResponse.class
 com\empresa\actas\service\GlpiHttpClient.class
 com\empresa\actas\firma\support\FirmaUrlBuilder.class
+com\empresa\actas\security\HtmlSanitizadorService.class
 com\empresa\actas\service\DocxToPdfService$1.class
 com\empresa\actas\config\OpenApiConfig.class
 com\empresa\actas\controller\FormateoSeguroController.class
@@ -75,6 +80,7 @@ com\empresa\actas\acta\repository\ActaHistorialRepository.class
 com\empresa\actas\dto\request\OtroElementoItem.class
 com\empresa\actas\acta\mapper\ActaMapper.class
 com\empresa\actas\auth\dto\RegisterUserRequest.class
+com\empresa\actas\security\JwtRevocado.class
 com\empresa\actas\dto\request\HardwareItem.class
 com\empresa\actas\dto\request\ActaRequest.class
 com\empresa\actas\firma\repository\FirmaTokenRepository.class
@@ -98,6 +104,7 @@ com\empresa\actas\acta\entity\TipoActa.class
 com\empresa\actas\firma\repository\EvidenciaRepository.class
 com\empresa\actas\service\DocxToPdfService.class
 com\empresa\actas\dto\response\EquipoResponse.class
+com\empresa\actas\security\JwtRevocado$JwtRevocadoBuilder.class
 com\empresa\actas\usuario\controller\UsuarioController.class
 com\empresa\actas\config\MailConfig.class
 com\empresa\actas\service\DevolucionService$1.class

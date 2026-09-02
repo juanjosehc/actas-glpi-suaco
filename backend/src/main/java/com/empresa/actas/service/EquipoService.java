@@ -9,8 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -42,6 +44,21 @@ public class EquipoService {
 
     private static final Logger log = LoggerFactory.getLogger(EquipoService.class);
 
+    /**
+     * SEC-005: allow-list de caracteres permitidos en un serial (nomenclatura
+     * estandar de fabricantes: alfanumerico + punto + guion + guion bajo).
+     * Longitud acotada (1-64) para descartar entradas malformadas o abusivas
+     * antes de llegar a GLPI. El endpoint es publico, asi que esta es la
+     * primera barrera.
+     */
+    public static final Pattern PATRON_SERIAL_VALIDO =
+            Pattern.compile("^[A-Za-z0-9._\\-]{1,64}$");
+
+    /** SEC-005: true si el serial cumple la allow-list (charset y longitud). */
+    public static boolean serialValido(String serial) {
+        return serial != null && PATRON_SERIAL_VALIDO.matcher(serial).matches();
+    }
+
     @Value("${glpi.url}")
     private String glpiUrl;
 
@@ -72,7 +89,7 @@ public class EquipoService {
             String url = glpiUrl + "/search/Computer"
                     + "?criteria[0][field]=5"
                     + "&criteria[0][searchtype]=contains"
-                    + "&criteria[0][value]=" + serial
+                    + "&criteria[0][value]=" + URLEncoder.encode(serial, StandardCharsets.UTF_8)
                     + "&forcedisplay[0]=23"
                     + "&forcedisplay[1]=4"
                     + "&forcedisplay[2]=40"

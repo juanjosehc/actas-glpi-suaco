@@ -99,7 +99,7 @@ Las rutas guardadas en `acta.ruta_pdf` / `evidencia.ruta_archivo` son **virtuale
 
 - JPA `ddl-auto: update` crea/actualiza tablas. Las migraciones manuales van en `backend/src/main/resources/sql/` y se ejecutan a mano (ej. `migracion_auditoria_acta_historial.sql`: agrega `tipo_evento` NOT NULL con backfill, lo que `ddl-auto` no puede hacer sobre tabla con datos).
 - Sin tests en el repo (`src/test` vacío); solo starter-test declarado.
-- Config de conexión y credenciales en `backend/src/main/resources/application.yml`: PostgreSQL local, tokens GLPI, JWT secret (defaults commiteados — no añadir más secretos al yaml). El `.env` está gitignoreado si se quiere sobrescribir por variables de entorno.
+- Config de conexión y credenciales en `backend/src/main/resources/application.yml`. Tras **SEC-002 ya no hay secretos commiteados**: password DB, JWT secret y tokens GLPI van por variables de entorno o por `backend/.env` (gitignoreado). Para desarrollo local: `copy backend\.env.example backend\.env` y completar `DB_PASSWORD`, `JWT_SECRET`, `GLPI_APP_TOKEN`, `GLPI_USER_TOKEN`. `DB_PASSWORD` y `JWT_SECRET` no tienen default en el yaml: si faltan la app no arranca (fail-fast, no hay secret de respaldo). Los valores viejos que quedaron en el historial de git deben rotarse.
 
 ## Frontend
 

@@ -111,6 +111,14 @@
             <version>2.0.3</version>
         </dependency>
 
+        <!-- OWASP Java HTML Sanitizer (SEC-001): sanitizacion de HTML de
+             contenido de actas en el servidor (allowlist profesional). -->
+        <dependency>
+            <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+            <artifactId>owasp-java-html-sanitizer</artifactId>
+            <version>20240325.1</version>
+        </dependency>
+
         <!-- SpringDoc OpenAPI -->
         <dependency>
             <groupId>org.springdoc</groupId>

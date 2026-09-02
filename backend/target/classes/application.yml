@@ -2,18 +2,21 @@
 # CONFIGURACION DE LA APLICACION
 # =====================================================
 #
-# Base de datos esperada: PostgreSQL
-#   Base de datos: SaucoDB
-#   Usuario:       postgres
-#   Password:      Junio2026+
-#   Puerto:        5432 (default)
+# SEC-002: EN ESTE ARCHIVO NO EXISTEN SECRETOS. Credenciales (password DB,
+# JWT secret, tokens GLPI) se inyectan por variables de entorno o por
+# backend/.env (gitignoreado). Copia backend/.env.example a backend/.env y
+# completa los valores: es la configuración local de desarrollo.
 #
-# Si la contraseña cambia, actualice spring.datasource.password.
-# Si el servidor de BD cambia, actualice spring.datasource.url.
+#   DB_PASSWORD        Password de PostgreSQL
+#   JWT_SECRET         Clave Base64 (minimo 256 bits / 44 caracteres)
+#   GLPI_APP_TOKEN     App-Token de GLPI  (opcional sin GLPI)
+#   GLPI_USER_TOKEN    User-Token de GLPI (opcional sin GLPI)
 #
-# JWT:
-#   secret:    Clave Base64 (minimo 256 bits / 44 caracteres)
-#   expiration: Milisegundos (86400000 = 24 horas)
+# Seguridad por defecto:
+#   - DB_PASSWORD y JWT_SECRET SIN default: si faltan, la aplicacion NO
+#     arranca (fail-fast). No existe secret "de respaldo" hardcodeado.
+#   - GLPI tokens con default vacio: la app arranca y las llamadas GLPI
+#     fallarian con 401 de GLPI, igual patrón que el SMTP opcional.
 
 server:
   port: 8001
@@ -25,8 +28,8 @@ spring:
     import: optional:file:./.env[.properties]
   datasource:
     url: jdbc:postgresql://localhost:5432/SaucoDB
-    username: postgres
-    password: Junio2026+
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -44,14 +47,35 @@ spring:
 # JWT
 security:
   jwt:
-    secret: ${JWT_SECRET:YWMyN2U5ZjBkOGUxYjM0NTY3ODkwYWRlYmNmZ2hpamtsbW5vcHFy}
+    # SEC-002: sin default. Si JWT_SECRET no esta definido la aplicacion no arranca.
+    secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:86400000}
 
-# Integracion GLPI
+  # =====================================================
+  # RATE LIMITING (SEC-004) — RateLimitFilter
+  # =====================================================
+  # Limite de intentos por IP sobre /auth/login y /auth/register. Ventana fija
+  # en memoria del proceso: ajustada para una LAN corporativa, no bloquea al
+  # usuario legitimo pero frena fuerza bruta y spam de cuentas.
+  #   login   : 20 intentos por IP cada 60s
+  #   registro:  5 registros por IP por hora
+  # trust-x-forwarded-for=false por defecto: activar SOLO detras de un proxy de
+  # confianza. Si el servidor se expone directo, confiar en esa cabecera permite
+  # evadir el limite falsificandola.
+  rate-limit:
+    login:
+      max: ${RATE_LIMIT_LOGIN_MAX:20}
+      segundos: ${RATE_LIMIT_LOGIN_SEGUNDOS:60}
+    registro:
+      max: ${RATE_LIMIT_REGISTRO_MAX:5}
+      segundos: ${RATE_LIMIT_REGISTRO_SEGUNDOS:3600}
+    trust-x-forwarded-for: ${RATE_LIMIT_TRUST_XFF:false}
+
+# Integracion GLPI (URL no secreta; tokens por env, ver comentario arriba)
 glpi:
-  url: http://10.86.1.33/glpi/apirest.php
-  app-token: ZRsogtQqJgimxPwWxROo0F2WJdvLrsH0XLtcBKu8
-  user-token: sX4sG98XFSnNyVaLwDckHwpdxNgO6rxrOUsN1vht
+  url: ${GLPI_URL:http://10.86.1.33/glpi/apirest.php}
+  app-token: ${GLPI_APP_TOKEN:}
+  user-token: ${GLPI_USER_TOKEN:}
   # Timeouts de la integracion (QA-12): limitan la espera de GLPI para que un
   # servidor caido o lento no cuelgue los requests del usuario. Sobre-escribibles
   # por variables de entorno (GLPI_CONNECT_TIMEOUT_MS / GLPI_REQUEST_TIMEOUT_MS).

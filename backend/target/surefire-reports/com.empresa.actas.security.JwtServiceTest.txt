@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.empresa.actas.security.JwtServiceTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.197 s -- in com.empresa.actas.security.JwtServiceTest

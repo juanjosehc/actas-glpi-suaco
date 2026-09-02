@@ -450,6 +450,93 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /*
 ----------------------------------------------------
+CONSTRUCTORES DE DOM SEGUROS (SEC-014)
+----------------------------------------------------
+No se usa innerHTML: los elementos se crean con
+document.createElement y los textos dinámicos van por
+textContent, así ningún valor de campos del usuario
+puede interpretarse como markup.
+*/
+
+/**
+ * Crea un campo input-floating (input + etiqueta) sin innerHTML.
+ *
+ * @param {Object} opts - { dato, etiqueta, deshabilitado, ultimo }
+ *        dato establece el data-* que usan las validaciones (ej "tipo" => data-tipo).
+ */
+function crearCampo({ dato, etiqueta, deshabilitado = false, ultimo = false }) {
+
+    const wrapper = document.createElement("div");
+    wrapper.className =
+        "input-floating w-full" + (ultimo ? "" : " mb-1");
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "input";
+    input.placeholder = " ";
+
+    if (dato) {
+        input.dataset[dato] = "";
+    }
+
+    if (deshabilitado) {
+        input.disabled = true;
+    }
+
+    const label = document.createElement("label");
+    label.className = "input-floating-label";
+    label.textContent = etiqueta;
+
+    wrapper.append(input, label);
+
+    return wrapper;
+}
+
+/**
+ * Crea un botón (eliminar/buscar) sin innerHTML.
+ *
+ * @param {Object} opts - { dato, texto, extra }
+ */
+function crearBoton({ dato, texto, extra = "" }) {
+
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "btn btn-outline" + (extra ? " " + extra : "");
+
+    if (dato) {
+        boton.dataset[dato] = "";
+    }
+
+    boton.textContent = texto;
+
+    return boton;
+}
+
+/**
+ * Crea el encabezado de una fila (título "Equipo N"/"Hardware N" + Eliminar).
+ *
+ * @returns {Object} { encabezado, titulo, botonEliminar }
+ */
+function crearEncabezadoFila(titulo) {
+
+    const encabezado = document.createElement("div");
+    encabezado.className = "item-header";
+
+    const elementoTitulo = document.createElement("h4");
+    elementoTitulo.textContent = titulo;
+
+    const botonEliminar = crearBoton({
+        dato: "eliminar",
+        texto: "Eliminar"
+    });
+
+    encabezado.append(elementoTitulo, botonEliminar);
+
+    return { encabezado, titulo: elementoTitulo, botonEliminar };
+}
+
+/*
+----------------------------------------------------
 ADMINISTRACIÓN DINÁMICA DE HARDWARE (OTROS ELEMENTOS)
 ----------------------------------------------------
 */
@@ -486,48 +573,23 @@ function agregarHardware() {
 
     fila.className = "hardware-item";
 
-    fila.innerHTML = `
+    const card = document.createElement("div");
+    card.className = "card border border-base-300 shadow-md";
 
-        <div class="card border border-base-300 shadow-md">
+    const cuerpo = document.createElement("div");
+    cuerpo.className = "card-body p-2";
 
-            <div class="card-body p-2">
+    const { encabezado } = crearEncabezadoFila(
+        `Hardware ${numeroHardware}`
+    );
 
-                <div class="item-header">
+    cuerpo.append(
+        encabezado,
+        crearCampo({ dato: "tipo", etiqueta: "Tipo Hardware", ultimo: true })
+    );
 
-                    <h4>
-                        Hardware     ${numeroHardware}
-                    </h4>
-
-                    <button
-                        type="button"
-                        data-eliminar
-                        class="btn btn-outline">
-
-                        Eliminar
-
-                    </button>
-
-                </div>
-
-                <div class="input-floating w-full mb-1">
-
-                <input
-                    type="text"
-                    class="input"
-                    placeholder=" "
-                    data-tipo />
-
-                <label class="input-floating-label">
-
-                    Tipo Hardware
-
-                </label>
-
-            </div>
-
-        </div>
-
-    `;
+    card.append(cuerpo);
+    fila.append(card);
 
     fila
         .querySelector("[data-eliminar]")
@@ -599,126 +661,29 @@ function agregarEquipo() {
 
     equipo.className = "equipo-item";
 
-    equipo.innerHTML = `
+    const card = document.createElement("div");
+    card.className = "card border border-base-300 shadow-sm";
 
-        <div class="card border border-base-300 shadow-sm">
+    const cuerpo = document.createElement("div");
+    cuerpo.className = "card-body p-2";
 
-            <div class="card-body p-2">
+    const { encabezado } = crearEncabezadoFila(
+        `Equipo ${numeroEquipo}`
+    );
 
-                <div class="item-header">
+    cuerpo.append(
+        encabezado,
+        crearCampo({ dato: "serial", etiqueta: "Serial" }),
+        crearBoton({ dato: "buscar", texto: "Buscar", extra: "mb-4" }),
+        crearCampo({ dato: "marca", etiqueta: "Marca", deshabilitado: true }),
+        crearCampo({ dato: "tipo", etiqueta: "Tipo", deshabilitado: true }),
+        crearCampo({ dato: "modelo", etiqueta: "Modelo", deshabilitado: true }),
+        crearCampo({ dato: "inventario", etiqueta: "Inventario" }),
+        crearCampo({ dato: "estado", etiqueta: "Estado", ultimo: true })
+    );
 
-                    <h4>
-                        Equipo ${numeroEquipo}
-                    </h4>
-
-                    <button
-                        type="button"
-                        data-eliminar
-                        class="btn btn-outline">
-
-                        Eliminar
-
-                    </button>
-
-                </div>
-                <div class="input-floating w-full mb-1">
-
-                    <input
-                        type="text"
-                        class="input"
-                        placeholder=" "
-                        data-serial />
-
-                    <label class="input-floating-label">
-
-                        Serial
-
-                    </label>
-
-                </div>
-
-                <button
-                    type="button"
-                    data-buscar
-                    class="btn btn-outline mb-4">
-
-                    Buscar
-
-                </button>
-
-                <div class="input-floating w-full mb-1">
-
-                <input
-                    class="input"
-                    placeholder=" "
-                    data-marca
-                    disabled />
-
-                <label class="input-floating-label">
-                    Marca
-                </label>
-
-            </div>
-
-            <div class="input-floating w-full mb-1">
-
-                <input
-                    class="input"
-                    placeholder=" "
-                    data-tipo
-                    disabled />
-
-                <label class="input-floating-label">
-                    Tipo
-                </label>
-
-            </div>
-
-            <div class="input-floating w-full mb-1">
-
-                <input
-                    class="input"
-                    placeholder=" "
-                    data-modelo
-                    disabled />
-
-                <label class="input-floating-label">
-                    Modelo
-                </label>
-
-            </div>
-
-            <div class="input-floating w-full mb-1">
-
-                <input
-                    class="input"
-                    placeholder=" "
-                    data-inventario />
-
-                <label class="input-floating-label">
-                    Inventario
-                </label>
-
-            </div>
-
-            <div class="input-floating w-full">
-
-                <input
-                    class="input"
-                    placeholder=" "
-                    data-estado />
-
-                <label class="input-floating-label">
-                    Estado
-                </label>
-
-            </div>
-
-            </div>
-
-        </div>
-
-    `;
+    card.append(cuerpo);
+    equipo.append(card);
 
     container.appendChild(equipo);
 

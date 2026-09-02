@@ -150,6 +150,14 @@
         } catch (_) { return dateStr; }
     }
 
+    /** Crea una celda <td> con texto plano: nunca interpreta contenido de usuario. */
+    function createCell(className, value) {
+        const td = document.createElement("td");
+        if (className) td.className = className;
+        td.textContent = value == null ? "" : String(value);
+        return td;
+    }
+
     function renderTable(data) {
         actasBody.innerHTML = "";
 
@@ -160,19 +168,33 @@
 
         data.forEach((a) => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td class="cell-id">${a.id}</td>
-                <td class="cell-date">${formatDate(a.fechaCreacion)}</td>
-                <td>${a.nombreUsuario || "-"}</td>
-                <td>${a.descripcionEquipo || "-"}</td>
-                <td class="cell-tipo">${a.tipoActa || "-"}</td>
-                <td><span class="badge ${getBadgeClass(a.estado)}">${a.estado || "-"}</span></td>
-                <td class="cell-actions">
-                    <a class="btn btn-outline btn-sm" href="acta-view.html?id=${a.id}">Ver Documento</a>
-                    <button class="btn btn-outline btn-sm" data-id="${a.id}">Ver</button>
-                </td>
-            `;
-            tr.querySelector("[data-id]").addEventListener("click", () => openDetail(a.id));
+            tr.appendChild(createCell("cell-id", a.id));
+            tr.appendChild(createCell("cell-date", formatDate(a.fechaCreacion)));
+            tr.appendChild(createCell("", a.nombreUsuario || "-"));
+            tr.appendChild(createCell("", a.descripcionEquipo || "-"));
+            tr.appendChild(createCell("cell-tipo", a.tipoActa || "-"));
+
+            const estadoCell = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = `badge ${getBadgeClass(a.estado)}`;
+            badge.textContent = a.estado || "-";
+            estadoCell.appendChild(badge);
+            tr.appendChild(estadoCell);
+
+            const acciones = document.createElement("td");
+            acciones.className = "cell-actions";
+            const btnDocumento = document.createElement("a");
+            btnDocumento.className = "btn btn-outline btn-sm";
+            btnDocumento.href = `acta-view.html?id=${a.id}`;
+            btnDocumento.textContent = "Ver Documento";
+            acciones.appendChild(btnDocumento);
+            const btnVer = document.createElement("button");
+            btnVer.className = "btn btn-outline btn-sm";
+            btnVer.textContent = "Ver";
+            btnVer.addEventListener("click", () => openDetail(a.id));
+            acciones.appendChild(btnVer);
+            tr.appendChild(acciones);
+
             actasBody.appendChild(tr);
         });
     }
@@ -252,83 +274,104 @@
 
             const body = await resp.json();
             if (!body.success) {
-                modalBody.innerHTML = `<p class="modal-desc">${body.mensaje || "Acta no encontrada."}</p>`;
+                setModalMessage(body.mensaje || "Acta no encontrada.");
                 return;
             }
 
             const a = body.data;
             renderDetail(a);
         } catch (_) {
-            modalBody.innerHTML = '<p class="modal-desc">Error al cargar el detalle del acta.</p>';
+            setModalMessage("Error al cargar el detalle del acta.");
         }
+    }
+
+    /** Mensaje del modal en texto plano (sin innerHTML con datos del servidor). */
+    function setModalMessage(mensaje) {
+        modalBody.innerHTML = "";
+        const p = document.createElement("p");
+        p.className = "modal-desc";
+        p.textContent = mensaje;
+        modalBody.appendChild(p);
+    }
+
+    /** Campo del detalle: etiqueta + valor en texto plano (textContent). */
+    function detailField(label, value, full) {
+        const field = document.createElement("div");
+        field.className = `detail-field${full ? " full" : ""}`;
+
+        const labelEl = document.createElement("span");
+        labelEl.className = "detail-label";
+        labelEl.textContent = label;
+
+        const valueEl = document.createElement("span");
+        valueEl.className = "detail-value";
+        if (value instanceof Node) {
+            valueEl.appendChild(value);
+        } else {
+            valueEl.textContent = value == null || value === "" ? "-" : String(value);
+        }
+
+        field.appendChild(labelEl);
+        field.appendChild(valueEl);
+        return field;
+    }
+
+    /** Bloque "Contenido HTML" del detalle. */
+    function htmlPreviewBlock(contenidoHtml) {
+        const field = document.createElement("div");
+        field.className = "detail-field full";
+
+        const hr = document.createElement("hr");
+        hr.className = "detail-divider";
+        field.appendChild(hr);
+
+        const labelEl = document.createElement("span");
+        labelEl.className = "detail-label";
+        labelEl.textContent = "Contenido HTML";
+        field.appendChild(labelEl);
+
+        const htmlDiv = document.createElement("div");
+        htmlDiv.className = "detail-html";
+        // SEC-001: el servidor sanea este HTML en escritura Y en lectura
+        // (OWASP Java HTML Sanitizer). Se inserta como HTML documental para
+        // conservar la estructura del acta; nunca es texto crudo de usuario.
+        htmlDiv.innerHTML = contenidoHtml;
+        field.appendChild(htmlDiv);
+        return field;
     }
 
     function renderDetail(a) {
         const estado = a.estado || "";
         const badgeClass = getBadgeClass(estado);
 
-        let htmlContent = "";
+        const grid = document.createElement("div");
+        grid.className = "detail-grid";
+
+        const badge = document.createElement("span");
+        badge.className = `badge ${badgeClass}`;
+        badge.textContent = estado;
+
+        grid.appendChild(detailField("ID", a.id));
+        grid.appendChild(detailField("Estado", badge));
+        grid.appendChild(detailField("Tipo Acta", a.tipoActa || "-"));
+        grid.appendChild(detailField("Fecha Creacion", formatDate(a.fechaCreacion)));
+        grid.appendChild(detailField("Usuario", a.nombreUsuario || "-"));
+        if (a.tipoActa === "DEVOLUCION") {
+            grid.appendChild(detailField("Cedula", a.cedulaUsuario || "-"));
+        }
+        grid.appendChild(detailField("Ticket GLPI", a.ticketGlpi || "-"));
+        grid.appendChild(detailField("Equipo", a.descripcionEquipo || "-"));
+        grid.appendChild(detailField("Serial", a.serialEquipo || "-"));
+        grid.appendChild(detailField("Placa", a.placaEquipo || "-"));
+        grid.appendChild(detailField("Fecha Rechazo", formatDate(a.fechaRechazo)));
+        grid.appendChild(detailField("Observacion Rechazo", a.observacionRechazo || "-", true));
+
         if (a.contenidoHtml) {
-            htmlContent = `
-                <hr class="detail-divider">
-                <div class="detail-field full">
-                    <span class="detail-label">Contenido HTML</span>
-                    <div class="detail-html">${a.contenidoHtml}</div>
-                </div>`;
+            grid.appendChild(htmlPreviewBlock(a.contenidoHtml));
         }
 
-        modalBody.innerHTML = `
-            <div class="detail-grid">
-                <div class="detail-field">
-                    <span class="detail-label">ID</span>
-                    <span class="detail-value">${a.id}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Estado</span>
-                    <span class="badge ${badgeClass}">${estado}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Tipo Acta</span>
-                    <span class="detail-value">${a.tipoActa || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Fecha Creacion</span>
-                    <span class="detail-value">${formatDate(a.fechaCreacion)}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Usuario</span>
-                    <span class="detail-value">${a.nombreUsuario || "-"}</span>
-                </div>
-                ${a.tipoActa === "DEVOLUCION" ? `<div class="detail-field">
-                    <span class="detail-label">Cedula</span>
-                    <span class="detail-value">${a.cedulaUsuario || "-"}</span>
-                </div>` : ""}
-                <div class="detail-field">
-                    <span class="detail-label">Ticket GLPI</span>
-                    <span class="detail-value">${a.ticketGlpi || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Equipo</span>
-                    <span class="detail-value">${a.descripcionEquipo || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Serial</span>
-                    <span class="detail-value">${a.serialEquipo || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Placa</span>
-                    <span class="detail-value">${a.placaEquipo || "-"}</span>
-                </div>
-                <div class="detail-field">
-                    <span class="detail-label">Fecha Rechazo</span>
-                    <span class="detail-value">${formatDate(a.fechaRechazo)}</span>
-                </div>
-                <div class="detail-field full">
-                    <span class="detail-label">Observacion Rechazo</span>
-                    <span class="detail-value">${a.observacionRechazo || "-"}</span>
-                </div>
-                ${htmlContent}
-            </div>`;
+        modalBody.innerHTML = "";
+        modalBody.appendChild(grid);
 
         renderActions(a);
     }

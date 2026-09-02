@@ -19,6 +19,7 @@ import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
+import com.empresa.actas.security.HtmlSanitizadorService;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.service.SignedDocumentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,6 +54,7 @@ public class ActaService {
     private final AuditoriaService auditoriaService;
     private final SignedDocumentService signedDocumentService;
     private final ObjectMapper objectMapper;
+    private final HtmlSanitizadorService sanitizador;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -71,12 +73,17 @@ public class ActaService {
                 .tipoActa(tipoActa)
                 .estado(EstadoActa.GENERADA)
                 .cedulaUsuario(request.cedulaUsuario())
+                // SEC-001: contenidoHtml es HTML documental legitimo y se sanea
+                // en el servidor (allowlist OWASP) porque el frontend lo inserta
+                // con innerHTML. Los campos de texto (nombreUsuario, etc.) se
+                // renderizan con textContent (frontera segura) y se insertan como
+                // texto plano en el DOCX: no pasan por contexto HTML.
                 .nombreUsuario(request.nombreUsuario())
                 .correoUsuario(request.correoUsuario())
                 .serialEquipo(request.serialEquipo())
                 .placaEquipo(request.placaEquipo())
                 .descripcionEquipo(request.descripcionEquipo())
-                .contenidoHtml(request.contenidoHtml())
+                .contenidoHtml(sanitizador.sanitizarHtml(request.contenidoHtml()))
                 .rutaPdf(request.rutaPdf())
                 .datosOriginales(datosOriginalesO(request))
                 .build();
@@ -158,11 +165,26 @@ public class ActaService {
 
     private ActaResponse toResponseWithToken(Acta acta) {
         ActaResponse resp = actaMapper.toResponse(acta);
-        if (acta.getEstado() == EstadoActa.ENVIADA) {
+        // SEC-001 (defensa en profundidad): re-sanitizar al leer contenidoHtml
+        // legacy creado antes de la sanitizacion en escritura.
+        resp.setContenidoHtml(sanitizador.sanitizarHtml(acta.getContenidoHtml()));
+        // SEC-010: tokenFirma solo para roles operativos. AUDITOR es solo
+        // lectura y no debe poder copiar el enlace de firma de terceros; el
+        // boton "Enlace" de firmas.js lo consumen TECNICO/ADMIN. (FirmaToken
+        // es de un solo uso: despues de firmar FIRMA pasa a FIRMADA y el
+        // token ya no se re-expone aqui.)
+        if (acta.getEstado() == EstadoActa.ENVIADA && !esAuditor()) {
             firmaTokenRepository.findFirstByIdActaOrderByFechaCreacionDesc(acta.getIdActa())
                     .ifPresent(t -> resp.setTokenFirma(t.getToken()));
         }
         return resp;
+    }
+
+    /** SEC-010: true si el usuario autenticado tiene rol AUDITOR. */
+    private boolean esAuditor() {
+        UserSecurity us = accesoService.usuarioActual();
+        return us != null && us.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_AUDITOR"));
     }
 
     /**

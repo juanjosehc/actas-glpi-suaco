@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/actas")
@@ -43,6 +44,32 @@ public class ActaController {
 
     private final ActaService actaService;
     private final FirmaService firmaService;
+
+    /** SEC-013: orden por defecto y campo sobre el que se ordena si no viene/non-valido. */
+    static final String SORT_DEFAULT = "fechaCreacion";
+
+    /**
+     * SEC-013: allow-list de propiedades de {@code Acta} ordenables. {@code Sort.by}
+     * acepta cualquier nombre de propiedad y lanza InvalidDataAccessApiUsageException
+     * ante una inexistente; ademas abre superficie a nombres arbitrarios. Solo se
+     * permiten columnas reales de la entidad; lo no listado cae al default.
+     */
+    private static final Set<String> CAMPOS_ORDEN = Set.of(
+            "idActa", "idAsignacion", "idTecnico", "ticketGlpi", "tipoActa", "estado",
+            "cedulaUsuario", "nombreUsuario", "correoUsuario", "serialEquipo", "placaEquipo",
+            "descripcionEquipo", "marcaModelo", "procesador", "memoriaRam", "discoDuro",
+            "sistemaOperativo", "monitor", "accesorios", "estadoEquipo", "cargo",
+            "lugarTrabajo", "empresa", "observaciones", "contenidoHtml", "observacionRechazo",
+            "fechaRechazo", "rutaPdf", "rutaPdfChecklist", "datosOriginales", "fechaCreacion",
+            "fechaEnvio", "fechaFirma", "fechaAprobacion");
+
+    /** SEC-013: normaliza el parametro de orden a un campo valido de la whitelist. */
+    static String sortPermitido(String sort) {
+        if (sort == null) {
+            return SORT_DEFAULT;
+        }
+        return CAMPOS_ORDEN.contains(sort) ? sort : SORT_DEFAULT;
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
@@ -58,7 +85,7 @@ public class ActaController {
             @RequestParam(required = false) String q) {
 
         Page<ActaResponse> actas = actaService.listarActas(
-                q, PageRequest.of(page, size, Sort.by(sort).descending()));
+                q, PageRequest.of(page, size, Sort.by(sortPermitido(sort)).descending()));
         return ResponseEntity.ok(ErrorResponse.ok("Actas listadas", actas));
     }
 
