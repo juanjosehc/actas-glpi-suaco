@@ -43,9 +43,6 @@ public class ActaHistorial {
     @Column(name = "estado_nuevo", nullable = false, length = 20)
     private EstadoActa estadoNuevo;
 
-    @Column(name = "usuario_accion", nullable = false, length = 100)
-    private String usuarioAccion;
-
     @Column(name = "actor_id")
     private Long actorId;
 

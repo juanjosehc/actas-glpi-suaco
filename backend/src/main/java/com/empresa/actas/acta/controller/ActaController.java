@@ -55,11 +55,9 @@ public class ActaController {
      * permiten columnas reales de la entidad; lo no listado cae al default.
      */
     private static final Set<String> CAMPOS_ORDEN = Set.of(
-            "idActa", "idAsignacion", "idTecnico", "ticketGlpi", "tipoActa", "estado",
+            "idActa", "idTecnico", "ticketGlpi", "tipoActa", "estado",
             "cedulaUsuario", "nombreUsuario", "correoUsuario", "serialEquipo", "placaEquipo",
-            "descripcionEquipo", "marcaModelo", "procesador", "memoriaRam", "discoDuro",
-            "sistemaOperativo", "monitor", "accesorios", "estadoEquipo", "cargo",
-            "lugarTrabajo", "empresa", "observaciones", "contenidoHtml", "observacionRechazo",
+            "descripcionEquipo", "contenidoHtml", "observacionRechazo",
             "fechaRechazo", "rutaPdf", "rutaPdfChecklist", "datosOriginales", "fechaCreacion",
             "fechaEnvio", "fechaFirma", "fechaAprobacion");
 

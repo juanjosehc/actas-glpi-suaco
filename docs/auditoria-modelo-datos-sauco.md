@@ -3,7 +3,7 @@
 - **Fecha:** 2026-09-03
 - **Bases de datos:** `SaucoDB` — PostgreSQL 18 (localhost:5432)
 - **Contexto:** sistema de gestión de actas GLPI (Coltefinanciera), backend Spring Boot 3.4.1 + JPA `ddl-auto: update`
-- **Estado:** **SOLO AUDITORÍA Y PLAN — ninguna migración ejecutada.** Los scripts SQL se revisan antes de aplicar.
+- **Estado:** **APLICADO — normalización ejecutada el 2026-09-03.** Backup previo en `db-backups/backup_sauco_pre_normalizacion_2026-09-03.sql`. Migraciones en `backend/src/main/resources/sql/migracion_paso{1,2,3,4}_*.sql` (c/u con rollback comentado). Ver sección 12.**
 
 ---
 
@@ -288,7 +288,7 @@ bitmap por tupla con ese perfil de nulidad). El beneficio de la limpieza NO es b
 |---|---|---|
 | `DocxToPdfService.java` | fallback OpenPDF definido pero **nunca invocado** | eliminar clase + test de referencia |
 | `frontend/templates/` inexistente | "Vista Previa" de Entrega/Devolución rota (QA-42); el HTML viejo usa vars (`marcaModelo`, `procesador`, …) que no existen en ningún template real | recuperar template o quitar el botón |
-| FKs sueltas | `evidencia.id_acta`, `firma_token.id_acta`, `firma_otp.id_token_firma`, `acta_historial.id_acta`, `acta.id_tecnico` no tienen FK (gestor de integridad): con `acta.id_tecnico` apuntando a usuarios ya borrados | fase independiente: backfill + `ADD CONSTRAINT` |
+| FKs sueltas | ~~`evidencia.id_acta`, `firma_token.id_acta`, `firma_otp.id_token_firma`, `acta_historial.id_acta`, `acta.id_tecnico` no tienen FK~~ **RESUELTO 2026-09-03** (paso 4): 5 FK creadas, huérfanos depurados (1 OTP muerto) | — |
 | `word/` vacío, `graphify-out/` | caché/herramientas, fuera del modelo | — |
 
 ## 11. Registro de decisiones (ADR)
@@ -300,10 +300,63 @@ bitmap por tupla con ese perfil de nulidad). El beneficio de la limpieza NO es b
 | Conservar `contenido_html` | lo escribe V2 (sanitizado) y lo consume el portal de firma |
 | Conservar `ruta_zip`/`ruta_pdf_checklist` | usados por descarga y evidencia |
 | Conservar `ticket_glpi` | 35 valores vivos; NULL en DEVOLUCIÓN/FORMATEO es diseño |
-| `usuario_accion` diferido a fase opcional | requiere refactor de lectura y backfill de 310 filas; no bloquea |
+| `usuario_accion` diferido a fase opcional | ~~requiere refactor de lectura y backfill de 310 filas~~ **RESUELTO 2026-09-03** (paso 3): backfill completo actor_id/actor_nombre, lector refactorizado, columna eliminada |
 | Sin `varchar` → `text` ni cambios de tipo | no aportan a la limpieza; YAGNI |
 
 ---
 
-*Fin del documento. Ningún script de migración ha sido ejecutado; todos están listos para
-revisión en `backend/src/main/resources/sql/`.*
+## 12. Estado aplicado (2026-09-03) — normalización ejecutada
+
+### Ejecución
+
+| Paso | Script | Contenido | Verificación |
+|---|---|---|---|
+| 1 | `migracion_paso1_eliminar_legacy.sql` | `DROP COLUMN acta.id_asignacion`; `DROP TABLE asignacion/dispositivo/marca/tipo`; 4 sequences | precheck 0 filas; postcheck 10 tablas |
+| 2 | `migracion_paso2_drop_columnas_acta_obsoletas.sql` | 12 × `DROP COLUMN IF EXISTS` (hardware/ubicación de `acta`) | precheck: sin datos; `PdfService` refactorizado previamente a `datos_originales` |
+| 3 | `migracion_paso3_normalizar_acta_historial.sql` | backfill `actor_id`/`actor_nombre`; `DROP COLUMN usuario_accion` | cobertura 100%; sin huérfanos |
+| 4 | `migracion_paso4_crear_fks.sql` | depuración 1 OTP muerto (id 49, token 86 inexistente); 5 `ADD CONSTRAINT` FK | 0 huérfanos postcheck |
+| — | `db-backups/backup_sauco_pre_normalizacion_2026-09-03.sql` | backup completo `pg_dump` previo a todo DROP | 294732 bytes, EXIT 0 |
+
+### Comparativo ANTES → DESPUÉS
+
+| Métrica | ANTES | DESPUÉS | Δ |
+|---|---|---|---|
+| Tablas en `public` | 14 | **10** | −4 (legacy) |
+| Columnas de `acta` | 35 | **22** | −13 (id_asignacion + 12 obsoletas) |
+| Columnas de `acta_historial` | 11 | **10** | −1 (`usuario_accion`) |
+| Columnas totales | 120 | **87** | −33 |
+| Sequences | 8 | **4** | −4 (legacy) |
+| FKs reales | 1 (`fk_usuario_rol`) | **6** | +5 |
+| Tablas sin entity JPA ni uso | 4 | **0** | limpieza total |
+
+### Estado final del esquema (10 tablas)
+
+`acta` (22), `acta_historial` (10), `auditoria_sistema` (10), `evidencia` (5),
+`firma_otp` (10), `firma_token` (7), `jwt_revocado` (4), `rol` (2), `usuario` (12),
+`usuario_firma` (5).
+
+### Validación funcional post-migración
+
+- Backend compilado (`mvn clean package`, EXIT 0) y corriendo en :8001 (Java 21).
+- Ciclo completo validado en 2 actas de prueba (136 ENTREGA, 137 ENTREGA, 138
+  DEVOLUCIÓN): GENERADA → ENVIADA (token+OTP) → sesión OTP → FIRMADA (PDF firmado
+  regenerado desde `datos_originales`) → APROBADA.
+- Evidencias creadas: FIRMA, FOTO, PDF_FINAL, CHECKLIST_FINAL (ENTREGA). PDF/ZIP/
+  checklist/firma/foto servidos vía `/actas/{id}/...` con acceso por rol/propietario.
+- Historial de auditoría registra `actor_nombre` (valnorm, SISTEMA, firmante);
+  `usuario_accion` ya no existe. `GET /actas/{id}/historial` y `/evidencias` OK.
+- Portal público `/firma/{token}` validado: exige sesión OTP indistinta (401 sin
+  sesión, 404 token inexistente); re-firma de token usado rechazada.
+- Orden de listado con whitelist: `sort` no listado cae a default sin error.
+- Visibilidad por propietario (TECNICO) OK: actas de terceros → 403.
+
+### Hallazgo reportado (no introducido por esta normalización)
+
+**Carrera aprobación vs regeneración async del PDF firmado** (`SignedDocumentService`):
+`REGEN_EN_CURSO.remove()` se ejecuta en `finally` del método async **antes** del commit
+de su transacción; el approve deja de esperar cuando el set se vacía pero el save de la
+entidad vieja (estado `FIRMADA`) puede commitear después y pisar `APROBADA` → `FIRMADA`.
+Observado en el acta 138 (aprobación 11:05:19.291→ eventos del regen 11:05:19.29x);
+acta quedó `FIRMADA` con `ACTA_APROBADA` en historial. Corregido el estado de la acta de
+prueba manualmente. Mismo mecanismo QA-06 de `regenerarDocumentoFirmadoParaAprobacion`;
+recomendación: remover de `REGEN_EN_CURSO` tras el commit (p. ej. `TransactionSynchronization`).

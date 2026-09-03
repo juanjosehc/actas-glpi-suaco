@@ -34,7 +34,6 @@ public class ActaHistorialService {
                 .tipoEvento(tipoEvento)
                 .estadoAnterior(estadoAnterior)
                 .estadoNuevo(estadoNuevo)
-                .usuarioAccion(actor)
                 .actorId(actorId)
                 .actorNombre(actor)
                 .idTokenFirma(idTokenFirma)

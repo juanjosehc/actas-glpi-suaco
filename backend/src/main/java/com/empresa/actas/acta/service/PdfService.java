@@ -4,6 +4,8 @@ import com.empresa.actas.acta.entity.Acta;
 import com.empresa.actas.acta.entity.TipoActa;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -32,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -39,6 +42,7 @@ import java.util.List;
 public class PdfService {
 
     private final EvidenciaRepository evidenciaRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -51,6 +55,34 @@ public class PdfService {
     private static final Color BORDER_COLOR = new Color(226, 232, 240);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
+
+    /**
+     * Lee un campo simple de datos_originales (JSON del request original).
+     * Devuelve null si el campo falta o esta vacio.
+     */
+    private String textoEn(Map<String, Object> datos, String campo) {
+        if (datos == null) return null;
+        Object v = datos.get(campo);
+        if (v == null) return null;
+        String s = String.valueOf(v).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /**
+     * Lee un campo del primer equipo dentro de datos_originales (clave "equipos",
+     * lista, como la envian los requests V1). Devuelve null si no hay equipos.
+     */
+    private String campoDeEquipo(Map<String, Object> datos, String campo) {
+        if (datos == null) return null;
+        Object v = datos.get("equipos");
+        if (!(v instanceof List<?> equipos) || equipos.isEmpty()) return null;
+        Object primero = equipos.get(0);
+        if (!(primero instanceof Map<?, ?> eq)) return null;
+        Object cv = eq.get(campo);
+        if (cv == null) return null;
+        String s = String.valueOf(cv).trim();
+        return s.isEmpty() ? null : s;
+    }
 
     /**
      * Convierte una ruta virtual almacenada en BD (uploads/...) a una ruta
@@ -68,6 +100,28 @@ public class PdfService {
 
     public String generarPdfFinal(Acta acta) {
         try {
+            // PASO 2: fuente documental unica = datos_originales (JSON del request
+            // original). Las columnas legacy (marca_modelo, procesador, cargo, etc.)
+            // ya no existen en la entidad ni en la BD.
+            Map<String, Object> datos = null;
+            if (acta.getDatosOriginales() != null && !acta.getDatosOriginales().isBlank()) {
+                try {
+                    datos = objectMapper.readValue(acta.getDatosOriginales(),
+                            new TypeReference<Map<String, Object>>() {});
+                } catch (Exception e) {
+                    log.warn("No se pudo deserializar datosOriginales del acta {}: {}",
+                            acta.getIdActa(), e.getMessage());
+                }
+            }
+
+            String cargo = textoEn(datos, acta.getTipoActa() == TipoActa.ENTREGA ? "cargo_recibe" : "cargo_entrega");
+            String sector  = textoEn(datos, "area_recibe");   // único campo de área/sede en los V1
+            String obs     = textoEn(datos, "observaciones");
+            String sistemaOperativo = textoEn(datos, "sistema_operativo");
+            String equipoMarca = campoDeEquipo(datos, "marca");
+            String equipoModelo = campoDeEquipo(datos, "modelo");
+            String equipoEstado = campoDeEquipo(datos, "estado");
+
             Path directorioPdf = Paths.get(uploadsDir, "pdf");
             Files.createDirectories(directorioPdf);
 
@@ -181,9 +235,8 @@ public class PdfService {
                 document.add(createFieldRow.apply("CEDULA", acta.getCedulaUsuario()));
             }
             document.add(createFieldRow.apply("CORREO", acta.getCorreoUsuario()));
-            if (acta.getCargo() != null) document.add(createFieldRow.apply("CARGO", acta.getCargo()));
-            if (acta.getLugarTrabajo() != null) document.add(createFieldRow.apply("DEPARTAMENTO / SEDE", acta.getLugarTrabajo()));
-            if (acta.getEmpresa() != null) document.add(createFieldRow.apply("EMPRESA", acta.getEmpresa()));
+            if (cargo != null) document.add(createFieldRow.apply("CARGO", cargo));
+            if (sector != null) document.add(createFieldRow.apply("DEPARTAMENTO / SEDE", sector));
 
             // Section: Datos del Equipo
             Paragraph sec3 = new Paragraph("DATOS DEL EQUIPO", sectionFont);
@@ -194,16 +247,17 @@ public class PdfService {
             document.add(createFieldRow.apply("DESCRIPCION", acta.getDescripcionEquipo()));
             document.add(createFieldRow.apply("SERIAL", acta.getSerialEquipo()));
             document.add(createFieldRow.apply("PLACA INTERNA", acta.getPlacaEquipo()));
-            if (acta.getMarcaModelo() != null) document.add(createFieldRow.apply("MARCA / MODELO", acta.getMarcaModelo()));
-            if (acta.getProcesador() != null) document.add(createFieldRow.apply("PROCESADOR", acta.getProcesador()));
-            if (acta.getMemoriaRam() != null) document.add(createFieldRow.apply("MEMORIA RAM", acta.getMemoriaRam()));
-            if (acta.getDiscoDuro() != null) document.add(createFieldRow.apply("DISCO DURO", acta.getDiscoDuro()));
-            if (acta.getSistemaOperativo() != null) document.add(createFieldRow.apply("SISTEMA OPERATIVO", acta.getSistemaOperativo()));
-            if (acta.getMonitor() != null) document.add(createFieldRow.apply("MONITOR", acta.getMonitor()));
-            if (acta.getAccesorios() != null) document.add(createFieldRow.apply("ACCESORIOS", acta.getAccesorios()));
-            if (acta.getEstadoEquipo() != null) document.add(createFieldRow.apply("ESTADO EQUIPO", acta.getEstadoEquipo()));
-            if (acta.getObservaciones() != null) {
-                document.add(createFieldRow.apply("OBSERVACIONES", acta.getObservaciones()));
+            if (equipoMarca != null && equipoModelo != null) {
+                document.add(createFieldRow.apply("MARCA / MODELO", equipoMarca + " / " + equipoModelo));
+            } else if (equipoMarca != null) {
+                document.add(createFieldRow.apply("MARCA / MODELO", equipoMarca));
+            } else if (equipoModelo != null) {
+                document.add(createFieldRow.apply("MARCA / MODELO", equipoModelo));
+            }
+            if (sistemaOperativo != null) document.add(createFieldRow.apply("SISTEMA OPERATIVO", sistemaOperativo));
+            if (equipoEstado != null) document.add(createFieldRow.apply("ESTADO EQUIPO", equipoEstado));
+            if (obs != null) {
+                document.add(createFieldRow.apply("OBSERVACIONES", obs));
             }
 
             // Evidences

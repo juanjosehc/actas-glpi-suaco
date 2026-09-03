@@ -55,12 +55,14 @@ DROP TABLE marca;
 DROP TABLE tipo;
 
 -- ------------------------------------------------------------------
--- 3. Sequences sin uso
+-- 3. Sequences sin uso. Las de las tablas legacy son OWNED BY columnas
+--    de esas tablas, asi que DROP TABLE ya las arrastro; IF EXISTS es
+--    por si alguna otra quedara suelta (idempotente).
 -- ------------------------------------------------------------------
-DROP SEQUENCE asignacion_id_asignacion_seq;
-DROP SEQUENCE dispositivo_id_dispositivo_seq;
-DROP SEQUENCE marca_id_marca_seq;
-DROP SEQUENCE tipo_id_tipo_seq;
+DROP SEQUENCE IF EXISTS asignacion_id_asignacion_seq;
+DROP SEQUENCE IF EXISTS dispositivo_id_dispositivo_seq;
+DROP SEQUENCE IF EXISTS marca_id_marca_seq;
+DROP SEQUENCE IF EXISTS tipo_id_tipo_seq;
 
 COMMIT;
 

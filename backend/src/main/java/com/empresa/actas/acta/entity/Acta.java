@@ -28,9 +28,6 @@ public class Acta {
     @Column(name = "id_acta")
     private Long idActa;
 
-    @Column(name = "id_asignacion")
-    private Long idAsignacion;
-
     @Column(name = "id_tecnico", nullable = false)
     private Long idTecnico;
 
@@ -63,42 +60,6 @@ public class Acta {
 
     @Column(name = "descripcion_equipo", length = 255)
     private String descripcionEquipo;
-
-    @Column(name = "marca_modelo", length = 100)
-    private String marcaModelo;
-
-    @Column(name = "procesador", length = 100)
-    private String procesador;
-
-    @Column(name = "memoria_ram", length = 50)
-    private String memoriaRam;
-
-    @Column(name = "disco_duro", length = 100)
-    private String discoDuro;
-
-    @Column(name = "sistema_operativo", length = 100)
-    private String sistemaOperativo;
-
-    @Column(name = "monitor", length = 100)
-    private String monitor;
-
-    @Column(name = "accesorios", length = 255)
-    private String accesorios;
-
-    @Column(name = "estado_equipo", length = 50)
-    private String estadoEquipo;
-
-    @Column(name = "cargo", length = 100)
-    private String cargo;
-
-    @Column(name = "lugar_trabajo", length = 100)
-    private String lugarTrabajo;
-
-    @Column(name = "empresa", length = 100)
-    private String empresa;
-
-    @Column(name = "observaciones", length = 500)
-    private String observaciones;
 
     @Column(name = "contenido_html", columnDefinition = "text")
     private String contenidoHtml;

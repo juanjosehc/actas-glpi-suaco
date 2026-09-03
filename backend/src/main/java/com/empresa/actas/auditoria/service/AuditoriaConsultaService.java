@@ -107,7 +107,7 @@ public class AuditoriaConsultaService {
             String nombre = nombrePorUsuario.get(id);
             if (nombre != null && !nombre.isBlank()) return nombre;
         }
-        return h.getActorNombre() != null ? h.getActorNombre() : h.getUsuarioAccion();
+        return h.getActorNombre();
     }
 
     private List<EventoAuditoriaResponse> eventosFusionados() {

@@ -136,6 +136,7 @@ com\empresa\actas\service\DocxActaService$2.class
 com\empresa\actas\acta\dto\RechazarRequest.class
 com\empresa\actas\acta\controller\ActaController.class
 com\empresa\actas\dto\response\ErrorResponse.class
+com\empresa\actas\acta\service\PdfService$1.class
 com\empresa\actas\config\CorsConfig.class
 com\empresa\actas\service\SignedDocumentService$2.class
 com\empresa\actas\exception\GlobalExceptionHandler.class
