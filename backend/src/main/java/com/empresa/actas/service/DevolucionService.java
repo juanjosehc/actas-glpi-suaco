@@ -3,9 +3,7 @@ package com.empresa.actas.service;
 import com.empresa.actas.acta.entity.Acta;
 import com.empresa.actas.acta.entity.EstadoActa;
 import com.empresa.actas.acta.entity.TipoActa;
-import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.repository.ActaRepository;
-import com.empresa.actas.acta.service.ActaHistorialService;
 import com.empresa.actas.dto.request.DevolucionRequest;
 import com.empresa.actas.dto.response.ActaResponse;
 import com.empresa.actas.security.UserSecurity;
@@ -15,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +47,7 @@ public class DevolucionService {
     private final ObjectMapper objectMapper;
     private final LibreOfficePdfService libreOfficePdfService;
     private final ActaRepository actaRepository;
-    private final ActaHistorialService actaHistorialService;
+    private final GeneracionDocumentalAsyncService generacionDocumentalAsyncService;
     private final UsuarioService usuarioService;
 
     public DevolucionService(
@@ -59,7 +56,7 @@ public class DevolucionService {
             ObjectMapper objectMapper,
             LibreOfficePdfService libreOfficePdfService,
             ActaRepository actaRepository,
-            ActaHistorialService actaHistorialService,
+            GeneracionDocumentalAsyncService generacionDocumentalAsyncService,
             UsuarioService usuarioService
     ) {
         this.wordService = wordService;
@@ -67,76 +64,116 @@ public class DevolucionService {
         this.objectMapper = objectMapper;
         this.libreOfficePdfService = libreOfficePdfService;
         this.actaRepository = actaRepository;
-        this.actaHistorialService = actaHistorialService;
+        this.generacionDocumentalAsyncService = generacionDocumentalAsyncService;
         this.usuarioService = usuarioService;
     }
 
     /**
-     * Genera el acta de devolución empaquetada en ZIP,
-     * junto con el PDF desde la plantilla DOCX.
+     * Flujo asincrono (request thread): persiste el acta en
+     * GENERANDO_DOCUMENTOS y encola la generacion real; el POST responde en
+     * milisegundos. El hilo de {@link GeneracionDocumentalAsyncService} cierra
+     * el ciclo con GENERADA (o GENERACION_FALLIDA).
      *
      * @param request Datos del acta validados previamente por el controller.
-     * @return ActaResponse con success=true, nombre_zip y ruta_pdf, o success=false con error.
+     * @return ActaResponse con success=true y id_acta, o success=false con error.
      */
-    @Transactional
     public ActaResponse generarDevolucion(DevolucionRequest request) {
         try {
-            Path outputDir = Paths.get(generatedDir);
-            Files.createDirectories(outputDir);
+            // Capturar SOLO aqui (SecurityContext presente): la tarea async no
+            // tiene SecurityContext para leer el usuario autenticado.
+            Long idTecnico = tecnicoAutenticado();
+            if (idTecnico == null) {
+                return ActaResponse.error("No se pudo identificar el tecnico autenticado.");
+            }
+            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(idTecnico);
 
             Map<String, Object> datos = objectMapper.convertValue(
                     request,
                     new TypeReference<Map<String, Object>>() {}
             );
 
-            Path rutaDevolucion = wordService.generarDevolucion(datos);
-
-            // Firma permanente del tecnico: se inserta en el DOCX antes de
-            // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
-            // La firma/foto del USUARIO aun no existe: se dejan en blanco para que
-            // el DOCX/PDF inicial no muestre {{firma_usuario}} / {{foto_usuario}} crudos.
-            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
-            DocxImageReplacer.reemplazarFirmaTecnico(rutaDevolucion.toString(), firmaTecnico);
-            DocxImageReplacer.reemplazarFirmaYFoto(rutaDevolucion.toString(), null, null);
-
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {
                 serial = NombreArchivoSeguro.segmento(request.getEquipos().get(0).getSerial());
             }
-
             String motivo = NombreArchivoSeguro.segmento(request.getMotivo());
-
             String nombreZip = "Devolucion_" + serial + "_" + motivo + "_" + sufijoUnico() + ".zip";
-            Path rutaZip = outputDir.resolve(nombreZip);
 
-            zipService.crearZip(rutaZip, rutaDevolucion);
+            Long idActa = persistirActaEnProceso(request, idTecnico, nombreZip);
 
-            Path pdfDir = Paths.get(uploadsDir, "pdf");
-            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaDevolucion, pdfDir);
-            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+            generacionDocumentalAsyncService.encolar(() ->
+                    generarDevolucionEnSegundoPlano(idActa, datos, firmaTecnico, nombreZip));
 
-            Long idActa = persistirActa(request, rutaPdfUrl);
-
-            return ActaResponse.ok(nombreZip, rutaPdfUrl, idActa);
+            return ActaResponse.procesando(idActa);
 
         } catch (Exception e) {
             return ActaResponse.error("Error generando devolucion: " + e.getMessage());
         }
     }
 
-    /**
-     * Persiste la entidad Acta de devolucion en el mismo flujo que la
-     * generacion de documentos, de forma atomica (si el PDF se genera la
-     * acta queda registrada; ya no depende de una llamada /actas aparte).
-     */
-    private Long persistirActa(DevolucionRequest request, String rutaPdfUrl) {
-        Long idTecnico = tecnicoAutenticado();
+    /** Tarea async: DOCX de devolucion -> ZIP -> PDF (misma logica, otro hilo). */
+    private void generarDevolucionEnSegundoPlano(Long idActa, Map<String, Object> datos,
+                                                 byte[] firmaTecnico, String nombreZip) {
+        try {
+            Path outputDir = Paths.get(generatedDir);
+            Files.createDirectories(outputDir);
 
+            Path rutaDevolucion = wordService.generarDevolucion(datos);
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaDevolucion.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaDevolucion.toString(), null, null);
+
+            Path rutaZip = outputDir.resolve(nombreZip);
+            zipService.crearZip(rutaZip, rutaDevolucion);
+
+            Path pdfDir = Paths.get(uploadsDir, "pdf");
+            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaDevolucion, pdfDir);
+            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+
+            generacionDocumentalAsyncService.marcarGenerada(idActa, rutaPdfUrl, null, nombreZip);
+        } catch (Exception e) {
+            generacionDocumentalAsyncService.marcarFallida(idActa, e.getMessage());
+        }
+    }
+
+    /** Re-encola la generacion desde datosOriginales (reintento / reinicio JVM). */
+    public void reintentarGeneracion(Long idActa) {
+        Acta acta = actaRepository.findById(idActa)
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada con id: " + idActa));
+        if (acta.getEstado() != EstadoActa.GENERACION_FALLIDA
+                && acta.getEstado() != EstadoActa.GENERANDO_DOCUMENTOS) {
+            throw new IllegalArgumentException("Solo se puede reintentar una acta en GENERACION_FALLIDA"
+                    + " o GENERANDO_DOCUMENTOS. Estado actual: " + acta.getEstado());
+        }
+        if (acta.getDatosOriginales() == null || acta.getDatosOriginales().isBlank()) {
+            throw new IllegalArgumentException("La acta no tiene datosOriginales: no se puede regenerar.");
+        }
+
+        byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(acta.getIdTecnico());
+        String nombreZip = acta.getRutaZip() != null
+                ? acta.getRutaZip()
+                : "Devolucion_" + sufijoUnico() + ".zip";
+        Map<String, Object> datos;
+        try {
+            datos = objectMapper.readValue(acta.getDatosOriginales(),
+                    new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new IllegalArgumentException("datosOriginales invalidos: " + e.getMessage(), e);
+        }
+
+        acta.setEstado(EstadoActa.GENERANDO_DOCUMENTOS);
+        actaRepository.save(acta);
+
+        generacionDocumentalAsyncService.encolar(() ->
+                generarDevolucionEnSegundoPlano(idActa, datos, firmaTecnico, nombreZip));
+    }
+
+    /** Persiste el acta en GENERANDO_DOCUMENTOS con el nombre del ZIP ya decidido. */
+    private Long persistirActaEnProceso(DevolucionRequest request, Long idTecnico, String nombreZip) {
         Acta acta = Acta.builder()
                 .idTecnico(idTecnico)
                 .ticketGlpi(null)
                 .tipoActa(TipoActa.DEVOLUCION)
-                .estado(EstadoActa.GENERADA)
+                .estado(EstadoActa.GENERANDO_DOCUMENTOS)
                 // Regla de negocio Devolucion: Usuario = quien ENTREGA el equipo.
                 // El tecnico (quien recibe la devolucion) queda en idTecnico (JWT).
                 .cedulaUsuario(request.getCedula())
@@ -146,23 +183,11 @@ public class DevolucionService {
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
                 .contenidoHtml(null)
-                .rutaPdf(rutaPdfUrl)
+                .rutaZip(nombreZip)
                 .datosOriginales(serializar(request))
                 .build();
 
-        Acta guardada = actaRepository.save(acta);
-
-        actaHistorialService.registrarEvento(
-                guardada.getIdActa(),
-                TipoEventoActa.ACTA_GENERADA,
-                null,
-                EstadoActa.GENERADA,
-                idTecnico,
-                idTecnico != null ? String.valueOf(idTecnico) : "SISTEMA",
-                null,
-                "Acta de devolucion generada: " + rutaPdfUrl);
-
-        return guardada.getIdActa();
+        return actaRepository.save(acta).getIdActa();
     }
 
     /** Sufijo aleatorio corto: evita colisiones de nombre entre actas iguales. */

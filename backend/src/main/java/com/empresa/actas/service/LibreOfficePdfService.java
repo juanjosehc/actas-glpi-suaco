@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -27,9 +28,13 @@ public class LibreOfficePdfService {
     private static final long CONVERSION_TIMEOUT_SECONDS = 120;
 
     private final String libreOfficePath;
+    private final String storageRoot;
 
-    public LibreOfficePdfService(@Value("${libreoffice.path}") String libreOfficePath) {
+    public LibreOfficePdfService(
+            @Value("${libreoffice.path}") String libreOfficePath,
+            @Value("${storage.root:${user.dir}/storage}") String storageRoot) {
         this.libreOfficePath = libreOfficePath;
+        this.storageRoot = storageRoot;
     }
 
     public String convertirDocxAPdf(Path docxPath, Path outputDir) throws IOException {
@@ -50,15 +55,49 @@ public class LibreOfficePdfService {
 
         Files.deleteIfExists(pdfPath);
 
+        // Fase 2: perfil reutilizable bajo storage.root (entraña menos arranque
+        // de LibreOffice que un perfi temp nuevo por conversión). Si falla —
+        // lock huerfano de un proceso muerto, perfil corrupto — se cae a un
+        // perfil temporal limpio (misma poliitica de aislamiento que antes).
+        Path perfilCompartido = perfilCompartido();
+
         IOException lastError = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            Path profileDir = null;
+            Path perfilTemporal = null;
             try {
                 LIBRE_OFFICE_LOCK.acquire();
                 try {
-                    profileDir = Files.createTempDirectory("lo-profile-");
-                    convertirUnaVez(docxPath, outputDir, profileDir, pdfPath);
-                    log.info("PDF generado exitosamente (intento {}): {}", attempt, pdfPath);
+                    // 1) Perfil compartido, con auto-limpieza de lock huerfano.
+                    if (perfilCompartido != null) {
+                        try {
+                            Files.createDirectories(perfilCompartido);
+                            convertirUnaVez(docxPath, outputDir, perfilCompartido, pdfPath);
+                            log.info("PDF generado exitosamente (intento {}, perfil compartido {}): {}",
+                                    attempt, perfilCompartido, pdfPath);
+                            return pdfName;
+                        } catch (IOException e) {
+                            // Un .lock huerfano (proceso anterior muerto) hace que
+                            // soffice rechace el perfil: se limpia y se reintenta.
+                            // Bajo el semáforo nadie mas lo usa; un lock ahi solo
+                            // puede ser residuo de un proceso ya terminado.
+                            Files.deleteIfExists(pdfPath);
+                            limpiarLockHuerfano(perfilCompartido);
+                            try {
+                                convertirUnaVez(docxPath, outputDir, perfilCompartido, pdfPath);
+                                log.info("PDF generado exitosamente (intento {}, perfil compartido tras limpiar lock): {}",
+                                        attempt, pdfPath);
+                                return pdfName;
+                            } catch (IOException e2) {
+                                throw new IOException("Perfil compartido fallo: " + e2.getMessage(), e2);
+                            }
+                        }
+                    }
+
+                    // 2) Perfil temporal aislado (fallback del compartido).
+                    perfilTemporal = Files.createTempDirectory("lo-profile-");
+                    convertirUnaVez(docxPath, outputDir, perfilTemporal, pdfPath);
+                    log.info("PDF generado exitosamente (intento {}, perfil temporal {}): {}",
+                            attempt, perfilTemporal, pdfPath);
                     return pdfName;
                 } finally {
                     LIBRE_OFFICE_LOCK.release();
@@ -71,11 +110,35 @@ public class LibreOfficePdfService {
                 log.warn("Intento {} de conversion LibreOffice fallo: {}", attempt, e.getMessage());
                 Files.deleteIfExists(pdfPath);
             } finally {
-                borrarDirectorio(profileDir);
+                borrarDirectorio(perfilTemporal);
             }
         }
         throw new IOException("LibreOffice fallo tras " + MAX_ATTEMPTS + " intentos: "
                 + (lastError == null ? "desconocido" : lastError.getMessage()), lastError);
+    }
+
+    /** Perfil LibreOffice persistente: {@code storage.root/lo-profile}. null si el storage no es escribible. */
+    private Path perfilCompartido() {
+        try {
+            if (storageRoot == null || storageRoot.isBlank()) {
+                return null;
+            }
+            Path perfil = Paths.get(storageRoot).resolve("lo-profile").toAbsolutePath().normalize();
+            Files.createDirectories(perfil);
+            return perfil;
+        } catch (IOException e) {
+            log.warn("No se puede usar perfil LibreOffice compartido en {}: {}. Se usara perfil temporal.",
+                    storageRoot, e.getMessage());
+            return null;
+        }
+    }
+
+    /** Elimina un {@code .lock} huerfano dentro del perfil (residuo de un soffice muerto). */
+    private static void limpiarLockHuerfano(Path perfil) {
+        Path lock = perfil.resolve(".lock");
+        if (Files.exists(lock)) {
+            borrarDirectorio(lock);
+        }
     }
 
     private void convertirUnaVez(Path docxPath, Path outputDir, Path profileDir, Path pdfPath)

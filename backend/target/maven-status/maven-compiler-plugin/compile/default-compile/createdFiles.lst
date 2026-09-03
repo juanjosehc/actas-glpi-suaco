@@ -25,6 +25,7 @@ com\empresa\actas\acta\dto\EvidenciaResponse.class
 com\empresa\actas\firma\service\TokenFirmaValidador.class
 com\empresa\actas\service\ZipService.class
 com\empresa\actas\acta\entity\Acta$ActaBuilder.class
+com\empresa\actas\service\FormateoSeguroService$2.class
 com\empresa\actas\acta\dto\ActaResponse.class
 com\empresa\actas\acta\dto\EvidenciaResponse$EvidenciaResponseBuilder.class
 com\empresa\actas\service\NombreArchivoSeguro.class
@@ -51,6 +52,7 @@ com\empresa\actas\firma\dto\FirmaOtpValidarRequest.class
 com\empresa\actas\rol\repository\RolRepository.class
 com\empresa\actas\acta\mapper\ActaMapperImpl.class
 com\empresa\actas\firma\entity\Evidencia$TipoEvidencia.class
+com\empresa\actas\service\DevolucionService$2.class
 com\empresa\actas\service\DocxImageReplacer.class
 com\empresa\actas\security\JwtRevocadoRepository.class
 com\empresa\actas\service\FormateoSeguroService.class
@@ -73,6 +75,7 @@ com\empresa\actas\acta\entity\ActaHistorial.class
 com\empresa\actas\firma\dto\FirmaOtpEstadoResponse.class
 com\empresa\actas\usuario\entity\UsuarioFirma$UsuarioFirmaBuilder.class
 com\empresa\actas\auth\dto\LoginRequest.class
+com\empresa\actas\service\ReintentoGeneracionService.class
 com\empresa\actas\usuario\dto\GuardarFirmaRequest.class
 com\empresa\actas\ActasApplication.class
 com\empresa\actas\acta\entity\ActaHistorial$ActaHistorialBuilder.class
@@ -80,6 +83,7 @@ com\empresa\actas\acta\repository\ActaHistorialRepository.class
 com\empresa\actas\dto\request\OtroElementoItem.class
 com\empresa\actas\acta\mapper\ActaMapper.class
 com\empresa\actas\auth\dto\RegisterUserRequest.class
+com\empresa\actas\service\ReintentoGeneracionService$1.class
 com\empresa\actas\security\JwtRevocado.class
 com\empresa\actas\dto\request\HardwareItem.class
 com\empresa\actas\dto\request\ActaRequest.class
@@ -101,6 +105,7 @@ com\empresa\actas\auditoria\entity\TipoEventoAuditoria.class
 com\empresa\actas\dto\response\UsuarioGlpiResponse.class
 com\empresa\actas\firma\service\OtpIntentoService.class
 com\empresa\actas\acta\entity\TipoActa.class
+com\empresa\actas\service\GeneracionDocumentalAsyncService.class
 com\empresa\actas\firma\repository\EvidenciaRepository.class
 com\empresa\actas\service\DocxToPdfService.class
 com\empresa\actas\dto\response\EquipoResponse.class
@@ -127,6 +132,7 @@ com\empresa\actas\auth\controller\AuthController.class
 com\empresa\actas\acta\dto\ActaHistorialResponse.class
 com\empresa\actas\rol\entity\Rol$RolBuilder.class
 com\empresa\actas\controller\DevolucionController.class
+com\empresa\actas\service\DocxActaService$2.class
 com\empresa\actas\acta\dto\RechazarRequest.class
 com\empresa\actas\acta\controller\ActaController.class
 com\empresa\actas\dto\response\ErrorResponse.class

@@ -27,7 +27,7 @@ public class FormateoSeguroRequest {
 
     private String entregado_a = "";
 
-    /** Correo del usuario (entregado_a) que firma el formateo (autocompletado desde GLPI). Opcional; si viene con valor se valida formato. */
+    /** Correo del usuario principal (entregado_por) que firma el formateo (autocompletado desde GLPI). Opcional; si viene con valor se valida formato. */
     @Email(message = "El correo no es valido")
     private String correo = "";
 

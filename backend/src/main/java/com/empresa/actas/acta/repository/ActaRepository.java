@@ -1,6 +1,7 @@
 package com.empresa.actas.acta.repository;
 
 import com.empresa.actas.acta.entity.Acta;
+import com.empresa.actas.acta.entity.EstadoActa;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,12 +9,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ActaRepository extends JpaRepository<Acta, Long> {
 
     Page<Acta> findByTipoActa(String tipoActa, Pageable pageable);
 
     Page<Acta> findByEstado(String estado, Pageable pageable);
+
+    /** Actas con ese estado (sin paginar): re-encolado de generacion async al arrancar. */
+    List<Acta> findByEstado(EstadoActa estado);
 
     Page<Acta> findByIdTecnico(Long idTecnico, Pageable pageable);
 

@@ -275,6 +275,12 @@ async function generarDevolucion() {
 
         };
 
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        if (btnGenerar) {
+            btnGenerar.disabled = true;
+            btnGenerar.textContent = "Generando Acta...";
+        }
+
         const response = await fetch(
             API_BASE + "/generar-devolucion",
             {
@@ -311,52 +317,34 @@ async function generarDevolucion() {
 
         }
 
+        if (btnGenerar) {
+            btnGenerar.textContent = "Acta creada ✓";
+        }
+
+        // Flujo async (Fase 1): el POST persiste el acta en GENERANDO_DOCUMENTOS
+        // y la documentacion (DOCX/ZIP/PDF) se genera en segundo plano. Sin
+        // espera síncrona en pantalla: se avisa y se redirige al listado, donde
+        // el polling avisa "Documentos listos" cuando termina.
         mostrarMensaje(
-            "Documentación generada correctamente",
+            "Acta creada. Documentación en generación, se le avisará al terminar.",
             "success"
         );
 
-        // La entidad Acta ya se persiste de forma atomica en el backend
-        // (POST /generar-devolucion guarda en PostgreSQL y registra auditoria).
-        // Ya no se hace una segunda llamada independiente a POST /actas.
+        setTimeout(() => {
+            window.location.href = "actas.html";
+        }, 600);
 
-        const descargaResponse = await fetch(
-            API_BASE + "/descargar-acta/" +
-            result.nombre_zip
-        );
-
-        if (!descargaResponse.ok) {
-            throw new Error("Error descargando el archivo");
-        }
-
-        const blob =
-            await descargaResponse.blob();
-
-        const blobUrl =
-            URL.createObjectURL(blob);
-
-        const linkDescarga =
-            document.createElement("a");
-
-        linkDescarga.href = blobUrl;
-
-        linkDescarga.download =
-            result.nombre_zip;
-
-        document.body.appendChild(
-            linkDescarga
-        );
-
-        linkDescarga.click();
-
-        linkDescarga.remove();
-
-        URL.revokeObjectURL(blobUrl);
-
+        return;
 
     }
 
     catch (error) {
+
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        if (btnGenerar) {
+            btnGenerar.disabled = false;
+            btnGenerar.textContent = "Generar Acta Devolución";
+        }
 
         mostrarMensaje(
             "Error generando la documentación: " + error.message,

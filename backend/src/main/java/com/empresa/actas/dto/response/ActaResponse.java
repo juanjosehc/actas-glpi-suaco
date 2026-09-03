@@ -30,11 +30,27 @@ public class ActaResponse {
     @JsonProperty("id_acta")
     private Long idActa;
 
+    /** Estado de la acta tras el POST (GENERANDO_DOCUMENTOS en flujo async). */
+    private String estado;
+
     public ActaResponse(boolean success, String nombreZip, String mensaje, String rutaPdf) {
         this.success = success;
         this.nombreZip = nombreZip;
         this.mensaje = mensaje;
         this.rutaPdf = rutaPdf;
+    }
+
+    /**
+     * Respuesta inmediata del flujo asincrono: la acta quedo persistida en
+     * GENERANDO_DOCUMENTOS y los documentos (DOCX/ZIP/PDF) se generan en
+     * segundo plano. El frontend redirige al listado y hace polling.
+     */
+    public static ActaResponse procesando(Long idActa) {
+        ActaResponse r = new ActaResponse(true, null,
+                "Acta registrada. Documentacion en generacion.", null);
+        r.setIdActa(idActa);
+        r.setEstado("GENERANDO_DOCUMENTOS");
+        return r;
     }
 
     /**

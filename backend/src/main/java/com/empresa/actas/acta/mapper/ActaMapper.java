@@ -18,6 +18,7 @@ public interface ActaMapper {
     @Mapping(source = "observacionRechazo", target = "observacionRechazo")
     @Mapping(source = "fechaRechazo", target = "fechaRechazo")
     @Mapping(source = "rutaPdf", target = "rutaPdf")
+    @Mapping(source = "rutaZip", target = "rutaZip")
     ActaResponse toResponse(Acta acta);
 }
 

@@ -116,6 +116,10 @@ public class Acta {
     @Column(name = "ruta_pdf_checklist", length = 500)
     private String rutaPdfChecklist;
 
+    /** Nombre del ZIP almacenado en {@code app.generated-dir} (columna nueva, b014). */
+    @Column(name = "ruta_zip", length = 500)
+    private String rutaZip;
+
     @Column(name = "datos_originales", columnDefinition = "text")
     private String datosOriginales;
 

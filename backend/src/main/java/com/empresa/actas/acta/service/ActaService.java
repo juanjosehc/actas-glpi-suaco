@@ -21,6 +21,7 @@ import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.HtmlSanitizadorService;
 import com.empresa.actas.security.UserSecurity;
+import com.empresa.actas.service.ReintentoGeneracionService;
 import com.empresa.actas.service.SignedDocumentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -53,11 +54,15 @@ public class ActaService {
     private final AccesoService accesoService;
     private final AuditoriaService auditoriaService;
     private final SignedDocumentService signedDocumentService;
+    private final ReintentoGeneracionService reintentoGeneracionService;
     private final ObjectMapper objectMapper;
     private final HtmlSanitizadorService sanitizador;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
+
+    @Value("${app.generated-dir}")
+    private String generatedDir;
 
     @Transactional
     public ActaResponse crearActa(CrearActaRequest request) {
@@ -243,6 +248,29 @@ public class ActaService {
         return recurso;
     }
 
+    /**
+     * Sirve el ZIP del acta (generado/…, no uploads) validando acceso y
+     * contencion de ruta (mismo patron que el PDF). El PDF apunta a
+     * uploads/; el ZIP vive en app.generated-dir, asi que NO pasa por
+     * {@link #resolverArchivo}.
+     */
+    public Resource obtenerZipConAcceso(Long idActa) {
+        Acta acta = cargarActaConAcceso(idActa);
+        if (acta.getRutaZip() == null || acta.getRutaZip().isBlank()) {
+            return null;
+        }
+        Path baseDir = Paths.get(generatedDir).toAbsolutePath().normalize();
+        String soloNombre = Paths.get(acta.getRutaZip()).getFileName().toString();
+        Path zip = baseDir.resolve(soloNombre).normalize();
+        if (!zip.startsWith(baseDir) || !Files.exists(zip) || !Files.isRegularFile(zip)) {
+            return null;
+        }
+        auditoriaService.registrar(TipoEventoAuditoria.DOCUMENTO_VISTO,
+                "ACTA", String.valueOf(idActa), "/actas/" + idActa + "/zip",
+                "ZIP del acta descargado");
+        return new FileSystemResource(zip.toFile());
+    }
+
     /** Sirve la fotografia del acta validando acceso (foto_{id}.jpg). */
     public Resource obtenerFotoConAcceso(Long idActa) {
         Acta acta = cargarActaConAcceso(idActa);
@@ -360,6 +388,12 @@ public class ActaService {
                 userSecurity.getUsername(),
                 null,
                 request.observacion());
+    }
+
+    /** Re-encola la regeneracion de documentos (reintento tras GENERACION_FALLIDA). */
+    public void reintentarGeneracion(Long idActa) {
+        cargarActaConAcceso(idActa);
+        reintentoGeneracionService.reintentar(idActa);
     }
 
     public List<EvidenciaResponse> obtenerEvidencias(Long idActa) {

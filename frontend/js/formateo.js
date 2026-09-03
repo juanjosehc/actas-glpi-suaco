@@ -207,11 +207,12 @@ async function generarFormateoSeguro() {
             asunto:
                 document.getElementById("asunto")?.value || "",
 
-            // QA-19: sin este campo, el correo seleccionado por autocompletado
-            // nunca llegaba al backend y el formateo quedaba sin correo de firma.
+            // Usuario principal del formateo = quien ENTREGA el equipo
+            // (entregado_por). El correo capturado del autocompletado es el
+            // suyo, para que el enlace de firma le llegue a el.
             correo:
                 getCorreoUsuarioSeleccionado(
-                    document.getElementById("entregado_a")
+                    document.getElementById("entregado_por")
                 ) || "",
 
             equipos:
@@ -220,6 +221,11 @@ async function generarFormateoSeguro() {
         };
 
         const token = LoginService.obtenerToken();
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        if (btnGenerar) {
+            btnGenerar.disabled = true;
+            btnGenerar.textContent = "Generando Acta...";
+        }
 
         const response = await fetch(
             API_BASE + "/generar-formateo-seguro",
@@ -257,51 +263,34 @@ async function generarFormateoSeguro() {
 
         }
 
+        if (btnGenerar) {
+            btnGenerar.textContent = "Acta creada ✓";
+        }
+
+        // Flujo async (Fase 1): el POST persiste el acta en GENERANDO_DOCUMENTOS
+        // y la documentacion (DOCX/ZIP/PDF) se genera en segundo plano. Sin
+        // espera síncrona en pantalla: se avisa y se redirige al listado, donde
+        // el polling avisa "Documentos listos" cuando termina.
         mostrarMensaje(
-            "Documentación generada correctamente",
+            "Acta creada. Documentación en generación, se le avisará al terminar.",
             "success"
         );
 
-        // La entidad Acta ya se persiste de forma atomica en el backend
-        // (POST /generar-formateo-seguro guarda en PostgreSQL y registra auditoria).
+        setTimeout(() => {
+            window.location.href = "actas.html";
+        }, 600);
 
-        const descargaResponse = await fetch(
-            API_BASE + "/descargar-acta/" +
-            result.nombre_zip
-        );
-
-        if (!descargaResponse.ok) {
-            throw new Error("Error descargando el archivo");
-        }
-
-        const blob =
-            await descargaResponse.blob();
-
-        const blobUrl =
-            URL.createObjectURL(blob);
-
-        const linkDescarga =
-            document.createElement("a");
-
-        linkDescarga.href = blobUrl;
-
-        linkDescarga.download =
-            result.nombre_zip;
-
-        document.body.appendChild(
-            linkDescarga
-        );
-
-        linkDescarga.click();
-
-        linkDescarga.remove();
-
-        URL.revokeObjectURL(blobUrl);
-
+        return;
 
     }
 
     catch (error) {
+
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        if (btnGenerar) {
+            btnGenerar.disabled = false;
+            btnGenerar.textContent = "Generar Acta de Formateo Seguro";
+        }
 
         mostrarMensaje(
             "Error generando la documentación: " + error.message,

@@ -70,6 +70,9 @@ public class ActaResponse {
     @Schema(description = "Ruta del PDF del checklist de entrega (solo ENTREGA)", example = "uploads/pdf/checklist_1.pdf")
     private String rutaPdfChecklist;
 
+    @Schema(description = "Nombre del ZIP generado (descarga via /actas/{id}/zip)", example = "ActaLista_SN-001_asunto_1a2b3c4d.zip")
+    private String rutaZip;
+
     @Schema(description = "Token activo de firma (solo si estado = ENVIADA)")
     private String tokenFirma;
 }

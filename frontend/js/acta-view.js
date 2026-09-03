@@ -45,9 +45,19 @@
             "ENVIADA": "badge--ENVIADA",
             "FIRMADA": "badge--FIRMADA",
             "APROBADA": "badge--APROBADA",
-            "RECHAZADA": "badge--RECHAZADA"
+            "RECHAZADA": "badge--RECHAZADA",
+            "GENERANDO_DOCUMENTOS": "badge--GENERANDO_DOCUMENTOS",
+            "GENERACION_FALLIDA": "badge--GENERACION_FALLIDA"
         };
         return map[estado] || "";
+    }
+
+    function estadoLabel(estado) {
+        var map = {
+            "GENERANDO_DOCUMENTOS": "Generando...",
+            "GENERACION_FALLIDA": "Error de generación"
+        };
+        return map[estado] || estado || "-";
     }
 
     function formatDate(dateStr) {
@@ -107,8 +117,21 @@
 
     function renderDocument(acta, evidencias, pdfUrl, pdfAuth) {
         viewLoading.style.display = "none";
+        clearTimeout(viewPollTimer);
 
-        var estadoBadge = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + acta.estado + '</span>';
+        // Generacion async en curso: no hay PDF aun. Se muestra un placeholder
+        // y se re-consulta hasta que la generacion termine.
+        if (acta.estado === "GENERANDO_DOCUMENTOS") {
+            renderGenerando(acta);
+            return;
+        }
+        // Fallo de generacion: estado terminal, sin documento que mostrar.
+        if (acta.estado === "GENERACION_FALLIDA") {
+            renderFallida(acta);
+            return;
+        }
+
+        var estadoBadge = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + estadoLabel(acta.estado) + '</span>';
         viewEstado.innerHTML = estadoBadge;
         viewTipo.textContent = acta.tipoActa || "-";
         viewUsuario.textContent = acta.nombreUsuario || "-";
@@ -146,6 +169,98 @@
         }
 
         renderEvidencesGrid(evidencias, currentActaId);
+    }
+
+    var viewPollTimer = null;
+
+    /** Plancha de estado mientras la generacion async esta en curso. */
+    function renderGenerando(acta) {
+        currentActaId = acta.id;
+        viewTitle.textContent = "Acta #" + acta.id;
+        viewSubtitle.textContent = (acta.tipoActa || "") + " - " + (acta.nombreUsuario || "");
+        viewEstado.innerHTML = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + estadoLabel(acta.estado) + '</span>';
+        if (viewInfoBar) viewInfoBar.style.display = "";
+        if (viewDocs) viewDocs.style.display = "none";
+        if (downloadPdfBtn) downloadPdfBtn.style.display = "none";
+        if (sendFirmaBtn) sendFirmaBtn.style.display = "none";
+
+        viewLoading.style.display = "none";
+        viewDocument.style.display = "none";
+        viewNoPdf.style.display = "block";
+        viewNoPdf.innerHTML = '<p style="text-align:center;padding:32px 20px;color:#475569;">' +
+            '<span class="loading-spinner" style="margin-bottom:12px"></span><br>' +
+            'Generando documentos...<br>' +
+            '<span style="font-size:13px;color:#94A3B8;">La página se actualizará automáticamente al terminar.</span></p>';
+
+        pollView(acta.id);
+    }
+
+    /** Estado terminal de generacion fallida: sin documento, con reintento. */
+    function renderFallida(acta) {
+        currentActaId = acta.id;
+        viewTitle.textContent = "Acta #" + acta.id;
+        viewSubtitle.textContent = (acta.tipoActa || "") + " - " + (acta.nombreUsuario || "");
+        viewEstado.innerHTML = '<span class="badge ' + getBadgeClass(acta.estado) + '">' + estadoLabel(acta.estado) + '</span>';
+        if (viewInfoBar) viewInfoBar.style.display = "";
+        if (viewDocs) viewDocs.style.display = "none";
+        if (downloadPdfBtn) downloadPdfBtn.style.display = "none";
+        if (sendFirmaBtn) sendFirmaBtn.style.display = "none";
+
+        viewLoading.style.display = "none";
+        viewDocument.style.display = "none";
+        viewNoPdf.style.display = "block";
+        viewNoPdf.innerHTML = '';
+        var p = document.createElement("p");
+        p.style.cssText = "color:#DC2626;padding:32px 20px;text-align:center;";
+        p.textContent = "Error de generación. Los documentos (PDF/ZIP) no pudieron generarse.";
+        viewNoPdf.appendChild(p);
+
+        var rolUsuario = typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role");
+        var puedeOperar = rolUsuario === "ADMINISTRADOR" || rolUsuario === "TECNICO";
+        if (!!LoginService.obtenerToken() && puedeOperar) {
+            var btnRetry = document.createElement("button");
+            btnRetry.className = "btn btn-primary";
+            btnRetry.type = "button";
+            btnRetry.style.marginTop = "8px";
+            btnRetry.textContent = "Reintentar generación";
+            btnRetry.addEventListener("click", function () { reintentarGeneracion(acta.id); });
+            viewNoPdf.appendChild(btnRetry);
+        }
+    }
+
+    /** Re-consulta el detalle cada 3s mientras la generacion este en curso. */
+    function pollView(id) {
+        clearTimeout(viewPollTimer);
+        viewPollTimer = setTimeout(function () {
+            if (!LoginService.obtenerToken()) return;
+            loadById(id);
+        }, 3000);
+    }
+
+    function reintentarGeneracion(id) {
+        var tokenAuth = LoginService.obtenerToken();
+        fetch(API_BASE + "/actas/" + id + "/reintentar-generacion", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + tokenAuth }
+        })
+            .then(function (r) {
+                if (r.status === 401) {
+                    LoginService.cerrarSesion();
+                    window.location.href = ROUTES.LOGIN;
+                    return null;
+                }
+                return r.json();
+            })
+            .then(function (body) {
+                if (!body) return;
+                if (body.success) {
+                    showToast("Generación de documentos re-encolada.", "success");
+                    loadById(id);
+                } else {
+                    showToast(body.mensaje || "Error al reintentar la generación.", "error");
+                }
+            })
+            .catch(function () { showToast("Error de conexión al reintentar la generación.", "error"); });
     }
 
     /**

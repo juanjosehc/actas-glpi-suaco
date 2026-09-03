@@ -129,6 +129,35 @@ public class ActaController {
                 .body(recurso);
     }
 
+    @GetMapping("/{id}/zip")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
+    @Operation(summary = "Obtener ZIP del acta", description = "Sirve el ZIP generado (DOCX) validando acceso por rol/propietario")
+    public ResponseEntity<Resource> obtenerZip(
+            @PathVariable Long id) {
+        Resource recurso = actaService.obtenerZipConAcceso(id);
+        if (recurso == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + (recurso.getFilename() != null ? recurso.getFilename() : "acta_" + id + ".zip") + "\"")
+                .body(recurso);
+    }
+
+    @PostMapping("/{id}/reintentar-generacion")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
+    @Operation(summary = "Reintentar generacion de documentos", description = "Re-encola la generacion DOCX/ZIP/PDF de una acta en GENERACION_FALLIDA")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Generacion re-encolada"),
+            @ApiResponse(responseCode = "400", description = "Estado invalido para reintento"),
+            @ApiResponse(responseCode = "404", description = "Acta no encontrada")
+    })
+    public ResponseEntity<ErrorResponse> reintentarGeneracion(@PathVariable Long id) {
+        actaService.reintentarGeneracion(id);
+        return ResponseEntity.ok(ErrorResponse.ok("Generacion de documentos re-encolada"));
+    }
+
     @GetMapping("/{id}/firma")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO', 'AUDITOR')")
     @Operation(summary = "Obtener imagen de firma del acta", description = "Sirve la firma del acta validando acceso por rol/propietario")

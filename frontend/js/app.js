@@ -347,6 +347,12 @@ async function generarActa() {
         };        
 
         const token = LoginService.obtenerToken();
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        const btnTextoOriginal = btnGenerar ? btnGenerar.textContent : "";
+        if (btnGenerar) {
+            btnGenerar.disabled = true;
+            btnGenerar.textContent = "Generando Acta...";
+        }
 
         const response = await fetch(
             API_BASE + "/generar-acta",
@@ -384,53 +390,34 @@ async function generarActa() {
 
         }
 
+        if (btnGenerar) {
+            btnGenerar.textContent = "Acta creada ✓";
+        }
+
+        // Flujo async (Fase 1): el POST persiste el acta en GENERANDO_DOCUMENTOS
+        // y la documentacion (DOCX/ZIP/PDF) se genera en segundo plano. Sin
+        // espera síncrona en pantalla: se avisa y se redirige al listado, donde
+        // el polling avisa "Documentos listos" cuando termina.
         mostrarMensaje(
-            "Documentación generada correctamente",
+            "Acta creada. Documentación en generación, se le avisará al terminar.",
             "success"
         );
 
-        // La entidad Acta ya se persiste de forma atomica en el backend
-        // (POST /generar-acta guarda en PostgreSQL y registra auditoria).
-        // Ya no se hace una segunda llamada independiente a POST /actas,
-        // que era la causa de que la acta no quedara registrada.
+        setTimeout(() => {
+            window.location.href = "actas.html";
+        }, 600);
 
-        const descargaResponse = await fetch(
-            API_BASE + "/descargar-acta/" +
-            result.nombre_zip
-        );
-
-        if (!descargaResponse.ok) {
-            throw new Error("Error descargando el archivo");
-        }
-
-        const blob =
-            await descargaResponse.blob();
-
-        const blobUrl =
-            URL.createObjectURL(blob);
-
-        const linkDescarga =
-            document.createElement("a");
-
-        linkDescarga.href = blobUrl;
-
-        linkDescarga.download =
-            result.nombre_zip;
-
-        document.body.appendChild(
-            linkDescarga
-        );
-
-        linkDescarga.click();
-
-        linkDescarga.remove();
-
-        URL.revokeObjectURL(blobUrl);
-
+        return;
 
     }
 
     catch (error) {
+
+        const btnGenerar = document.getElementById("btn-generar-acta");
+        if (btnGenerar) {
+            btnGenerar.disabled = false;
+            btnGenerar.textContent = "Generar Acta + Lista de Chequeo";
+        }
 
         mostrarMensaje(
             "Error generando la documentación: " + error.message,
@@ -495,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document
         .getElementById("btn-marcar-todo")
-        ?.addEventListener("click", marcarTodosLosChecks);
+        ?.addEventListener("click", marcarPredeterminado);
 
     document
         .getElementById("btn-desmarcar-todo")
@@ -1109,17 +1096,28 @@ function cerrarTodosLosAccordions() {
 }
 
 /**
- * Marca todos los checkboxes del checklist (chk_1 a chk_36).
- * También abre todos los acordeones para que el usuario
- * vea las opciones marcadas.
+ * Marca el checklist con la configuracion mas comun usada por los
+ * tecnicos: todo marcado EXCEPTO las excepciones puntuales (dependen
+ * del caso del equipo) y la seccion "Areas Especificas" (chk_33-36).
+ * Tambien abre todos los acordeones para ver las opciones marcadas.
  */
-function marcarTodosLosChecks() {
+function marcarPredeterminado() {
+
+    // Excepciones que NO se marcan por defecto:
+    // chk_19 NetBIOS Deshabilitado, chk_20 Wake On LAN,
+    // chk_21 Actualizacion Java Desactivada, chk_22 Actualizacion
+    // Adobe Reader Desactivada, chk_32 OCS Inventory,
+    // chk_33-36 seccion "Areas Especificas".
+    const excluidos = new Set([
+        "chk_19", "chk_20", "chk_21", "chk_22",
+        "chk_32", "chk_33", "chk_34", "chk_35", "chk_36"
+    ]);
 
     document
         .querySelectorAll('input[type="checkbox"][id^="chk_"]')
         .forEach(check => {
 
-            check.checked = true;
+            check.checked = !excluidos.has(check.id);
 
         });
 

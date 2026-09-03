@@ -3,9 +3,7 @@ package com.empresa.actas.service;
 import com.empresa.actas.acta.entity.Acta;
 import com.empresa.actas.acta.entity.EstadoActa;
 import com.empresa.actas.acta.entity.TipoActa;
-import com.empresa.actas.acta.entity.TipoEventoActa;
 import com.empresa.actas.acta.repository.ActaRepository;
-import com.empresa.actas.acta.service.ActaHistorialService;
 import com.empresa.actas.dto.request.ActaRequest;
 import com.empresa.actas.dto.request.EquipoItem;
 import com.empresa.actas.dto.response.ActaResponse;
@@ -18,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +38,7 @@ public class DocxActaService {
     private final ObjectMapper objectMapper;
     private final LibreOfficePdfService libreOfficePdfService;
     private final ActaRepository actaRepository;
-    private final ActaHistorialService actaHistorialService;
+    private final GeneracionDocumentalAsyncService generacionDocumentalAsyncService;
     private final UsuarioService usuarioService;
 
     public DocxActaService(
@@ -50,7 +47,7 @@ public class DocxActaService {
             ObjectMapper objectMapper,
             LibreOfficePdfService libreOfficePdfService,
             ActaRepository actaRepository,
-            ActaHistorialService actaHistorialService,
+            GeneracionDocumentalAsyncService generacionDocumentalAsyncService,
             UsuarioService usuarioService
     ) {
         this.wordService = wordService;
@@ -58,83 +55,130 @@ public class DocxActaService {
         this.objectMapper = objectMapper;
         this.libreOfficePdfService = libreOfficePdfService;
         this.actaRepository = actaRepository;
-        this.actaHistorialService = actaHistorialService;
+        this.generacionDocumentalAsyncService = generacionDocumentalAsyncService;
         this.usuarioService = usuarioService;
     }
 
-    @Transactional
+    /**
+     * Flujo asincrono (request thread): valida, persiste el acta en
+     * GENERANDO_DOCUMENTOS y encola la generacion real. El POST responde en
+     * milisegundos; el hilo de {@link GeneracionDocumentalAsyncService} cierra
+     * el ciclo (GENERADA / GENERACION_FALLIDA). No es transaccional a proposito:
+     * el save se commitea solo y la tarea async no debe ver una tx abierta.
+     */
     public ActaResponse generarActa(ActaRequest request) {
         try {
-            Path outputDir = Paths.get(generatedDir);
-            Files.createDirectories(outputDir);
+            // Capturar SOLO aqui (SecurityContext presente): la tarea async no
+            // tiene SecurityContext y no puede leer el usuario autenticado.
+            Long idTecnico = tecnicoAutenticado();
+            if (idTecnico == null) {
+                return ActaResponse.error("No se pudo identificar el tecnico autenticado.");
+            }
+            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(idTecnico);
 
             Map<String, Object> datos = objectMapper.convertValue(
                     request,
                     new TypeReference<Map<String, Object>>() {}
             );
 
-            Path rutaActa = wordService.generarActa(datos);
-
-            // Firma permanente del tecnico: se inserta en el DOCX antes de
-            // empaquetar/convertir. Si no tiene firma, el placeholder queda en blanco.
-            // La firma/foto del USUARIO aun no existe: se dejan en blanco para que
-            // el DOCX/PDF inicial no muestre {{firma_usuario}} / {{foto_usuario}} crudos.
-            byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(tecnicoAutenticado());
-            DocxImageReplacer.reemplazarFirmaTecnico(rutaActa.toString(), firmaTecnico);
-            DocxImageReplacer.reemplazarFirmaYFoto(rutaActa.toString(), null, null);
-
-            Path rutaChecklist = wordService.generarChecklist(datos);
-
-            // El checklist tambien trae {{firma_tecnico}} y {{firma_usuario}}:
-            // misma regla — tecnico insertado o en blanco, usuario en blanco.
-            DocxImageReplacer.reemplazarFirmaTecnico(rutaChecklist.toString(), firmaTecnico);
-            DocxImageReplacer.reemplazarFirmaYFoto(rutaChecklist.toString(), null, null);
-
             String asunto = NombreArchivoSeguro.segmento(request.getAsunto());
-
             String serial = "SinSerial";
             if (request.getEquipos() != null && !request.getEquipos().isEmpty()) {
                 serial = NombreArchivoSeguro.segmento(request.getEquipos().get(0).getSerial());
             }
-
             String nombreZip = "ActaLista_" + serial + "_" + asunto + "_" + sufijoUnico() + ".zip";
-            Path rutaZip = outputDir.resolve(nombreZip);
 
-            zipService.crearZip(rutaZip, rutaActa, rutaChecklist);
+            Long idActa = persistirActaEnProceso(request, idTecnico, nombreZip);
 
-            Path pdfDir = Paths.get(uploadsDir, "pdf");
-            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaActa, pdfDir);
-            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+            generacionDocumentalAsyncService.encolar(() ->
+                    generarActaEnSegundoPlano(idActa, datos, firmaTecnico, nombreZip));
 
-            // Expediente documental (ENTREGA): el checklist tambien se convierte
-            // a PDF y queda vinculado a la acta (rutaPdfChecklist), igual que el
-            // acta. Desde el inicio ambos documentos existen como PDF.
-            String checklistPdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaChecklist, pdfDir);
-            String rutaChecklistPdfUrl = "uploads/pdf/" + checklistPdfFileName;
-
-            Long idActa = persistirActa(request, rutaPdfUrl, rutaChecklistPdfUrl);
-
-            return ActaResponse.ok(nombreZip, rutaPdfUrl, idActa);
-
+            return ActaResponse.procesando(idActa);
         } catch (Exception e) {
             return ActaResponse.error("Error generando documentacion: " + e.getMessage());
         }
     }
 
     /**
-     * Persiste la entidad Acta generada (entrega) en el mismo flujo que la
-     * generacion de documentos, para que si el PDF se genera la acta quede
-     * registrada en PostgreSQL de forma atomica (ya no depende de una llamada
-     * /actas aparte del frontend).
+     * Tarea async: DOCX (acta + checklist) -> ZIP -> PDF. Reutiliza toda la
+     * logica existente (DocumentoWordService, ZipService, DocxImageReplacer,
+     * LibreOfficePdfService); solo cambia el hilo. Sin SecurityContext, sin tx.
      */
-    private Long persistirActa(ActaRequest request, String rutaPdfUrl, String rutaChecklistPdfUrl) {
-        Long idTecnico = tecnicoAutenticado();
+    private void generarActaEnSegundoPlano(Long idActa, Map<String, Object> datos,
+                                           byte[] firmaTecnico, String nombreZip) {
+        try {
+            Path outputDir = Paths.get(generatedDir);
+            Files.createDirectories(outputDir);
 
+            Path rutaActa = wordService.generarActa(datos);
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaActa.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaActa.toString(), null, null);
+
+            Path rutaChecklist = wordService.generarChecklist(datos);
+            DocxImageReplacer.reemplazarFirmaTecnico(rutaChecklist.toString(), firmaTecnico);
+            DocxImageReplacer.reemplazarFirmaYFoto(rutaChecklist.toString(), null, null);
+
+            Path rutaZip = outputDir.resolve(nombreZip);
+            zipService.crearZip(rutaZip, rutaActa, rutaChecklist);
+
+            Path pdfDir = Paths.get(uploadsDir, "pdf");
+            String pdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaActa, pdfDir);
+            String rutaPdfUrl = "uploads/pdf/" + pdfFileName;
+            String checklistPdfFileName = libreOfficePdfService.convertirDocxAPdf(rutaChecklist, pdfDir);
+            String rutaChecklistPdfUrl = "uploads/pdf/" + checklistPdfFileName;
+
+            generacionDocumentalAsyncService.marcarGenerada(
+                    idActa, rutaPdfUrl, rutaChecklistPdfUrl, nombreZip);
+        } catch (Exception e) {
+            generacionDocumentalAsyncService.marcarFallida(idActa, e.getMessage());
+        }
+    }
+
+    /**
+     * Re-encola la generacion de un acta existente desde sus datosOriginales
+     * (reintento tras GENERACION_FALLIDA, o re-encolado tras reinicio JVM).
+     */
+    public void reintentarGeneracion(Long idActa) {
+        Acta acta = actaRepository.findById(idActa)
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada con id: " + idActa));
+        if (acta.getEstado() != EstadoActa.GENERACION_FALLIDA
+                && acta.getEstado() != EstadoActa.GENERANDO_DOCUMENTOS) {
+            throw new IllegalArgumentException("Solo se puede reintentar una acta en GENERACION_FALLIDA"
+                    + " o GENERANDO_DOCUMENTOS. Estado actual: " + acta.getEstado());
+        }
+        if (acta.getDatosOriginales() == null || acta.getDatosOriginales().isBlank()) {
+            throw new IllegalArgumentException("La acta no tiene datosOriginales: no se puede regenerar.");
+        }
+
+        byte[] firmaTecnico = usuarioService.obtenerFirmaBytesDe(acta.getIdTecnico());
+        String nombreZip = acta.getRutaZip() != null
+                ? acta.getRutaZip()
+                : "ActaLista_" + sufijoUnico() + ".zip";
+        Map<String, Object> datos;
+        try {
+            datos = objectMapper.readValue(acta.getDatosOriginales(),
+                    new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new IllegalArgumentException("datosOriginales invalidos: " + e.getMessage(), e);
+        }
+
+        acta.setEstado(EstadoActa.GENERANDO_DOCUMENTOS);
+        actaRepository.save(acta);
+
+        generacionDocumentalAsyncService.encolar(() ->
+                generarActaEnSegundoPlano(idActa, datos, firmaTecnico, nombreZip));
+    }
+
+    /**
+     * Persiste el acta en GENERANDO_DOCUMENTOS con el nombre del ZIP ya
+     * decidido; el PDF y su ruta se asignan al completar la generacion.
+     */
+    private Long persistirActaEnProceso(ActaRequest request, Long idTecnico, String nombreZip) {
         Acta acta = Acta.builder()
                 .idTecnico(idTecnico)
                 .ticketGlpi(parseLongNullable(request.getNumero_sac()))
                 .tipoActa(TipoActa.ENTREGA)
-                .estado(EstadoActa.GENERADA)
+                .estado(EstadoActa.GENERANDO_DOCUMENTOS)
                 .cedulaUsuario(null)
                 .nombreUsuario(request.getEntregado_a())
                 .correoUsuario(blankToNull(request.getCorreo()))
@@ -142,25 +186,11 @@ public class DocxActaService {
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
                 .contenidoHtml(null)
-                .rutaPdf(rutaPdfUrl)
-                .rutaPdfChecklist(rutaChecklistPdfUrl)
+                .rutaZip(nombreZip)
                 .datosOriginales(serializar(request))
                 .build();
 
-        Acta guardada = actaRepository.save(acta);
-
-        actaHistorialService.registrarEvento(
-                guardada.getIdActa(),
-                TipoEventoActa.ACTA_GENERADA,
-                null,
-                EstadoActa.GENERADA,
-                idTecnico,
-                idTecnico != null ? String.valueOf(idTecnico) : "SISTEMA",
-                null,
-                "Acta de entrega generada: " + rutaPdfUrl
-                        + " ; checklist de entrega: " + rutaChecklistPdfUrl);
-
-        return guardada.getIdActa();
+        return actaRepository.save(acta).getIdActa();
     }
 
     private Long tecnicoAutenticado() {

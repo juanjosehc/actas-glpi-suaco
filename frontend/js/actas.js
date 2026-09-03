@@ -89,13 +89,23 @@
     //  USER INFO
     // =========================
 
-    async function loadActas() {
+    // Polling de la generacion async: mientras haya actas en
+    // GENERANDO_DOCUMENTOS visibles en la pagina se re-consulta cada 3s.
+    let pollingTimer = null;
+
+    async function loadActas(esPolling) {
         const token = checkAuth();
         if (!token) return;
 
-        loadingOverlay.classList.add("visible");
-        actasBody.innerHTML = "";
-        emptyState.classList.remove("visible");
+        // Snapshot del estado previo de la pagina actual: detecta la transicion
+        // GENERANDO_DOCUMENTOS -> GENERADA para avisar "Documentos listos".
+        const estadoAnterior = new Map(actas.map((a) => [a.id, a.estado]));
+
+        if (!esPolling) {
+            loadingOverlay.classList.add("visible");
+            actasBody.innerHTML = "";
+            emptyState.classList.remove("visible");
+        }
 
         try {
             const qs = query ? `&q=${encodeURIComponent(query)}` : "";
@@ -116,12 +126,21 @@
             // Pagina huerfana (datos borrados entre cargas) → retroceder.
             if (actas.length === 0 && currentPage > 0) {
                 currentPage--;
-                await loadActas();
+                await loadActas(esPolling);
                 return;
             }
 
             renderTable(actas);
             renderPagination();
+
+            // Transicion dentro de la pagina visible: generacion async termino.
+            actas.forEach((a) => {
+                if (estadoAnterior.get(a.id) === "GENERANDO_DOCUMENTOS" && a.estado === "GENERADA") {
+                    showToast("Documentos listos. El acta quedó disponible.", "success");
+                }
+            });
+
+            programarPolling();
         } catch (err) {
             if (err.message.includes("Failed to fetch")) {
                 showToast("El servidor no esta disponible. Verifique la conexion.", "error");
@@ -129,7 +148,23 @@
                 showToast("Error al cargar las actas.", "error");
             }
         } finally {
-            loadingOverlay.classList.remove("visible");
+            if (!esPolling) {
+                loadingOverlay.classList.remove("visible");
+            }
+        }
+    }
+
+    /** Re-consulta el listado cada 3s mientras haya actas generando. */
+    function programarPolling() {
+        const hayGenerando = actas.some((a) => a.estado === "GENERANDO_DOCUMENTOS");
+        if (hayGenerando && !pollingTimer) {
+            pollingTimer = setTimeout(() => {
+                pollingTimer = null;
+                loadActas(true);
+            }, 3000);
+        } else if (!hayGenerando && pollingTimer) {
+            clearTimeout(pollingTimer);
+            pollingTimer = null;
         }
     }
 
@@ -138,8 +173,17 @@
     // =========================
 
     function getBadgeClass(estado) {
-        const map = { GENERADA: "badge--GENERADA", ENVIADA: "badge--ENVIADA", FIRMADA: "badge--FIRMADA", APROBADA: "badge--APROBADA", RECHAZADA: "badge--RECHAZADA" };
-        return map[estado] || "badge--GENERADA";
+        const map = { GENERADA: "badge--GENERADA", ENVIADA: "badge--ENVIADA", FIRMADA: "badge--FIRMADA", APROBADA: "badge--APROBADA", RECHAZADA: "badge--RECHAZADA", GENERANDO_DOCUMENTOS: "badge--GENERANDO_DOCUMENTOS", GENERACION_FALLIDA: "badge--GENERACION_FALLIDA" };
+        return map[estado] || "";
+    }
+
+    /** Etiqueta legible del estado (los estados async se muestran con texto amigable). */
+    function estadoLabel(estado) {
+        const map = {
+            GENERANDO_DOCUMENTOS: "Generando...",
+            GENERACION_FALLIDA: "Error de generación"
+        };
+        return map[estado] || estado || "-";
     }
 
     function formatDate(dateStr) {
@@ -177,7 +221,7 @@
             const estadoCell = document.createElement("td");
             const badge = document.createElement("span");
             badge.className = `badge ${getBadgeClass(a.estado)}`;
-            badge.textContent = a.estado || "-";
+            badge.textContent = estadoLabel(a.estado);
             estadoCell.appendChild(badge);
             tr.appendChild(estadoCell);
 
@@ -260,6 +304,8 @@
     //  DETAIL MODAL
     // =========================
 
+    let detailPollTimer = null;
+
     async function openDetail(id) {
         const token = checkAuth();
         if (!token) return;
@@ -280,9 +326,41 @@
 
             const a = body.data;
             renderDetail(a);
+
+            // Generacion async en curso: el detalle se auto-refresca hasta que
+            // el acta salga de GENERANDO_DOCUMENTOS.
+            if (a.estado === "GENERANDO_DOCUMENTOS") {
+                programarPollDetalle(id);
+            }
         } catch (_) {
             setModalMessage("Error al cargar el detalle del acta.");
         }
+    }
+
+    /** Re-consulta el detalle cada 3s mientras la generacion este en curso. */
+    function programarPollDetalle(id) {
+        clearTimeout(detailPollTimer);
+        detailPollTimer = setTimeout(async () => {
+            detailPollTimer = null;
+            const token = checkAuth();
+            if (!token) return;
+            try {
+                const resp = await fetch(`${API_BASE}/actas/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+                if (handle401(resp)) return;
+                const body = await resp.json();
+                if (!body.success) {
+                    setModalMessage(body.mensaje || "Acta no encontrada.");
+                    return;
+                }
+                const a = body.data;
+                renderDetail(a);
+                if (a.estado === "GENERANDO_DOCUMENTOS") {
+                    programarPollDetalle(id);
+                } else if (a.estado === "GENERADA") {
+                    showToast("Documentos listos. El acta quedó disponible.", "success");
+                }
+            } catch (_) { /* se reintenta en el siguiente ciclo */ }
+        }, 3000);
     }
 
     /** Mensaje del modal en texto plano (sin innerHTML con datos del servidor). */
@@ -407,12 +485,46 @@
             modalActions.appendChild(btnRec);
         }
 
-        if (a.estado !== "GENERADA" && a.estado !== "FIRMADA") {
+        if (a.estado === "GENERACION_FALLIDA" && PUEDE_OPERAR) {
+            const btnRetry = document.createElement("button");
+            btnRetry.className = "btn btn-primary";
+            btnRetry.textContent = "Reintentar generación";
+            btnRetry.addEventListener("click", () => reintentarGeneracion(a.id));
+            modalActions.appendChild(btnRetry);
+        }
+
+        if (a.estado === "GENERANDO_DOCUMENTOS") {
+            const span = document.createElement("span");
+            span.className = "modal-desc";
+            span.textContent = "Generando documentos, se actualizará automáticamente...";
+            span.style.margin = "0";
+            modalActions.appendChild(span);
+        } else if (a.estado !== "GENERADA" && a.estado !== "FIRMADA" && a.estado !== "GENERACION_FALLIDA") {
             const span = document.createElement("span");
             span.className = "modal-desc";
             span.textContent = "No hay acciones disponibles para este estado.";
             span.style.margin = "0";
             modalActions.appendChild(span);
+        }
+    }
+
+    /** Re-encola la generacion de documentos tras una GENERACION_FALLIDA. */
+    async function reintentarGeneracion(id) {
+        const token = checkAuth();
+        if (!token) return;
+        try {
+            const resp = await fetch(`${API_BASE}/actas/${id}/reintentar-generacion`, { method: "POST", headers: authHeaders() });
+            if (handle401(resp)) return;
+            const body = await resp.json();
+            if (body.success) {
+                showToast("Generación de documentos re-encolada.", "success");
+                openDetail(id);
+                loadActas();
+            } else {
+                showToast(body.mensaje || "Error al reintentar la generación.", "error");
+            }
+        } catch (_) {
+            showToast("Error de conexión al reintentar la generación.", "error");
         }
     }
 
@@ -555,6 +667,8 @@
     // =========================
 
     function closeDetailModal() {
+        clearTimeout(detailPollTimer);
+        detailPollTimer = null;
         detailModal.classList.remove("open");
     }
 
