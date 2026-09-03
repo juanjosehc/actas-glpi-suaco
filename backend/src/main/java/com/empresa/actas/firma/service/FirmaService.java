@@ -16,7 +16,6 @@ import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.firma.support.FirmaUrlBuilder;
 import com.empresa.actas.security.AccesoService;
-import com.empresa.actas.security.HtmlSanitizadorService;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +46,6 @@ public class FirmaService {
     private final OtpService otpService;
     private final TokenFirmaValidador validadorToken;
     private final FirmaUrlBuilder firmaUrlBuilder;
-    private final HtmlSanitizadorService sanitizador;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -300,10 +298,6 @@ public class FirmaService {
                 .serialEquipo(acta.getSerialEquipo())
                 .placaEquipo(acta.getPlacaEquipo())
                 .ticketGlpi(acta.getTicketGlpi())
-                // SEC-001: contenidoHtml se sanea en el servidor (allowlist OWASP)
-                // porque el portal lo inserta como HTML; los campos de texto se
-                // renderizan con textContent (frontera segura).
-                .contenidoHtml(sanitizador.sanitizarHtml(acta.getContenidoHtml()))
                 .fechaRechazo(acta.getFechaRechazo())
                 .observacionRechazo(acta.getObservacionRechazo())
                 .build();

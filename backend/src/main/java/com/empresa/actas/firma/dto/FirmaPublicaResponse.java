@@ -51,9 +51,6 @@ public class FirmaPublicaResponse {
     @Schema(description = "Ticket GLPI", example = "12345")
     private Long ticketGlpi;
 
-    @Schema(description = "Contenido HTML del acta")
-    private String contenidoHtml;
-
     @Schema(description = "Fecha de rechazo del acta")
     private LocalDateTime fechaRechazo;
 

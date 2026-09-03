@@ -40,9 +40,6 @@ public class ActaResponse {
     @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
     private String descripcionEquipo;
 
-    @Schema(description = "Contenido HTML del acta")
-    private String contenidoHtml;
-
     @Schema(description = "Fecha de creacion del acta")
     private LocalDateTime fechaCreacion;
 

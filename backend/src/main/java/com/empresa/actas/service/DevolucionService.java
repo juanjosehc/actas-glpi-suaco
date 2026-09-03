@@ -182,7 +182,6 @@ public class DevolucionService {
                 .serialEquipo(primerSerial(request))
                 .placaEquipo(primerInventario(request))
                 .descripcionEquipo(descripcionEquipo(request))
-                .contenidoHtml(null)
                 .rutaZip(nombreZip)
                 .datosOriginales(serializar(request))
                 .build();

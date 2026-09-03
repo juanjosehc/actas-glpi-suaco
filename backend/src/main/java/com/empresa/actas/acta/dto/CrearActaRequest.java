@@ -46,9 +46,6 @@ public record CrearActaRequest(
         @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
         String descripcionEquipo,
 
-        @Schema(description = "Contenido HTML del acta (generado desde GLPI)")
-        String contenidoHtml,
-
         @Size(max = 500, message = "La ruta PDF no puede exceder 500 caracteres")
         @Schema(description = "Ruta del archivo PDF generado desde la plantilla DOCX")
         String rutaPdf,

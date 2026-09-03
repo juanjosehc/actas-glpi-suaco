@@ -65,7 +65,6 @@ com\empresa\actas\acta\service\ActaHistorialService.class
 com\empresa\actas\firma\dto\EnviarActaResponse.class
 com\empresa\actas\service\GlpiHttpClient.class
 com\empresa\actas\firma\support\FirmaUrlBuilder.class
-com\empresa\actas\security\HtmlSanitizadorService.class
 com\empresa\actas\service\DocxToPdfService$1.class
 com\empresa\actas\config\OpenApiConfig.class
 com\empresa\actas\controller\FormateoSeguroController.class

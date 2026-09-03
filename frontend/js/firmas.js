@@ -310,30 +310,6 @@
         return field;
     }
 
-    /** Bloque "Contenido HTML" del detalle. */
-    function htmlPreviewBlock(contenidoHtml) {
-        const field = document.createElement("div");
-        field.className = "detail-field full";
-
-        const hr = document.createElement("hr");
-        hr.className = "detail-divider";
-        field.appendChild(hr);
-
-        const labelEl = document.createElement("span");
-        labelEl.className = "detail-label";
-        labelEl.textContent = "Contenido HTML";
-        field.appendChild(labelEl);
-
-        const htmlDiv = document.createElement("div");
-        htmlDiv.className = "detail-html";
-        // SEC-001: el servidor sanea este HTML en escritura Y en lectura
-        // (OWASP Java HTML Sanitizer). Se inserta como HTML documental para
-        // conservar la estructura del acta; nunca es texto crudo de usuario.
-        htmlDiv.innerHTML = contenidoHtml;
-        field.appendChild(htmlDiv);
-        return field;
-    }
-
     function renderDetail(a) {
         const badgeClass = getBadgeClass(a.estado);
 
@@ -362,10 +338,6 @@
         grid.appendChild(detailField("Fecha Aprobacion", formatDate(a.fechaAprobacion)));
         grid.appendChild(detailField("Fecha Rechazo", formatDate(a.fechaRechazo)));
         grid.appendChild(detailField("Observacion Rechazo", a.observacionRechazo || "-", true));
-
-        if (a.contenidoHtml) {
-            grid.appendChild(htmlPreviewBlock(a.contenidoHtml));
-        }
 
         detailModalBody.innerHTML = "";
         detailModalBody.appendChild(grid);

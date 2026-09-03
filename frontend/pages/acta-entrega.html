@@ -363,18 +363,13 @@
                     tecnicoNombre: entregadoPor || "________________"
                 };
 
-                var rendered = tpl.replace(/\{\{(\w+)\}\}/g, function (_, key) {
-                    return vars[key] || "{{" + key + "}}";
-                });
-
                 var previewData = JSON.stringify({
                     id: idActaPreview,
                     tipoActa: "ENTREGA",
                     estado: "GENERADA",
                     nombreUsuario: entregadoA || "-",
                     descripcionEquipo: descripcionEquipo || "-",
-                    fechaCreacion: fecha,
-                    contenidoHtml: rendered
+                    fechaCreacion: fecha
                 });
 
                 localStorage.setItem("actaPreview", previewData);

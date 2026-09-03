@@ -61,9 +61,6 @@ public class Acta {
     @Column(name = "descripcion_equipo", length = 255)
     private String descripcionEquipo;
 
-    @Column(name = "contenido_html", columnDefinition = "text")
-    private String contenidoHtml;
-
     @Column(name = "observacion_rechazo", length = 500)
     private String observacionRechazo;
 

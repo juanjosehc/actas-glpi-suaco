@@ -19,7 +19,6 @@ import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
-import com.empresa.actas.security.HtmlSanitizadorService;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.service.ReintentoGeneracionService;
 import com.empresa.actas.service.SignedDocumentService;
@@ -56,7 +55,6 @@ public class ActaService {
     private final SignedDocumentService signedDocumentService;
     private final ReintentoGeneracionService reintentoGeneracionService;
     private final ObjectMapper objectMapper;
-    private final HtmlSanitizadorService sanitizador;
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
@@ -78,17 +76,11 @@ public class ActaService {
                 .tipoActa(tipoActa)
                 .estado(EstadoActa.GENERADA)
                 .cedulaUsuario(request.cedulaUsuario())
-                // SEC-001: contenidoHtml es HTML documental legitimo y se sanea
-                // en el servidor (allowlist OWASP) porque el frontend lo inserta
-                // con innerHTML. Los campos de texto (nombreUsuario, etc.) se
-                // renderizan con textContent (frontera segura) y se insertan como
-                // texto plano en el DOCX: no pasan por contexto HTML.
                 .nombreUsuario(request.nombreUsuario())
                 .correoUsuario(request.correoUsuario())
                 .serialEquipo(request.serialEquipo())
                 .placaEquipo(request.placaEquipo())
                 .descripcionEquipo(request.descripcionEquipo())
-                .contenidoHtml(sanitizador.sanitizarHtml(request.contenidoHtml()))
                 .rutaPdf(request.rutaPdf())
                 .datosOriginales(datosOriginalesO(request))
                 .build();
@@ -170,9 +162,6 @@ public class ActaService {
 
     private ActaResponse toResponseWithToken(Acta acta) {
         ActaResponse resp = actaMapper.toResponse(acta);
-        // SEC-001 (defensa en profundidad): re-sanitizar al leer contenidoHtml
-        // legacy creado antes de la sanitizacion en escritura.
-        resp.setContenidoHtml(sanitizador.sanitizarHtml(acta.getContenidoHtml()));
         // SEC-010: tokenFirma solo para roles operativos. AUDITOR es solo
         // lectura y no debe poder copiar el enlace de firma de terceros; el
         // boton "Enlace" de firmas.js lo consumen TECNICO/ADMIN. (FirmaToken

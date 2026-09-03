@@ -11,7 +11,6 @@ public interface ActaMapper {
     @Mapping(source = "idActa", target = "id")
     @Mapping(source = "tipoActa", target = "tipoActa")
     @Mapping(source = "estado", target = "estado")
-    @Mapping(source = "contenidoHtml", target = "contenidoHtml")
     @Mapping(source = "fechaEnvio", target = "fechaEnvio")
     @Mapping(source = "fechaFirma", target = "fechaFirma")
     @Mapping(source = "fechaAprobacion", target = "fechaAprobacion")
