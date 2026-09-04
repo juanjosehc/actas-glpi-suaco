@@ -48,8 +48,7 @@
     const modalConfirmCancel = document.getElementById("modalConfirmCancel");
     const modalConfirmOk = document.getElementById("modalConfirmOk");
 
-    const toastContainer = document.getElementById("toastContainer");
-
+    
     function checkAuth() {
         const token = LoginService.obtenerToken();
         if (!token) { window.location.href = ROUTES.LOGIN; return null; }
@@ -71,11 +70,7 @@
     }
 
     function showToast(message, type) {
-        const toast = document.createElement("div");
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(() => toast.remove(), 3500);
+        return mostrarNotificacion(message, type);
     }
 
     function setLoading(show, text) {

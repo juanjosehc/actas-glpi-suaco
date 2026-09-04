@@ -39,8 +39,7 @@
     const enviarConfirm = document.getElementById("enviarConfirm");
     const enviarClose = document.getElementById("enviarClose");
 
-    const toastContainer = document.getElementById("toastContainer");
-
+    
     // Rol: AUDITOR es solo consulta. Se ocultan los botones operativos y el
     // backend responde 403 si se intenta el POST directo.
     const ROL_USUARIO = (typeof LoginService !== "undefined" && LoginService.getRol ? LoginService.getRol() : localStorage.getItem("role")) || "";
@@ -78,11 +77,7 @@
     // =========================
 
     function showToast(message, type) {
-        const toast = document.createElement("div");
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(() => { toast.remove(); }, 3500);
+        return mostrarNotificacion(message, type);
     }
 
     // =========================

@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-03T11:38:07-0500",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
+    date = "2026-09-04T08:36:33-0500",
+    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
 public class ActaMapperImpl implements ActaMapper {
@@ -36,14 +36,14 @@ public class ActaMapperImpl implements ActaMapper {
         actaResponse.setRutaPdf( acta.getRutaPdf() );
         actaResponse.setRutaZip( acta.getRutaZip() );
         actaResponse.setCedulaUsuario( acta.getCedulaUsuario() );
-        actaResponse.setNombreUsuario( acta.getNombreUsuario() );
         actaResponse.setCorreoUsuario( acta.getCorreoUsuario() );
-        actaResponse.setSerialEquipo( acta.getSerialEquipo() );
-        actaResponse.setPlacaEquipo( acta.getPlacaEquipo() );
         actaResponse.setDescripcionEquipo( acta.getDescripcionEquipo() );
         actaResponse.setFechaCreacion( acta.getFechaCreacion() );
-        actaResponse.setTicketGlpi( acta.getTicketGlpi() );
+        actaResponse.setNombreUsuario( acta.getNombreUsuario() );
+        actaResponse.setPlacaEquipo( acta.getPlacaEquipo() );
         actaResponse.setRutaPdfChecklist( acta.getRutaPdfChecklist() );
+        actaResponse.setSerialEquipo( acta.getSerialEquipo() );
+        actaResponse.setTicketGlpi( acta.getTicketGlpi() );
 
         return actaResponse;
     }

@@ -97,7 +97,7 @@
 
                                     <div class="input-floating w-full mb-1">
                                         <input type="text" id="entregado_por" class="input" placeholder=" " />
-                                        <label class="input-floating-label" for="entregado_por">Nombre de quien entrega</label>
+                                        <label class="input-floating-label" for="entregado_por">Nombre de quien entrega (Soporte)</label>
                                         <span class="helper-text ps-3">Campo obligatorio</span>
                                     </div>
 
@@ -276,11 +276,7 @@
                 </div>
             </section>
 
-            <!-- NOTIFICACIONES -->
-            <section id="notificaciones">
-                <div id="mensaje-app"></div>
-            </section>
-
+            
         </main>
 
     </div>
@@ -376,12 +372,7 @@
                 window.open("acta-view.html?preview=true", "_blank");
             })
             .catch(function (err) {
-                var toastContainer = document.getElementById("toastContainer") || document.body;
-                var toast = document.createElement("div");
-                toast.className = "toast toast-error";
-                toast.textContent = "Error al generar vista previa: " + err.message;
-                toastContainer.appendChild(toast);
-                setTimeout(function () { toast.remove(); }, 3500);
+                mostrarNotificacion("Error al generar vista previa: " + err.message, "error");
             });
     }
 </script>

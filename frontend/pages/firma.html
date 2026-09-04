@@ -104,27 +104,27 @@
                     <span class="info-label">Correo</span>
                     <span class="info-value" id="infoCorreo">-</span>
                 </div>
-                <div class="info-field">
+                <div class="info-field" id="infoEquipoField">
                     <span class="info-label">Equipo</span>
                     <span class="info-value" id="infoEquipo">-</span>
                 </div>
-                <div class="info-field">
+                <div class="info-field" id="infoSerialField">
                     <span class="info-label">Serial</span>
                     <span class="info-value" id="infoSerial">-</span>
                 </div>
-                <div class="info-field">
+                <div class="info-field" id="infoPlacaField">
                     <span class="info-label">Placa</span>
                     <span class="info-value" id="infoPlaca">-</span>
                 </div>
-                <div class="info-field">
+                <div class="info-field" id="infoTicketField">
                     <span class="info-label">Ticket GLPI</span>
                     <span class="info-value" id="infoTicket">-</span>
                 </div>
             </div>
         </section>
 
-        <!-- DOCUMENTOS A FIRMAR -->
-        <section class="firma-section">
+        <!-- DOCUMENTOS A FIRMAR (expediente EXCLUSIVO de actas ENTREGA) -->
+        <section class="firma-section" id="docsEntregaSection" style="display:none;">
             <h2 class="section-title">Documentos a Firmar</h2>
             <p class="section-desc">Revise los documentos asociados al proceso de entrega. Puede alternar entre ellos y hacer zoom antes de decidir.</p>
 
@@ -146,15 +146,20 @@
             </div>
 
             <div class="firma-docs-notice" id="firmaDocsNotice" style="display:none;">
-                <p><strong>IMPORTANTE:</strong> Al firmar electrónicamente esta solicitud usted acepta y firma los documentos asociados al proceso de entrega: Acta de Entrega y Checklist de Entrega</p>
+                <p><strong>IMPORTANTE:</strong> Al firmar electrónicamente esta solicitud usted acepta y firma los documentos asociados al proceso de entrega:</p>
+                <p>✅ Acta de Entrega<br>✅ Checklist de Entrega</p>
+                <p>Por favor revise ambos documentos antes de continuar.</p>
             </div>
 
             <label class="firma-confirm" id="firmaConfirmWrap" style="display:none;">
                 <input type="checkbox" id="firmaConfirm" autocomplete="off">
-                <span>Confirmo que he revisado el Acta de Entrega y el Checklist asociado.</span>
+                <span>Confirmo que revisé ambos documentos.</span>
             </label>
             <p class="field-error" id="confirmError" style="display:none">Debe confirmar que ha revisado ambos documentos antes de firmar.</p>
+        </section>
 
+        <!-- VISOR PDF (todos los tipos de acta) -->
+        <section class="firma-section">
             <div class="pdf-loading" id="pdfLoading">
                 <div class="spinner-lg"></div>
                 <p class="state-text">Cargando documento...</p>
@@ -251,8 +256,7 @@
 
 </div>
 
-<div class="firma-toast-container" id="firmaToasts"></div>
-
+<script src="../js/ui.js"></script>
 <script src="../js/api.js"></script>
 <script src="../js/firma.js?v=20260825"></script>
 

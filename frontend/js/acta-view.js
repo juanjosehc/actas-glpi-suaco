@@ -13,8 +13,7 @@
     var viewFecha = document.getElementById("viewFecha");
     var viewEvidences = document.getElementById("viewEvidences");
     var evidencesGrid = document.getElementById("evidencesGrid");
-    var toastContainer = document.getElementById("toastContainer");
-    var viewInfoBar = document.getElementById("viewInfoBar");
+        var viewInfoBar = document.getElementById("viewInfoBar");
     var downloadPdfBtn = document.getElementById("downloadPdfBtn");
     var sendFirmaBtn = document.getElementById("sendFirmaBtn");
     var enviarModal = document.getElementById("enviarModal");
@@ -32,11 +31,7 @@
     var activeDoc = "acta";
 
     function showToast(message, type) {
-        var toast = document.createElement("div");
-        toast.className = "toast toast-" + type;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(function () { toast.remove(); }, 3500);
+        return mostrarNotificacion(message, type);
     }
 
     function getBadgeClass(estado) {
@@ -264,30 +259,33 @@
     }
 
     /**
-     * Expediente documental (ENTREGA): el acta y su checklist de entrega son
-     * documentos asociados. En gestion ambos se muestran como tarjetas y se
-     * alternan en el visor. Solo se muestra la tarjeta del checklist cuando
-     * el acta es ENTREGA y tiene PDF asociado.
+     * Expediente documental: solo las actas ENTREGA tienen varios documentos
+     * asociados (acta + checklist). Para DEVOLUCION/FORMATEO (y portal
+     * publico) la seccion "Documentos Asociados" NO existe: se elimina del
+     * DOM — nunca se oculta por CSS ni queda contenedor vacio — y el visor
+     * muestra el unico documento. La condicion es por tipoActa, no por la
+     * existencia del checklist.
      */
     function setupDocsSection(acta, pdfUrl, pdfAuth) {
         var esGestion = currentActaId != null;
+        var esEntrega = acta.tipoActa === "ENTREGA";
         pdfUrls = { acta: pdfUrl };
 
-        var tieneChecklist = esGestion
-            && acta.tipoActa === "ENTREGA"
-            && !!acta.rutaPdfChecklist;
+        var tieneChecklist = esGestion && esEntrega && !!acta.rutaPdfChecklist;
         if (tieneChecklist) {
             pdfUrls.checklist = API_BASE + "/actas/" + currentActaId + "/checklist/pdf";
         }
 
-        if (viewDocs) {
-            viewDocs.style.display = esGestion ? "block" : "none";
+        if (esGestion && esEntrega) {
+            if (viewDocs) viewDocs.style.display = "block";
+        } else if (viewDocs) {
+            viewDocs.remove();
         }
         if (docChecklistCard) {
             docChecklistCard.style.display = tieneChecklist ? "flex" : "none";
         }
         if (docActaCard) {
-            docActaCard.style.display = esGestion ? "flex" : "none";
+            docActaCard.style.display = "flex";
         }
 
         // El acta inicia activa; el checklist se muestra si el usuario lo elige.

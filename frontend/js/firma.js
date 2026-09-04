@@ -30,9 +30,13 @@
     const infoCedulaField = $("infoCedulaField");
     const infoCorreo = $("infoCorreo");
     const infoEquipo = $("infoEquipo");
+    const infoEquipoField = $("infoEquipoField");
     const infoSerial = $("infoSerial");
+    const infoSerialField = $("infoSerialField");
     const infoPlaca = $("infoPlaca");
+    const infoPlacaField = $("infoPlacaField");
     const infoTicket = $("infoTicket");
+    const infoTicketField = $("infoTicketField");
 
     // PDF viewer
     const pdfLoading = $("pdfLoading");
@@ -87,22 +91,9 @@
     // "Este enlace ya fue utilizado", que es la pantalla correcta.
     const FIRMA_HECHA_KEY = "firma_hecha_" + token;
 
-    // TOAST (patron SAUCO; la pagina publica no carga system.css)
+    // TOAST (patron SAUCO): delega en el componente global de ui.js.
     function showToast(message, type) {
-        var container = document.getElementById("firmaToasts");
-        if (!container) {
-            container = document.createElement("div");
-            container.className = "firma-toast-container";
-            container.id = "firmaToasts";
-            document.body.appendChild(container);
-        }
-        var toast = document.createElement("div");
-        toast.className = "firma-toast toast-" + (type || "info");
-        toast.textContent = message;
-        container.appendChild(toast);
-        setTimeout(function () {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 4000);
+        return mostrarNotificacion(message, type);
     }
 
     // TRACE TEMPORAL: evidencia de ejecucion en consola (DevTools). Quitar al confirmar fix.
@@ -402,10 +393,31 @@
             infoCedulaField.style.display = data.tipoActa === "DEVOLUCION" ? "" : "none";
         }
         infoCorreo.textContent = data.correoUsuario || "-";
-        infoEquipo.textContent = data.descripcionEquipo || "-";
-        infoSerial.textContent = data.serialEquipo || "-";
-        infoPlaca.textContent = data.placaEquipo || "-";
-        infoTicket.textContent = data.ticketGlpi != null ? String(data.ticketGlpi) : "-";
+
+        // Equipo: el backend puebla descripcionEquipo (marca+modelo armados al
+        // generar la acta). Si la descripcion no llego, se cae a serial o placa.
+        // Si no hay ningun dato el campo se oculta: nunca "-" como dato faltante.
+        var equipo = data.descripcionEquipo || data.serialEquipo || data.placaEquipo || "";
+        if (infoEquipo && infoEquipoField) {
+            infoEquipo.textContent = equipo;
+            infoEquipoField.style.display = equipo ? "" : "none";
+        }
+        if (infoSerial && infoSerialField) {
+            infoSerial.textContent = data.serialEquipo || "";
+            infoSerialField.style.display = data.serialEquipo ? "" : "none";
+        }
+        if (infoPlaca && infoPlacaField) {
+            infoPlaca.textContent = data.placaEquipo || "";
+            infoPlacaField.style.display = data.placaEquipo ? "" : "none";
+        }
+        // Ticket GLPI (Numero SAC) aplica solo a ENTREGA y solo cuando existe.
+        // DEVOLUCION/FORMATEO no lo usan: campo oculto, nunca "Ticket GLPI -".
+        if (infoTicket && infoTicketField) {
+            var esEntrega = data.tipoActa === "ENTREGA";
+            var tieneTicket = data.ticketGlpi != null;
+            infoTicket.textContent = tieneTicket ? String(data.ticketGlpi) : "";
+            infoTicketField.style.display = esEntrega && tieneTicket ? "" : "none";
+        }
 
         setupDocs(data);
 
@@ -416,14 +428,25 @@
     }
 
     /**
-     * Expediente documental (ENTREGA): el firmante firma el acta y el checklist.
-     * Ambos se muestran como documentos a firmar; el checklist solo existe en
-     * ENTREGA (data.rutaPdfChecklist). Solo entonces se exige la confirmacion
-     * explicita de revision antes de habilitar la firma.
+     * Expediente documental: solo las actas ENTREGA tienen varios documentos
+     * (acta + checklist). DEVOLUCION/FORMATEO tienen un unico documento: la
+     * seccion "Documentos a Firmar" (titulo, selector, aviso y confirmacion)
+     * NO existe — se elimina del DOM, nunca se oculta por CSS — y el visor
+     * muestra el PDF directamente. La confirmacion de revision solo se exige
+     * cuando hay checklist (ENTREGA).
      */
     function setupDocs(data) {
-        tieneChecklist = data.tipoActa === "ENTREGA"
-            && !!data.rutaPdfChecklist;
+        var esEntrega = data.tipoActa === "ENTREGA";
+        var docsSection = $("docsEntregaSection");
+        if (docsSection) {
+            if (esEntrega) {
+                docsSection.style.display = "block";
+            } else {
+                docsSection.remove();
+            }
+        }
+
+        tieneChecklist = esEntrega && !!data.rutaPdfChecklist;
 
         if (docChecklistCard) {
             docChecklistCard.style.display = tieneChecklist ? "flex" : "none";

@@ -295,6 +295,7 @@ public class FirmaService {
                 .nombreUsuario(acta.getNombreUsuario())
                 .cedulaUsuario(acta.getCedulaUsuario())
                 .correoUsuario(acta.getCorreoUsuario())
+                .descripcionEquipo(acta.getDescripcionEquipo())
                 .serialEquipo(acta.getSerialEquipo())
                 .placaEquipo(acta.getPlacaEquipo())
                 .ticketGlpi(acta.getTicketGlpi())

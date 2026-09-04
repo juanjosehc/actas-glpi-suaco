@@ -17,16 +17,108 @@ Dependencias:
 */
 
 /**
- * Muestra un mensaje de notificación al usuario.
+ * NOTIFICACIONES FLOTANTES (TOAST) — componente único de SAUCO.
  *
- * Crea un elemento <div> dentro del contenedor #mensaje-app
- * con el texto y tipo indicados. Los mensajes anteriores
- * se eliminan automáticamente (solo uno visible a la vez).
+ * Crea un contenedor fijo en la esquina superior derecha, debajo del
+ * header principal. No modifica el layout del formulario ni desplaza
+ * contenido. Reutilizable por cualquier módulo con una sola llamada.
  *
- * Tipos soportados:
- * - "success": Notificación de éxito (verde).
- * - "error": Notificación de error (rojo).
- * - "info": Informativo por defecto (azul).
+ * Tipos soportados (etiqueta → clase CSS):
+ * - "success" / "ok":  Éxito (borde verde).
+ * - "info":            Información (borde azul).
+ * - "warning":         Advertencia (borde ámbar).
+ * - "error":           Error (borde rojo).
+ *
+ * @param {string} mensaje - Texto a mostrar.
+ * @param {string} [tipo="info"] - Tipo de notificación.
+ * @param {number} [duracion=3500] - Milisegundos antes de auto-cerrar.
+ * @returns {HTMLElement} Elemento toast (para manipulaciones posteriores).
+ */
+function mostrarNotificacion(
+    mensaje,
+    tipo = "info",
+    duracion = 3500
+) {
+
+    let contenedor =
+        document.getElementById("toast-global");
+
+    if (!contenedor) {
+        // Estilo autocontenido (1 sola fuente): funciona con o sin system.css
+        // (el portal publico firma.html no carga system.css).
+        if (!document.getElementById("toast-global-css")) {
+            const style = document.createElement("style");
+
+            style.id = "toast-global-css";
+
+            style.textContent = [
+                ".toast-global-container{position:fixed;top:76px;right:24px;z-index:2100;",
+                "display:flex;flex-direction:column;gap:8px;pointer-events:none}",
+                ".toast-global-container .toast{pointer-events:auto;display:flex;align-items:center;",
+                "gap:10px;padding:14px 20px;border-radius:8px;background:#fff;",
+                "box-shadow:0 10px 30px rgba(15,23,42,.18);font-size:.88rem;font-weight:500;",
+                "max-width:400px;animation:toastIn .3s ease}",
+                ".toast.toast-success{border-left:4px solid #16A34A;color:#16A34A}",
+                ".toast.toast-info{border-left:4px solid #2563EB;color:#2563EB}",
+                ".toast.toast-warning{border-left:4px solid #D97706;color:#D97706}",
+                ".toast.toast-error{border-left:4px solid #DC2626;color:#DC2626}",
+                ".toast.toast-out{opacity:0;transform:translateY(-4px);",
+                "transition:opacity .3s ease,transform .3s ease}",
+                "@keyframes toastIn{from{opacity:0;transform:translateX(20px)}",
+                "to{opacity:1;transform:translateX(0)}}"
+            ].join("");
+
+            document.head.appendChild(style);
+        }
+
+        contenedor =
+            document.createElement("div");
+
+        contenedor.id = "toast-global";
+
+        contenedor.className = "toast-global-container";
+
+        document.body.appendChild(contenedor);
+    }
+
+    const tipoMap = {
+        "success": "success", "ok": "success",
+        "info": "info", "informacion": "info",
+        "advertencia": "warning", "warning": "warning", "warn": "warning",
+        "error": "error", "danger": "error", "fail": "error"
+    };
+
+    const clave =
+        String(tipo || "info").toLowerCase();
+
+    const cls =
+        tipoMap[clave] || "info";
+
+    const toast =
+        document.createElement("div");
+
+    toast.className =
+        "toast toast-" + cls;
+
+    toast.textContent = mensaje;
+
+    contenedor.appendChild(toast);
+
+    setTimeout(function () {
+        toast.classList.add("toast-out");
+
+        setTimeout(function () {
+            toast.remove();
+        }, 300);
+    }, duracion);
+
+    return toast;
+
+}
+
+/**
+ * Muestra una notificación flotante (retrocompatible con mensajes
+ * embebidos en #mensaje-app). Delega en el toast global.
  *
  * @param {string} mensaje - Texto a mostrar.
  * @param {string} [tipo="info"] - Tipo de notificación.
@@ -36,21 +128,7 @@ function mostrarMensaje(
     tipo = "info"
 ) {
 
-    const contenedor =
-        document.getElementById(
-            "mensaje-app"
-        );
-
-    contenedor.innerHTML = "";
-
-    const div =
-        document.createElement("div");
-
-    div.textContent = mensaje;
-
-    div.dataset.tipo = tipo;
-
-    contenedor.appendChild(div);
+    mostrarNotificacion(mensaje, tipo);
 
 }
 

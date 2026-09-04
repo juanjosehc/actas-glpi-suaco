@@ -48,8 +48,6 @@
     const rejectModalCancel = $("rejectModalCancel");
     const rejectModalConfirm = $("rejectModalConfirm");
 
-    const toastContainer = $("toastContainer");
-
     // =========================
     //  ROL — solo lectura para AUDITOR
     //  El backend tambien bloquea los POST operativos (403). Aqui se ocultan
@@ -88,11 +86,7 @@
     // =========================
 
     function showToast(message, type) {
-        const toast = document.createElement("div");
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(() => toast.remove(), 3500);
+        return mostrarNotificacion(message, type);
     }
 
     // =========================
@@ -144,7 +138,7 @@
     }
 
     function getBadgeClass(estado) {
-        const map = { GENERADA: "badge--GENERADA", ENVIADA: "badge--ENVIADA", FIRMADA: "badge--FIRMADA", APROBADA: "badge--APROBADA", RECHAZADA: "badge--RECHAZADA" };
+        const map = { GENERADA: "badge--GENERADA", ENVIADA: "badge--ENVIADA", FIRMADA: "badge--FIRMADA", APROBADA: "badge--APROBADA", RECHAZADA: "badge--RECHAZADA", GENERANDO_DOCUMENTOS: "badge--GENERANDO_DOCUMENTOS", GENERACION_FALLIDA: "badge--GENERACION_FALLIDA" };
         return map[estado] || "badge--GENERADA";
     }
 
@@ -207,6 +201,7 @@
                 actions.appendChild(actionBtn("Evidencias", "btn-outline", () => openEvidencias(a.id)));
             }
 
+            tr.appendChild(actions);
             firmasBody.appendChild(tr);
         });
     }

@@ -25,8 +25,7 @@
     const preview = $("firmaPreview");
     const drawZone = $("firmaDraw");
 
-    const toastContainer = $("toastContainer");
-
+    
     const modalConfirm = $("modalConfirm");
     const modalConfirmTitle = $("modalConfirmTitle");
     const modalConfirmText = $("modalConfirmText");
@@ -44,11 +43,7 @@
     // =========================
 
     function showToast(message, type) {
-        const toast = document.createElement("div");
-        toast.className = "toast toast-" + type;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        setTimeout(() => { toast.remove(); }, 3500);
+        return mostrarNotificacion(message, type);
     }
 
     // =========================
