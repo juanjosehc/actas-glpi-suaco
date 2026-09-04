@@ -59,6 +59,15 @@ public class Usuario {
     @Builder.Default
     private Boolean bloqueado = false;
 
+    /**
+     * Fuerza el cambio de contrasena en el proximo login (tras un reset del
+     * administrador). Nullable a proposito: ddl-auto agrega la columna a una
+     * tabla con filas sin requerir default (evita la migracion manual).
+     */
+    @Column(name = "cambiar_password_obligatorio")
+    @Builder.Default
+    private Boolean cambiarPasswordObligatorio = false;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;

@@ -111,7 +111,7 @@ Las rutas guardadas en `acta.ruta_pdf` / `evidencia.ruta_archivo` son **virtuale
 
 ## Notas de entorno y cosas no obvias
 
-- `word/` está vacío y `graphify-out/` es caché de una herramienta de análisis (no tocar). `opencode.json` en la raíz solo configura un MCP de PostgreSQL para otra herramienta.
+- `word/` está vacío y `graphify-out/` es caché de una herramienta de análisis (no tocar). `opencode.json` en la raíz solo configura un MCP de PostgreSQL para otra herramienta; el password del MCP va por variable de entorno `PG_PASSWORD` (el archivo NO contiene secretos, ver SEC-002).
 - `node_modules` y `package-lock.json` en la raíz son del MCP de opencode, no del frontend (el frontend tiene el suyo en `frontend/`).
 - El proyecto se versiona con commits "Java N.M" (Java 1.0 → 3.2), referenciando etapas de evolución.
 - LibreOffice portable se espera en `%USERPROFILE%\LibreOfficePortable\...\soffice.exe` (config `libreoffice.path`); si no existe, la conversión a PDF falla en runtime.

@@ -48,6 +48,20 @@
     const modalConfirmCancel = document.getElementById("modalConfirmCancel");
     const modalConfirmOk = document.getElementById("modalConfirmOk");
 
+    const modalPassword = document.getElementById("modalPassword");
+    const modalPasswordTitle = document.getElementById("modalPasswordTitle");
+    const modalPasswordDesc = document.getElementById("modalPasswordDesc");
+    const modalPasswordClose = document.getElementById("modalPasswordClose");
+    const modalPasswordCancel = document.getElementById("modalPasswordCancel");
+    const modalPasswordSave = document.getElementById("modalPasswordSave");
+    const passwordNueva = document.getElementById("passwordNueva");
+    const passwordNuevaConfirm = document.getElementById("passwordNuevaConfirm");
+    const passwordFormError = document.getElementById("passwordFormError");
+
+    const SEC016 = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,128}$/;
+    let passwordUserId = null;
+
+    
     
     function checkAuth() {
         const token = LoginService.obtenerToken();
@@ -133,37 +147,30 @@
                 <td>${u.rol || "-"}</td>
                 <td>
                     <span class="badge badge--${estado}">${estado}</span>
-                    ${protegido ? '<span class="badge badge--ACTIVO" title="Administrador principal: no puede bloquearse ni cambiar su rol">PROTEGIDO</span>' : ""}
                 </td>
                 <td class="cell-actions" data-id="${u.id}"></td>
             `;
             const actions = tr.querySelector(".cell-actions");
-            actions.appendChild(actionBtn("Ver", "btn-outline", () => openView(u.id)));
-            actions.appendChild(actionBtn("Editar", "btn-outline", () => openEdit(u.id)));
+            actions.appendChild(botonIcono("ojo", "Ver detalle", () => openView(u.id)));
+            actions.appendChild(botonIcono("lapiz", "Editar", () => openEdit(u.id)));
+            actions.appendChild(botonIcono("llave", "Restablecer contrasena", () => openPasswordModal(u)));
             if (protegido) {
-                actions.appendChild(actionBtn("🔒", "btn-outline", () => {}));
-                actions.lastChild.title = "Administrador protegido: no puede bloquearse ni cambiar su rol";
+                const lock = botonIcono("candado", "Administrador protegido.\nNo puede ser bloqueado ni eliminado.");
+                lock.disabled = true;
+                actions.appendChild(lock);
             } else if (u.bloqueado) {
-                actions.appendChild(actionBtn("Desbloquear", "btn-warning", () => {
+                actions.appendChild(botonIcono("candadoAbierto", "Desbloquear usuario", () => {
                     confirmAction = () => desbloquear(u.id);
                     openConfirm("Desbloquear Usuario", "¿Esta seguro de desbloquear este usuario?");
                 }));
             } else {
-                actions.appendChild(actionBtn("Bloquear", "btn-danger", () => {
+                actions.appendChild(botonIcono("candado", "Bloquear usuario", () => {
                     confirmAction = () => bloquear(u.id);
                     openConfirm("Bloquear Usuario", "¿Esta seguro de bloquear este usuario?");
                 }));
             }
             usuariosBody.appendChild(tr);
         });
-    }
-
-    function actionBtn(label, cls, onClick) {
-        const btn = document.createElement("button");
-        btn.className = `btn ${cls} btn-sm`;
-        btn.textContent = label;
-        btn.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
-        return btn;
     }
 
     function renderPagination() {
@@ -276,7 +283,7 @@
             modalViewBody.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-field"><span class="detail-label">ID</span><span class="detail-value">${u.id}</span></div>
-                    <div class="detail-field"><span class="detail-label">Estado</span><span class="badge badge--${estado}">${estado}</span>${u.protegido ? '<span class="badge badge--ACTIVO">PROTEGIDO</span>' : ""}</div>
+                    <div class="detail-field"><span class="detail-label">Estado</span><span class="badge badge--${estado}">${estado}</span></div>
                     <div class="detail-field"><span class="detail-label">Cedula</span><span class="detail-value">${u.cedula || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Nombres</span><span class="detail-value">${u.nombres || "-"}</span></div>
                     <div class="detail-field"><span class="detail-label">Apellidos</span><span class="detail-value">${u.apellidos || "-"}</span></div>
@@ -325,6 +332,89 @@
             setLoading(false);
         }
     }
+
+    // =========================
+    //  RESTABLECER CONTRASENA
+    // =========================
+
+    function openPasswordModal(u) {
+        passwordUserId = u.id;
+        modalPasswordTitle.textContent = "Restablecer Contrasena";
+        modalPasswordDesc.textContent =
+            "Asignara una contrasena temporal a " + (u.username || ("#" + u.id)) +
+            ". El usuario debera cambiarla en su proximo inicio de sesion.";
+        passwordNueva.value = "";
+        passwordNuevaConfirm.value = "";
+        passwordFormError.classList.remove("visible");
+        passwordFormError.textContent = "";
+        modalPassword.classList.add("open");
+    }
+
+    function closePasswordModal() {
+        modalPassword.classList.remove("open");
+        passwordUserId = null;
+    }
+
+    modalPasswordClose.addEventListener("click", closePasswordModal);
+    modalPasswordCancel.addEventListener("click", closePasswordModal);
+    modalPassword.addEventListener("click", (e) => { if (e.target === modalPassword) closePasswordModal(); });
+
+    modalPasswordSave.addEventListener("click", async () => {
+        passwordFormError.classList.remove("visible");
+        passwordFormError.textContent = "";
+
+        const nuevaPassword = passwordNueva.value;
+        if (!SEC016.test(nuevaPassword)) {
+            passwordFormError.textContent =
+                "La contrasena debe tener entre 8 y 128 caracteres, con mayuscula, minuscula, numero y caracter especial.";
+            passwordFormError.classList.add("visible");
+            passwordNueva.focus();
+            return;
+        }
+        if (nuevaPassword !== passwordNuevaConfirm.value) {
+            passwordFormError.textContent = "Las contrasenas no coinciden.";
+            passwordFormError.classList.add("visible");
+            passwordNuevaConfirm.focus();
+            return;
+        }
+
+        const token = checkAuth();
+        if (!token) return;
+        setLoading(true, "Restableciendo contrasena...");
+        modalPasswordSave.disabled = true;
+        try {
+            const resp = await fetch(`${API_BASE}/usuarios/${passwordUserId}/restablecer-password`, {
+                method: "PUT",
+                headers: authHeaders(),
+                body: JSON.stringify({ nuevaPassword }),
+            });
+            if (handle401(resp)) return;
+            const body = await resp.json();
+            if (body.success) {
+                showToast("Contrasena restablecida. El usuario debera cambiarla en su proximo login.", "success");
+                closePasswordModal();
+                await loadUsuarios();
+            } else {
+                passwordFormError.textContent = body.mensaje || "No se pudo restablecer la contrasena.";
+                passwordFormError.classList.add("visible");
+            }
+        } catch (_) {
+            showToast("Error de conexion.", "error");
+        } finally {
+            setLoading(false);
+            modalPasswordSave.disabled = false;
+        }
+    });
+
+    [passwordNueva, passwordNuevaConfirm].forEach((input) => {
+        input.addEventListener("input", () => {
+            input.classList.remove("is-invalid");
+            if (passwordFormError.classList.contains("visible")) {
+                passwordFormError.classList.remove("visible");
+                passwordFormError.textContent = "";
+            }
+        });
+    });
 
     modalConfirmOk.addEventListener("click", () => {
         if (confirmAction) { const fn = confirmAction; confirmAction = null; fn(); }
@@ -419,6 +509,7 @@
             if (modalConfirm.classList.contains("open")) closeConfirm();
             else if (modalUser.classList.contains("open")) closeModalUser();
             else if (modalView.classList.contains("open")) modalView.classList.remove("open");
+            else if (modalPassword.classList.contains("open")) closePasswordModal();
         }
     });
 

@@ -1,5 +1,9 @@
 (() => {
         const PAGE_SIZE = 10;
+    // ponytail: este modulo pagina y filtra client-side sobre la lista completa.
+    // El backend pagina server-side (size default 10), asi que pedimos todo y
+    // bajamos el techo si la BD de actas crece mas alla de esto.
+    const MAX_ROWS = 10000;
     const BASE_URL = window.location.origin + window.location.pathname.replace(/[^/]*$/, "");
 
     let allActas = [];
@@ -111,7 +115,7 @@
         if (!token) return;
         setLoading(true, "Cargando actas...");
         try {
-            const resp = await fetch(`${API_BASE}/actas`, { headers: { Authorization: `Bearer ${token}` } });
+            const resp = await fetch(`${API_BASE}/actas?page=0&size=${MAX_ROWS}`, { headers: { Authorization: `Bearer ${token}` } });
             if (handle401(resp)) return;
             const body = await resp.json();
             if (!body.success) { showToast(body.mensaje || "Error al cargar actas", "error"); return; }
@@ -185,33 +189,25 @@
 
             const actions = document.createElement("td");
             actions.className = "cell-actions";
-            actions.appendChild(actionBtn("Ver", "btn-outline", () => openDetail(a.id)));
+            actions.appendChild(botonIcono("ojo", "Ver detalle", () => openDetail(a.id)));
 
             if (a.estado === "GENERADA" && PUEDE_OPERAR) {
-                actions.appendChild(actionBtn("Enviar", "btn-primary", () => openEnviarModal(a)));
+                actions.appendChild(botonIcono("enviar", "Enviar a firma", () => openEnviarModal(a)));
             }
             if (a.estado === "ENVIADA") {
-                actions.appendChild(actionBtn("Enlace", "btn-outline", () => openLinkModal(a)));
+                actions.appendChild(botonIcono("enlace", "Ver enlace de firma", () => openLinkModal(a)));
             }
             if (a.estado === "FIRMADA" && PUEDE_OPERAR) {
-                actions.appendChild(actionBtn("Aprobar", "btn-success", () => aprobarActa(a.id)));
-                actions.appendChild(actionBtn("Rechazar", "btn-danger", () => openRejectModal(a.id)));
+                actions.appendChild(botonIcono("check", "Aprobar acta", () => aprobarActa(a.id), "--success"));
+                actions.appendChild(botonIcono("rechazar", "Rechazar acta", () => openRejectModal(a.id), "--danger"));
             }
             if (a.estado === "FIRMADA" || a.estado === "APROBADA" || a.estado === "RECHAZADA") {
-                actions.appendChild(actionBtn("Evidencias", "btn-outline", () => openEvidencias(a.id)));
+                actions.appendChild(botonIcono("evidencias", "Ver evidencias", () => openEvidencias(a.id)));
             }
 
             tr.appendChild(actions);
             firmasBody.appendChild(tr);
         });
-    }
-
-    function actionBtn(label, cls, onClick) {
-        const btn = document.createElement("button");
-        btn.className = `btn ${cls} btn-sm`;
-        btn.textContent = label;
-        btn.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
-        return btn;
     }
 
     function renderPagination() {

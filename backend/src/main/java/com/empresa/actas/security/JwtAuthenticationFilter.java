@@ -48,9 +48,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String path = request.getRequestURI();
 
-        // /auth/logout va excluido del salto publico: se intenta autenticar el
-        // Bearer para registrar QUE usuario cierra sesion (ruta autenticada).
-        if (isPublicPath(path) && !path.equals("/auth/logout")) {
+        // /auth/logout y /auth/cambiar-password van excluidos del salto publico:
+        // se intenta autenticar el Bearer (rutas autenticadas). El prefijo
+        // "/auth/" de PUBLIC_PATHS cubre login/register/recuperar (publicos);
+        // cambiar-password NO esta en permitAll del SecurityConfig, asi que sin
+        // este parseo quedaria anonimo y Spring respondería 403.
+        if (isPublicPath(path) && !path.equals("/auth/logout") && !path.equals("/auth/cambiar-password")) {
             filterChain.doFilter(request, response);
             return;
         }

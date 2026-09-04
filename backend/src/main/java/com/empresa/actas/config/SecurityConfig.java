@@ -51,6 +51,7 @@ public class SecurityConfig {
                     auth.requestMatchers(
                             "/auth/login",
                             "/auth/register",
+                            "/auth/recuperar/**",
                             "/equipo/**",
                             "/generar-acta",
                             "/generar-devolucion",

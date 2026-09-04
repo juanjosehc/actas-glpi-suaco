@@ -110,6 +110,135 @@ public class MailService {
         }
     }
 
+    /**
+     * Envia el correo de recuperacion de contrasena con enlace de un solo uso.
+     * Misma guardia que la firma: SMTP no configurado/fallo => log + {@code false}
+     * (el flujo de recuperacion ya esta cubierto por auditoria para ese caso).
+     */
+    public boolean enviarCorreoRecuperacion(String destinatario,
+                                            String nombreUsuario,
+                                            String urlRecuperacion,
+                                            long expiraMinutos) {
+        if (destinatario == null || destinatario.isBlank()) {
+            log.warn("Correo de recuperacion omitido: destinatario vacio");
+            return false;
+        }
+
+        if (!smtpConfigurado()) {
+            log.warn("SMTP no configurado (mail.host/mail.from). Recuperacion sin envio a '{}'.", destinatario);
+            return false;
+        }
+
+        String cuerpoHtml = construirPlantillaRecuperacion(nombreUsuario, urlRecuperacion, expiraMinutos);
+
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(destinatario.trim());
+            helper.setSubject("Recuperacion de contrasena - SAUCO");
+            helper.setText(cuerpoHtml, true);
+            ClassPathResource logo = new ClassPathResource("email/LOGOAZUL.png");
+            if (logo.exists()) {
+                helper.addInline("logoCorreo", logo, "image/png");
+            }
+            javaMailSender.send(message);
+            log.info("Correo de recuperacion enviado a '{}'", destinatario);
+            return true;
+        } catch (MailException | jakarta.mail.MessagingException e) {
+            log.error("Error al enviar correo de recuperacion a '{}': {}", destinatario, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /** Plantilla HTML corporativa del enlace de recuperacion de contrasena. */
+    private String construirPlantillaRecuperacion(String nombreUsuario,
+                                                  String urlRecuperacion,
+                                                  long expiraMinutos) {
+        String nombre = nombreUsuario != null && !nombreUsuario.isBlank()
+                ? nombreUsuario.trim() : "usuario";
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                  <meta charset="UTF-8">
+                </head>
+                <body style="margin:0;padding:0;background-color:#F1F5F9;font-family:Arial,Helvetica,sans-serif;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F1F5F9;padding:24px 12px;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#FFFFFF;border-radius:10px;border:1px solid #E2E8F0;box-shadow:0 2px 8px rgba(15,23,42,0.06);">
+
+                        <!-- Cabecera corporativa -->
+                        <tr>
+                          <td style="background-color:#FFFFFF;">
+                            <div style="background-color:#1E3A8A;height:6px;font-size:0;line-height:0;">&nbsp;</div>
+                            <div style="padding:18px 28px 10px;text-align:center;">
+                              <img src="cid:logoCorreo" width="340" alt="SAUCO" style="max-width:100%;height:auto;border:0;outline:none;">
+                              <div style="color:#0F172A;font-size:18px;font-weight:bold;margin-top:8px;letter-spacing:1px;">SAUCO</div>
+                              <div style="color:#64748B;font-size:12px;margin-top:2px;letter-spacing:0.3px;">Sistema de Actas y Control Operativo</div>
+                            </div>
+                          </td>
+                        </tr>
+
+                        <!-- Cuerpo -->
+                        <tr>
+                          <td style="padding:24px 28px;">
+                            <p style="margin:0 0 14px;color:#0F172A;font-size:15px;line-height:1.5;">Cordial saludo, <strong>@@NOMBRE@@</strong>:</p>
+                            <p style="margin:0 0 20px;color:#0F172A;font-size:15px;line-height:1.5;">Hemos recibido una solicitud para restablecer la contrasena de su cuenta en SAUCO. Ingrese al siguiente enlace para definir una nueva contrasena. El enlace expira en <strong>@@MINUTOS@@ minutos</strong> y es de un solo uso.</p>
+
+                            <!-- CTA -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+                              <tr>
+                                <td align="center" style="border-radius:8px;background-color:#2563EB;">
+                                  <a href="@@URL@@"
+                                     style="display:inline-block;width:100%;padding:14px 0;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:bold;letter-spacing:0.3px;text-align:center;">
+                                    Restablecer contrasena
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+                            <p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.5;">Si el boton no funciona, copie y pegue este enlace en su navegador:</p>
+                            <p style="margin:0 0 24px;padding:10px 12px;background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;color:#1D4ED8;font-size:12px;word-break:break-all;">@@URL@@</p>
+                          </td>
+                        </tr>
+
+                        <!-- Advertencia de seguridad -->
+                        <tr>
+                          <td style="padding:0 28px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;">
+                              <tr>
+                                <td style="padding:12px 16px;">
+                                  <div style="color:#B45309;font-size:12px;font-weight:bold;letter-spacing:0.5px;">IMPORTANTE — SEGURIDAD</div>
+                                  <div style="color:#78350F;font-size:12px;line-height:1.5;margin-top:4px;">No comparta este enlace con terceros. Si no solicito este restablecimiento, ignore este mensaje y reporte el hecho al area de TI. Si el enlace expiro o ya fue utilizado, podra solicitar uno nuevo desde la pantalla de inicio de sesion.</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- Pie corporativo -->
+                        <tr>
+                          <td style="background-color:#F8FAFC;padding:16px 28px;border-top:1px solid #E2E8F0;">
+                            <div style="color:#0F172A;font-size:11px;font-weight:bold;letter-spacing:0.5px;">SAUCO · Sistema de Actas y Control Operativo</div>
+                            <div style="color:#64748B;font-size:11px;line-height:1.5;margin-top:2px;">Correo generado automaticamente, no responda a este mensaje.</div>
+                            <div style="color:#94A3B8;font-size:10px;margin-top:2px;">© 2026 Coltefinanciera · Uso interno</div>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                </body>
+                </html>
+                """
+                .replace("@@NOMBRE@@", escapeHtml(nombre))
+                .replace("@@MINUTOS@@", String.valueOf(expiraMinutos))
+                .replace("@@URL@@", escapeHtml(urlRecuperacion));
+    }
+
     private boolean smtpConfigurado() {
         boolean hostOk = mailHost != null && !mailHost.isBlank();
         boolean fromOk = mailFrom != null && !mailFrom.isBlank();

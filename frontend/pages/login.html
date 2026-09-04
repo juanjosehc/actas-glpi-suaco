@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actas GLPI - Iniciar Sesion</title>
+    <title>SAUCO - Iniciar Sesion</title>
     <link rel="stylesheet" href="../css/login.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
             <div class="login-logo">
                 <img src="../img/LogoC.png" alt="Logo Coltefinanciera">
             </div>
-            <h1 class="login-title">ACTAS GLPI</h1>
+            <h1 class="login-title">SAUCO</h1>
             <p class="login-subtitle">Inicie sesion para continuar</p>
         </header>
 
@@ -60,7 +60,51 @@
                     Iniciando sesion...
                 </span>
             </button>
+
+            <button type="button" class="login-forgot" id="forgotLink">
+                ¿Olvido su contrasena?
+            </button>
         </form>
+
+        <!-- Recuperacion de contrasena (anti-enumeracion: el backend responde
+             lo mismo exista o no el correo). Panel oculto por defecto. -->
+        <div class="recover-panel" id="recoverPanel" hidden>
+            <form id="recoverForm" novalidate>
+                <p class="recover-desc">
+                    Ingrese el correo de su cuenta y le enviaremos un enlace de un
+                    solo uso (vence en 30 minutos) para restablecer su contrasena.
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="recoverEmail">Correo electronico</label>
+                    <input
+                        class="form-input"
+                        type="email"
+                        id="recoverEmail"
+                        name="correo"
+                        placeholder="usuario@coltefinanciera.com"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+                <div class="login-error" id="recoverError" role="alert" aria-live="assertive">
+                    <svg class="login-error-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span id="recoverErrorText"></span>
+                </div>
+                <div class="recover-success" id="recoverSuccess" hidden>
+                    <p>Si el correo esta registrado, recibira un enlace para restablecer su contrasena.</p>
+                </div>
+                <button type="submit" class="login-btn" id="recoverBtn">
+                    <span class="btn-text">Enviar enlace</span>
+                    <span class="btn-loading">
+                        <span class="spinner"></span>
+                        Enviando...
+                    </span>
+                </button>
+                <button type="button" class="login-forgot" id="backToLogin">Volver al inicio de sesion</button>
+            </form>
+        </div>
 
     </div>
 </main>

@@ -132,3 +132,16 @@
     color: #0f172a;
     word-break: break-word;
 }
+
+/* Banner de cambio forzado (reset por administrador) */
+.forzar-banner {
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: #FFF7ED;
+    border: 1px solid #FDBA74;
+    color: #78350F;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+}

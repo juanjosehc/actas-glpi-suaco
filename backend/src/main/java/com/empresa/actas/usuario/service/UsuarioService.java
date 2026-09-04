@@ -7,6 +7,7 @@ import com.empresa.actas.rol.repository.RolRepository;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.usuario.dto.ActualizarUsuarioRequest;
 import com.empresa.actas.usuario.dto.CrearUsuarioRequest;
+import com.empresa.actas.usuario.dto.RestablecerPasswordRequest;
 import com.empresa.actas.usuario.dto.FirmaTecnicoResponse;
 import com.empresa.actas.usuario.dto.UsuarioResponse;
 import com.empresa.actas.usuario.entity.Usuario;
@@ -111,6 +112,36 @@ public class UsuarioService {
                 .build();
 
         return marcarProtegido(usuarioMapper.toResponse(usuarioRepository.save(usuario)), usuario);
+    }
+
+    /**
+     * Restablece la contrasena de un usuario (solo ADMINISTRADOR, endpoint
+     * {@code POST /usuarios/{id}/restablecer-password}). El usuario queda con
+     * {@code cambiarPasswordObligatorio=true} para forzar el cambio en su
+     * proximo login. Registra RESET_CONTRASENA_ADMIN en auditoria.
+     */
+    public UsuarioResponse restablecerPassword(Long id, RestablecerPasswordRequest request) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Usuario no encontrado con id: " + id));
+
+        if (usuario.getPasswordHash() != null
+                && passwordEncoder.matches(request.nuevaPassword(), usuario.getPasswordHash())) {
+            throw new IllegalArgumentException(
+                    "La nueva contrasena no puede ser igual a la anterior.");
+        }
+
+        usuario.setPasswordHash(passwordEncoder.encode(request.nuevaPassword()));
+        usuario.setCambiarPasswordObligatorio(true);
+        usuarioRepository.save(usuario);
+
+        auditoriaService.registrar(TipoEventoAuditoria.RESET_CONTRASENA_ADMIN,
+                usuario.getIdUsuario(), usuario.getNombreUsuario(),
+                "USUARIO", String.valueOf(usuario.getIdUsuario()),
+                "/usuarios/{id}/restablecer-password",
+                "Contrasena restablecida por administrador (cambio obligatorio en el proximo login)");
+
+        return marcarProtegido(usuarioMapper.toResponse(usuario), usuario);
     }
 
     public UsuarioResponse actualizarUsuario(Long id, ActualizarUsuarioRequest request) {

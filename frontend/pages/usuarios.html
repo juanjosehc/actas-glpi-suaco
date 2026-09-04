@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actas GLPI - Gestion de Usuarios</title>
+    <title>SAUCO - Gestion de Usuarios</title>
     <link rel="stylesheet" href="../css/system.css">
     <link rel="stylesheet" href="../css/usuarios.css">
 </head>
@@ -16,7 +16,7 @@
             <div class="sidebar-logo">
                 <img src="../img/LogoC.png" alt="Logo">
             </div>
-            <span class="sidebar-title">ACTAS GLPI</span>
+            <span class="sidebar-title">SAUCO</span>
         </div>
         <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegacion principal"></nav>
         <div class="sidebar-footer">
@@ -32,7 +32,7 @@
             </button>
             <div class="topbar-left">
                 <div class="topbar-logo"><img src="../img/LogoC.png" alt="Logo"></div>
-                <span class="topbar-system">Actas GLPI</span>
+                <span class="topbar-system">SAUCO</span>
             </div>
             <div class="topbar-right">
                 <div class="user-badge">
@@ -187,6 +187,38 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modalPassword">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalPasswordTitle">Restablecer Contrasena</h2>
+            <button class="modal-close" id="modalPasswordClose" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc" id="modalPasswordDesc"></p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="passwordNueva">Nueva contrasena temporal</label>
+                    <input class="form-input" type="password" id="passwordNueva" maxlength="128" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="passwordNuevaConfirm">Confirmar contrasena</label>
+                    <input class="form-input" type="password" id="passwordNuevaConfirm" maxlength="128" autocomplete="new-password" required>
+                </div>
+            </div>
+            <p class="modal-desc" style="margin-top:8px;color:#64748B;">
+                Politica SEC-016: minimo 8 caracteres con mayuscula, minuscula,
+                numero y caracter especial. El usuario debera cambiarla en su
+                proximo inicio de sesion.
+            </p>
+            <div class="form-error" id="passwordFormError"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="modalPasswordCancel">Cancelar</button>
+            <button class="btn btn-primary" id="modalPasswordSave">Restablecer</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modalConfirm">
     <div class="modal-container modal-sm">
         <div class="modal-header">
@@ -208,6 +240,7 @@
 <script src="../js/login.js"></script>
 <script src="../js/admin-layout.js"></script>
 <script src="../js/ui.js"></script>
+<script src="../js/iconos.js"></script>
 <script src="../js/usuarios.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {

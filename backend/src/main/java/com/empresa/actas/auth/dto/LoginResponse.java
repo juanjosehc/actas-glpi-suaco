@@ -11,5 +11,8 @@ public record LoginResponse(
         String username,
 
         @Schema(description = "Rol del usuario", example = "ADMINISTRADOR")
-        String role
+        String role,
+
+        @Schema(description = "true si el usuario debe cambiar su contrasena en este login (reset por admin)", example = "false")
+        boolean cambiarPasswordObligatorio
 ) {}

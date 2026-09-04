@@ -1,7 +1,10 @@
 package com.empresa.actas.auth.controller;
 
+import com.empresa.actas.auth.dto.CambiarPasswordRequest;
+import com.empresa.actas.auth.dto.ConfirmarRecuperacionRequest;
 import com.empresa.actas.auth.dto.LoginRequest;
 import com.empresa.actas.auth.dto.LoginResponse;
+import com.empresa.actas.auth.dto.RecuperarPasswordRequest;
 import com.empresa.actas.auth.dto.RegisterUserRequest;
 import com.empresa.actas.auth.service.AuthService;
 import com.empresa.actas.dto.response.ErrorResponse;
@@ -57,5 +60,46 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ErrorResponse.ok("Usuario registrado exitosamente",
                         usuario.getNombreUsuario()));
+    }
+
+    @PostMapping("/cambiar-password")
+    @Operation(summary = "Cambiar contrasena", description = "Cambia la contrasena del usuario autenticado (any rol). Valida la contrasena actual y aplica SEC-016. Registra CAMBIO_CONTRASENA en auditoria")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contrasena cambiada"),
+            @ApiResponse(responseCode = "400", description = "Contrasena actual incorrecta o nueva invalida"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<ErrorResponse> cambiarPassword(
+            @Valid @RequestBody CambiarPasswordRequest request) {
+        authService.cambiarPassword(request);
+        return ResponseEntity.ok(ErrorResponse.ok("Contrasena cambiada correctamente"));
+    }
+
+    @PostMapping("/recuperar")
+    @Operation(summary = "Solicitar recuperacion de contrasena",
+            description = "Envia al correo un enlace de un solo uso con un token expiracion (por defecto 30 min). Respuesta generica en todos los casos para no revelar si el correo existe (anti-enumeracion)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Solicitud procesada"),
+            @ApiResponse(responseCode = "400", description = "Correo invalido")
+    })
+    public ResponseEntity<ErrorResponse> recuperar(
+            @Valid @RequestBody RecuperarPasswordRequest request) {
+        authService.solicitarRecuperacion(request);
+        return ResponseEntity.ok(ErrorResponse.ok(
+                "Si el correo esta registrado, recibiras un enlace para restablecer tu contrasena"));
+    }
+
+    @PostMapping("/recuperar/confirmar")
+    @Operation(summary = "Confirmar recuperacion con el token del correo",
+            description = "Valida el token de un solo uso (no vencido, no utilizado) y establece la nueva contrasena SEC-016. Tokens invalidos se rechazan y auditan como RECUPERACION_TOKEN_INVALIDO")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contrasena restablecida"),
+            @ApiResponse(responseCode = "400", description = "Token invalido, vencido o ya utilizado")
+    })
+    public ResponseEntity<ErrorResponse> confirmarRecuperacion(
+            @Valid @RequestBody ConfirmarRecuperacionRequest request) {
+        authService.confirmarRecuperacion(request);
+        return ResponseEntity.ok(ErrorResponse.ok(
+                "Contrasena restablecida. Ya puedes iniciar sesion con la nueva contrasena"));
     }
 }

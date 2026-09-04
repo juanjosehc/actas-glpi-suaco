@@ -587,6 +587,91 @@ html, body {
 }
 
 /* =========================
+   ICON BUTTONS (acciones de listado)
+   Boton cuadrado solo-icono + tooltip accesible (aria-label + data-tip).
+   Reemplaza a los botones de texto de la columna Acciones: reduce el ancho
+   de la tabla y elimina el scroll horizontal.
+   ========================= */
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    flex: 0 0 auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.btn-icon:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.btn-icon:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-icon svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
+.btn-icon--danger:hover:not(:disabled) {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error-light);
+}
+
+.btn-icon--success:hover:not(:disabled) {
+    border-color: var(--success);
+    color: var(--success);
+    background: var(--success-light);
+}
+
+/* =========================
+   TOOLTIP (componente base)
+   Div fijo al body, fuera de contenedores con overflow: el JS de iconos.js
+   lo reposiciona contra el viewport (clamp izquierda/derecha + volcar abajo
+   si no cabe arriba). Nunca se recorta en los bordes de la tabla/pantalla.
+   ========================= */
+
+#sauco-tooltip {
+    position: fixed;
+    z-index: 1000;
+    max-width: 280px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--text);
+    color: var(--white);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    display: none;
+}
+
+#sauco-tooltip.visible {
+    display: block;
+}
+
+#sauco-tooltip strong {
+    display: block;
+    font-size: 0.78rem;
+    margin-bottom: 2px;
+}
+
+/* =========================
    EMPTY STATE
    ========================= */
 

@@ -223,15 +223,13 @@
             const acciones = document.createElement("td");
             acciones.className = "cell-actions";
             const btnDocumento = document.createElement("a");
-            btnDocumento.className = "btn btn-outline btn-sm";
+            btnDocumento.className = "btn-icon";
             btnDocumento.href = `acta-view.html?id=${a.id}`;
-            btnDocumento.textContent = "Ver Documento";
+            btnDocumento.setAttribute("aria-label", "Ver documento");
+            btnDocumento.setAttribute("data-tip", "Ver documento");
+            btnDocumento.innerHTML = ICONOS.documento;
             acciones.appendChild(btnDocumento);
-            const btnVer = document.createElement("button");
-            btnVer.className = "btn btn-outline btn-sm";
-            btnVer.textContent = "Ver";
-            btnVer.addEventListener("click", () => openDetail(a.id));
-            acciones.appendChild(btnVer);
+            acciones.appendChild(botonIcono("ojo", "Ver detalle", () => openDetail(a.id)));
             tr.appendChild(acciones);
 
             actasBody.appendChild(tr);

@@ -5,6 +5,7 @@ import com.empresa.actas.usuario.dto.ActualizarUsuarioRequest;
 import com.empresa.actas.usuario.dto.CrearUsuarioRequest;
 import com.empresa.actas.usuario.dto.FirmaTecnicoResponse;
 import com.empresa.actas.usuario.dto.GuardarFirmaRequest;
+import com.empresa.actas.usuario.dto.RestablecerPasswordRequest;
 import com.empresa.actas.usuario.dto.UsuarioResponse;
 import com.empresa.actas.usuario.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -153,6 +154,24 @@ public class UsuarioController {
         UsuarioResponse usuario = usuarioService.crearUsuario(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ErrorResponse.ok("Usuario creado exitosamente", usuario));
+    }
+
+    @PutMapping("/{id}/restablecer-password")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Restablecer contrasena de un usuario (solo ADMINISTRADOR)",
+            description = "Asigna una contrasena temporal SEC-016 y deja el usuario marcado para cambiar la contrasena en el proximo login. Registra RESET_CONTRASENA_ADMIN en auditoria")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contrasena restablecida"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+            @ApiResponse(responseCode = "403", description = "No autorizado")
+    })
+    public ResponseEntity<ErrorResponse> restablecerPassword(
+            @PathVariable Long id,
+            @Valid @RequestBody RestablecerPasswordRequest request) {
+        UsuarioResponse usuario = usuarioService.restablecerPassword(id, request);
+        return ResponseEntity.ok(ErrorResponse.ok(
+                "Contrasena restablecida. El usuario debera cambiarla en su proximo inicio de sesion",
+                usuario));
     }
 
     @PutMapping("/{id}")

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAUCO - Restablecer Contrasena</title>
+    <link rel="stylesheet" href="../css/login.css">
+</head>
+<body>
+
+<main class="login-page">
+    <div class="login-card">
+
+        <header class="login-header">
+            <div class="login-logo">
+                <img src="../img/LogoC.png" alt="Logo Coltefinanciera">
+            </div>
+            <h1 class="login-title">SAUCO</h1>
+            <p class="login-subtitle">Defina una nueva contrasena</p>
+        </header>
+
+        <div class="login-error" id="pageError" role="alert" aria-live="assertive">
+            <svg class="login-error-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <span id="pageErrorText"></span>
+        </div>
+
+        <form class="login-form" id="recuperarForm" novalidate>
+            <p class="recover-desc">
+                Este enlace es de un solo uso y vence en 30 minutos. Ingrese la
+                nueva contrasena (minimo 8 caracteres con mayuscula, minuscula,
+                numero y caracter especial).
+            </p>
+
+            <div class="form-group">
+                <label class="form-label" for="nuevaPassword">Nueva contrasena</label>
+                <input
+                    class="form-input"
+                    type="password"
+                    id="nuevaPassword"
+                    name="nuevaPassword"
+                    placeholder="Minimo 8 caracteres"
+                    autocomplete="new-password"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="confirmarPassword">Confirmar contrasena</label>
+                <input
+                    class="form-input"
+                    type="password"
+                    id="confirmarPassword"
+                    name="confirmarPassword"
+                    placeholder="Repita la nueva contrasena"
+                    autocomplete="new-password"
+                    required
+                >
+            </div>
+
+            <div class="login-error" id="formError" role="alert" aria-live="assertive">
+                <svg class="login-error-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <span id="formErrorText"></span>
+            </div>
+
+            <button type="submit" class="login-btn" id="recuperarBtn">
+                <span class="btn-text">Restablecer contrasena</span>
+                <span class="btn-loading">
+                    <span class="spinner"></span>
+                    Procesando...
+                </span>
+            </button>
+        </form>
+
+        <div class="recover-success" id="successPanel" hidden>
+            <p><strong>Contrasena restablecida.</strong></p>
+            <p>Ya puede iniciar sesion con la nueva contrasena.</p>
+            <a href="login.html" class="login-forgot" style="margin:12px auto 0;">Volver al inicio de sesion</a>
+        </div>
+
+    </div>
+</main>
+
+<script src="../js/api.js"></script>
+<script src="../js/login.js"></script>
+<script src="../js/recuperar.js"></script>
+
+</body>
+</html>
