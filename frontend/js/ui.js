@@ -634,3 +634,65 @@ function cerrarSugerenciasUsuario() {
     _autocompleteIndiceActivo = -1;
 
 }
+
+/*
+----------------------------------------------------
+CUENTA BLOQUEADA — INTERCEPTOR GLOBAL (SEC-003/UX)
+----------------------------------------------------
+
+Cuando una cuenta se bloquea Estando el usuario con sesion activa, cualquier
+peticion protegida responde 401 con codigo "CUENTA_BLOQUEADA". Este wrapper de
+fetch detecta el codigo en TODAS las respuestas JSON:
+
+  1. Muestra el toast profesional (mensaje oficial del negocio).
+  2. Limpia la sesion local completa: JWT (sessionStorage) y datos de auth
+     (localStorage: username/role/token). No se llama a /sesiones/revocar
+     porque el JWT ya es inutil (la cuenta está bloqueada) y evitaria un
+     segundo fetch que volveria a disparar el interceptor.
+  3. Redirige a login.html automaticamente.
+
+ui.js se carga en todas las paginas autenticadas (actas, usuarios, firmas,
+auditoria, perfil, formularios, home...), asi que una sola instalacion cubre
+todos los modulos. login.html/recuperar.html no cargan ui.js: ahi el login de
+una cuenta bloqueada muestra directamente el mensaje de la respuesta 401.
+La respuesta original se devuelve intacta (se lee el clone), sin romper a los
+consumidores de fetch.
+*/
+(() => {
+    "use strict";
+
+    let bloqueoEjecutado = false;
+
+    const fetchOriginal = window.fetch;
+
+    window.fetch = function (...args) {
+        return fetchOriginal.apply(this, args).then(async (response) => {
+            try {
+                const contentType = response.headers.get("content-type") || "";
+                if (bloqueoEjecutado || !contentType.includes("application/json")) {
+                    return response;
+                }
+                const clone = response.clone();
+                const body = await clone.json();
+                if (body && body.codigo === "CUENTA_BLOQUEADA") {
+                    bloqueoEjecutado = true;
+                    mostrarNotificacion(
+                        "Su cuenta ha sido bloqueada por un administrador. Debe volver a iniciar sesion y comunicarse con soporte si considera que esto es un error.",
+                        "warning",
+                        5000
+                    );
+                    sessionStorage.removeItem("token");
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("username");
+                    localStorage.removeItem("role");
+                    setTimeout(() => {
+                        if (!window.location.href.includes("login.html")) {
+                            window.location.href = "login.html";
+                        }
+                    }, 2500);
+                }
+            } catch (_) {}
+            return response;
+        });
+    };
+})();

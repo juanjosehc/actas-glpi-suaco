@@ -65,17 +65,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountStatusException.class)
     public ResponseEntity<ErrorResponse> handleAccountStatus(AccountStatusException ex) {
         // Spring Security usa mensajes internos en ingles (ej. "User account is locked").
-        // Traducirlos a mensajes claros para el usuario final.
+        // Traducirlos a mensajes claros para el usuario final. La cuenta bloqueada
+        // lleva codigo CUENTA_BLOQUEADA para que el frontend pueda automatizar
+        // (limpiar sesion / redirigir) sin depender del texto.
         String mensaje;
+        String codigo = null;
         if (ex instanceof LockedException) {
-            mensaje = "Su cuenta se encuentra bloqueada. Por favor contacte al administrador.";
+            mensaje = "Su cuenta ha sido bloqueada. Comuniquese con un administrador.";
+            codigo = "CUENTA_BLOQUEADA";
         } else if (ex instanceof DisabledException) {
             mensaje = "Su cuenta no se encuentra habilitada. Por favor contacte al administrador.";
         } else {
             mensaje = "El estado de su cuenta no permite iniciar sesion. Por favor contacte al administrador.";
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(mensaje));
+                .body(ErrorResponse.ofConCodigo(mensaje, codigo));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

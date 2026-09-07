@@ -1,5 +1,7 @@
 package com.empresa.actas.security;
 
+import com.empresa.actas.auditoria.entity.TipoEventoAuditoria;
+import com.empresa.actas.auditoria.service.AuditoriaService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final AuditoriaService auditoriaService;
 
     @Override
     protected void doFilterInternal(
@@ -72,6 +75,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+                if (!userDetails.isAccountNonLocked()) {
+                    // SEC-003: la cuenta fue bloqueada DESPUES de emitirse el JWT.
+                    // Cortar aqui con 401 + codigo CUENTA_BLOQUEADA (nunca crear
+                    // SecurityContext): el frontend detecta el codigo, limpia la
+                    // sesion local y redirige al login. Se audita el intento.
+                    if (userDetails instanceof UserSecurity us) {
+                        auditoriaService.registrar(TipoEventoAuditoria.ACCESO_DENEGADO,
+                                us.getUsuario().getIdUsuario(), us.getUsername(),
+                                "USUARIO", String.valueOf(us.getUsuario().getIdUsuario()),
+                                request.getRequestURI(),
+                                "Request con JWT de cuenta bloqueada");
+                    }
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    response.getWriter().write(
+                            "{\"success\":false,\"mensaje\":\"Su cuenta ha sido bloqueada. "
+                            + "Comuniquese con un administrador.\",\"codigo\":\"CUENTA_BLOQUEADA\"}");
+                    return;
+                }
 
                 if (jwtService.validarToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken =
