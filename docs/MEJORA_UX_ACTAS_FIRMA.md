@@ -1,7 +1,7 @@
 # Mejora Integral de UX en Generación de Actas y Firma Electrónica
 
 Sistema: **SAUCO — Gestión de Actas de Entrega/Devolución (Coltefinanciera)**
-Fecha: **2026-09-07**
+Fecha: **2026-09-07** — Java 5.6
 
 ## Entregable (10 puntos)
 
@@ -20,54 +20,73 @@ Fecha: **2026-09-07**
 
 ## 1. Causa exacta de las recargas/navegaciones repetidas
 
-La evidencia "Navigated to ..." repetida en la consola tenía **dos orígenes
-distintos**, y solo uno persiste hoy:
+El parpadeo "recarga sin parar" al **generar** un acta y al **firmar** tuvo
+**dos causas acumuladas**, ambas confirmadas por reproducción headless real
+(puppeteer-core + Edge, contador de cargas persistente en `sessionStorage`,
+trazas CDP `Page.frameScheduledNavigation`/`Page.frameNavigated`).
 
-### 1a. Origen histórico (eliminado en Sprint 4 / Java 4.0-5.x)
+### 1a. Causa original parcial — JS antiguo en caché (corregida en Java 5.5)
 
-El flujo V2 heredado (`generar-acta.html`) y la "Vista Previa" navegaban
-múltiples veces: formulario → generación → preview → listado, con páginas
-intermedias (`frontend/templates/*.html`) que **nunca existieron** (QA-42). Ese
-sprint eliminó `generar-acta.html` y `checklist-entrega.html`; la migración
-V1→V2 quedó descartada y los formularios V1 pasaron a ser la navegación
-canónica. Esas recargas ya no existen en el código actual.
-
-### 1c. Causa raíz confirmada en la validación posterior (Java 5.5)
-
-Al validar con el usuario (entorno Live Server `:5500`), el parpadeo **seguía
-ocurriendo al hacer clic** pese a que el repositorio ya tenía cero
-`location.reload`. La causa fue **caché del navegador**: los `<script src>` de
-las 14 páginas no llevaban parámetro de versión (`?v=`), así que Chrome seguía
-ejecutando los **JS antiguos cacheados** (los que sí contenían reloads y flujos
-V2 navegando de más), mientras que el contenido del repo ya estaba limpio.
+Los `<script src>` de las 14 páginas no llevaban `?v=`. Un navegador con sesión
+abierta seguía ejecutando los **JS viejos cacheados** (con reloads y flujos V2
+navegando de más) pese a que el repo ya estaba limpio de `location.reload`.
 
 | Página | Antes | Después |
 |---|---|---|
-| `app.js`, `devolucion.js`, `formateo.js` (generadores) | Sin `?v` → versión cacheada vieja | `?v=20260907` |
-| `actas.js`, `acta-view.js`, `firmas.js`, `admin-layout.js`, `ui.js`, `login.js`, `api.js`, `iconos.js` y módulos de gestión | Sin `?v` → versión cacheada vieja | `?v=20260907` |
-| `firma.js` | `?v=20260825` (ya versionado) | `?v=20260907` (bump) |
+| `app.js`, `devolucion.js`, `formateo.js` y módulos de gestión | Sin `?v` → versión cacheada vieja | `?v=20260907` |
+| `firma.js` | `?v=20260825` | `?v=20260907` (bump) |
 
-`flatpickr` y `flyonui` (dependencias de `node_modules`) no se versionaron.
+`grep` global de scripts sin `?v` → 0 resultados. Esto eliminó la ejecución de
+JS obsoletos, pero el usuario **reportó que el parpadeo continuaba** — quedaba
+un segundo origen:
 
-**Confirmación:** `grep` global de scripts sin `?v` → 0 resultados en las 14
-páginas; los reloads observados correspondían a ejecución de JS obsoletos en el
-navegador, no al código actual del repo.
+### 1b. Causa raíz confirmada — Live Reload de "Live Server" recargando por escrituras del backend
 
-### 1a. Origen histórico (eliminado en Sprint 4 / Java 4.0-5.x)
+Reproducción A/B del mismo flujo (login JWT + llenado del formulario + clic en
+**Generar Acta**) contra dos servidores estáticos:
 
-En el **Portal de Firma** (`firma.js`), el botón **Firmar Acta** iniciaba el
-POST sin pantalla de procesamiento: solo cambiaba su propio estado a `.loading`.
-Durante los 3-10+ segundos que tarda el backend en validar OTP, guardar firma y
-foto, incrustarlas en el DOCX, regenerar PDF/checklist y auditar, el usuario no
-tenía **ningún feedback** sobre qué estaba pasando. Efectos observados:
+| Servidor | Resultado observado |
+|---|---|
+| **Live Server de VS Code** en `:5500` (puerto documentado en CLAUDE.md) | `SCHEDULED reason=reload` sobre `acta-entrega.html` repetido; contador de cargas crece sin límite (9 → 14 en 30 s); la navegación única a `actas.html` queda **pisada** |
+| **`python -m http.server 8080`** (estático, sin livereload) | **Una sola navegación**: `SCHEDULED reason=scriptInitiated → actas.html`; contador estable en 3; cero reloads |
 
-- El usuario **recargaba la página** creyendo que la firma se había colgado
-  ("Navigated to" duplicadas en consola).
-- El botón **Reenviar Código OTP** y **Rechazar Acta** seguían activos durante
-  el procesamiento → acciones duplicadas mientras el token de firma ya estaba
-  siendo consumido.
-- Doble clic en "Firmar Acta" generaba intentos duplicados (el token de un
-  solo uso devuelve 400 en el segundo POST).
+Secuencia causal exacta:
+
+1. El usuario usa **Live Server Go Live** (`:5500`) para abrir el frontend. La
+   extensión inyecta en cada página un cliente con **Live Reload** (confirmado
+   por `console.log("Live reload enabled.")` en la consola del documento).
+2. Al clic en **Generar Acta**, el POST `/generar-acta` persiste el acta y el
+   backend **escribe archivos dentro del workspace** (`backend/storage/generated/`,
+   `backend/storage/uploads/…`, logs). `backend/storage` está bajo el directorio
+   que **Live Server vigila**.
+3. Live Server detecta los cambios de archivo y ordena al navegador
+   `location.reload()` (`SCHEDULED reason=reload`). Esto recarga `acta-entrega.html`.
+4. El código del repo navega al listado **una vez** (`setTimeout(600) →
+   `actas.html`, `reason=scriptInitiated`), pero la recarga del livereload la
+   pisa: la página vuelve a cargar, el backend sigue generando (Varios DOCX/ZIP
+   asíncronos), Live Server vuelve a recargar → **"recarga sin parar"**.
+5. Al **firmar**: `POST /firma/{token}` guarda `firma_<id>.png`, `foto_<id>.jpg`
+   y el PDF final en `storage/uploads/`. El mismo mecanismo recarga `firma.html`
+   a mitad del procesamiento → el firmante cree que "la firma falló" y recarga
+   a mano (los "Navigated to" que el usuario ve).
+
+**Conclusión:** el código del repo hace actualización silenciosa y **una sola
+navegación** (verificado en `:8080`). La "recarga sin parar" restante es del
+**Live Reload ambiental del entorno de desarrollo**, no del aplicativo. En
+producción (servidor de estáticos sin livereload) no ocurre.
+
+### 1c. Origen histórico V2 (eliminado en Sprint 4)
+
+`generar-acta.html` (V2) y la "Vista Previa" navegaban múltiples veces hacia
+`frontend/templates/*.html` que **nunca existieron** (QA-42). Ese flujo fue
+eliminado; no contribuye al síntoma actual.
+
+### 1d. Carencia de feedback de la firma (PROBLEMA 2, corregida en Java 5.5)
+
+El botón **Firmar Acta** arrancaba el POST sin pantalla de procesamiento; 3-10 s
+de regeneración de documentos sin feedback empujaban al usuario a recargar
+creyendo un fallo, y a dobles envíos (token de un solo uso → 400 en el segundo
+POST).
 
 ## 2. Lugares donde ocurren (auditoría completa del frontend)
 
@@ -75,92 +94,88 @@ Auditoría exhaustiva de `frontend/js/` + `frontend/pages/`:
 
 | Módulo | Hallazgo | Estado |
 |---|---|---|
-| `app.js` / `devolucion.js` / `formateo.js` (generadores) | Botón `type="button"` + `onclick`, **sin `<form>`**. Tras POST: toast + `setTimeout(600) → actas.html`. **UNA sola navegación.** | Correcto |
-| `actas.js` | Listado con `fetch` + render parcial (`renderTable`), polling 3 s `setTimeout` encadenado (fetch, sin navegación). Sin `location.reload`. | Correcto |
-| `acta-view.js` | Detalle con `loadPdfViewer`, placeholder `renderGenerando`, polling 3 s fetch. Redirección pública por token → `firma.html` (seguridad). Sin reload. | Correcto |
-| `firmas.js` | Listado `fetch` + modals, `await loadActas()` silencioso tras acciones. Sin reload. | Correcto |
-| `firma.js` | **Carencia de feedback durante el POST de firma**; `btnReject`/`btnOtpReenviar` activos durante el envío. | **Corregido** |
-| `login-ui.js` | `e.preventDefault()` + única redirección a `ROUTES.HOME` tras éxito. Sin reload. | Correcto |
-| `home.js` / `admin-layout.js` | Redirección a `login.html` solo por auth (token ausente / 401). Sin loop de navegación. | Correcto |
-| `auditoria.js` / `usuarios.js` / `perfil.js` / `cambiar-password.js` | Redirección por auth o por flujo, una vez. Sin polling ni reload. | Correcto |
+| `app.js` / `devolucion.js` / `formateo.js` (generadores) | Botón `type="button"` + `onclick`, sin `<form>`. Tras POST: toast + `setTimeout(600) → actas.html`. **Una sola navegación** (confirmada en `:8080`). | Correcto |
+| `actas.js` | Listado `fetch` + render parcial (`renderTable`), polling 3 s (fetch, sin navegación). Sin `location.reload`. | Correcto |
+| `acta-view.js` | Detalle `loadPdfViewer`, placeholder `GENERANDO_DOCUMENTOS`, polling 3 s. Redirección pública por token → `firma.html` (seguridad). | Correcto |
+| `firmas.js` | Listado `fetch` + modals, `await loadActas()` silencioso. | Correcto |
+| `firma.js` | **Falta de feedback durante el POST de firma**; `btnReject`/`btnOtpReenviar` activos durante envío. | **Corregido** |
+| `login-ui.js` / `home.js` / `admin-layout.js` / `usuarios.js` / `perfil.js` / `cambiar-password.js` / `auditoria.js` | Redirección por auth única. Sin loop. | Correcto |
 
-**Grep de verificación:** `location.reload` → **0 coincidencias** en todo el
-frontend. `setInterval` → solo los countdown de OTP/resend (cuenta regresiva,
-no navegación). `setTimeout(..., reload)` → 0. No hay meta-refresh en ningún
-`<head>`.
+**Grep de verificación:** `location.reload` → **0** en todo el frontend. Sin
+meta-refresh. `setInterval` solo en countdown OTP (cuenta regresiva, no navega).
+
+Los `reason=reload` repetidos **no los emite el código del repo** (0 reloads en
+grep y sin `location.reload()` en el stack del navegador): los emite el cliente
+de Live Reload inyectado por Live Server.
 
 ## 3. Correcciones realizadas
 
-Veredicto de PROBLEMA 1: la codificación actual ya hace actualización silenciosa
-(fetch + render parcial + polling inteligente) y los generadores hacen una sola
-navegación. La corrección de esta entrega se concentra en **PROBLEMA 2** (firma):
+### `frontend/pages/firma.html` (Java 5.5)
+- **Estado `#stateProcessing`**: spinner + *"Estamos finalizando su firma. Por
+  favor espere mientras se actualizan los documentos y evidencias asociadas."*
+- Estado `#stateSuccess`: *"Firma registrada correctamente. Los documentos y
+  evidencias ya fueron actualizados."*
 
-### `frontend/pages/firma.html`
-- **Nuevo estado `#stateProcessing`**: pantalla de procesamiento con spinner y
-  el mensaje exacto solicitado:
-  *"Estamos finalizando su firma. Por favor espere mientras se actualizan los
-  documentos y evidencias asociadas."*
-- Estado `#stateSuccess` con mensaje exacto:
-  *"Firma registrada correctamente. Los documentos y evidencias ya fueron
-  actualizados."*
+### `frontend/js/firma.js` (Java 5.5)
+- `mostrarProcesando()`: bloquea `btnSubmit`, `btnReject`, `btnOtpReenviar`,
+  detiene el countdown OTP y muestra la pantalla de procesamiento.
+- Guardia `procesandoFirma` en `submitFirma` y `submitRechazo` (evita dobles
+  envíos y el 400 del token de un solo uso).
 
 ### Cache-bust global (Java 5.5)
-- Todas las etiquetas `<script src="../js/*.js">` de las 14 páginas ahora llevan
-  `?v=20260907`. Fuerza al navegador a descargar el JS actual del repo y elimina
-  la ejecución de versiones cacheadas con `location.reload` del flujo V2.
+- Todas las etiquetas `<script src="../js/*.js">` de las 14 páginas con
+  `?v=20260907`.
 
-### `frontend/js/firma.js`
-- **`mostrarProcesando()`**: bloquea el formulario durante la operación
-  (oculta la tarjeta de firma, deshabilita `btnSubmit`, `btnReject` y
-  `btnOtpReenviar`, detiene el countdown OTP) y muestra la pantalla de
-  procesamiento.
-- **`ocultarProcesando()`**: restaura la tarjeta en error/reintento.
-- **Guardia `procesandoFirma`**: ignora doble clic y acciones duplicadas en
-  `submitFirma` y `submitRechazo` (evita el 400 del token de un solo uso).
-- El rechazo reutiliza la misma guardia de duplicidad; su feedback de carga ya
-  vivía en el botón del modal (`btnConfirmReject`).
+### Live Reload del entorno (Java 5.6) — causa raíz
+- **`.vscode/settings.json`**: `liveServer.settings.ignoreFiles =
+  ["**/storage/**", "**/target/**", "**/*.log"]`. Con esto la extensión Live
+  Server ignora las escrituras del backend y **deja de ordenar el reload** al
+  generar y al firmar (se aplica al abrir el workspace del repo en VS Code;
+  no requiere reiniciar el navegador).
+- **CLAUDE.md**: nueva nota de entorno con la causa y cómo evitarla (servir por
+  otro puerto: `python -m http.server 8080` — permitido por CORS — o usar el
+  `ignoreFiles`).
 
 ## 4. Evidencia de reducción de reloads
 
-- `grep -n "location.reload" frontend/` → **0 resultados**.
-- Generadores V1: un único `window.location.href = "actas.html"` tras el POST
-  (confirmado en `app.js:407`, `devolucion.js:334`, `formateo.js:280`).
-- Los botones de generación son `type="button"` y no están dentro de `<form>`:
-  el click dispara un único handler, sin submit implícito del navegador.
-- Polling de `GENERANDO_DOCUMENTOS`: fetch cada 3 s + render parcial; no
-  reproduce la navegación del navegador (no genera "Navigated to").
-- Flujo firma: en el peor caso anterior se producían recargas manuales del
-  usuario (no feedback → creía colgado) más un 400 por doble envío. Con la
-  pantalla de procesamiento el usuario **no tiene motivo para recargar** y la
-  guardia de duplicados bloquea el segundo POST.
+`location.reload` → 0 en el frontend. Verificación A/B instrumentada del flujo
+completo (login + llenado + clic en Generar):
+
+```
+—— Live Server :5500 (con livereload) ——
+schedule: reload  acta-entrega.html     (loop: 9→14 cargas en 30 s)
+schedule: reload  acta-entrega.html
+schedule: scriptInitiated  actas.html   (pisada por el reload siguiente)
+
+—— Servidor plano :8080 (sin livereload) ——
+schedule: scriptInitiated  actas.html   (1 sola navegación)
+contador de cargas: 2 → 3 (goto + destino), estable
+```
+
+La navegación del repositorio es **una por acción**: post-generación → listado;
+post-firma → estado de éxito en la misma pantalla (sin navegación).
 
 ## 5. Nuevo flujo visual de firma (antes/después)
 
 ### ANTES
-1. Usuario firma + foto + (checklist) → clic **Firmar Acta**.
-2. El botón pasa a `.loading` con el texto "Enviando firma...".
-3. El POST tarda segundos (valida OTP, guarda evidencias, incrusta firmas,
-   regenera PDF/checklist, audita). **Sin feedback global.**
-4. Usuario ve "nada" → puede recargar, reenviar OTP o rechazar durante el envío.
-5. Al terminar, la tarjeta desaparece y aparece "Firma Registrada".
+1. Firma + foto + (checklist) → clic **Firmar Acta**.
+2. Botón `.loading` ("Enviando firma..."); 3-10 s de procesamiento **sin
+   feedback global**, y Live Reload **recargaba la página** al guardarse firma/
+   foto/PDF en `storage`.
+3. Usuario: "parece que falló" → recarga manual → repite acciones.
 
 ### DESPUÉS
-1. Usuario firma + foto + (checklist) → clic **Firmar Acta**; `procesandoFirma`
-   bloquea cualquier segunda acción.
-2. Se muestra **pantalla de procesamiento**: spinner + *"Estamos finalizando su
-   firma. Por favor espere mientras se actualizan los documentos y evidencias
-   asociadas."*
-3. `btnReject`, `btnOtpReenviar` y `btnSubmit` quedan deshabilitados; el
-   countdown OTP se detiene.
+1. Clave → clic **Firmar Acta**; la guardia `procesandoFirma` bloquea doble envío.
+2. **Pantalla de procesamiento** (spinner + mensaje). `btnReject`, `btnOtpReenviar`
+   y `btnSubmit` deshabilitados; countdown OTP detenido.
+3. Sin recargas ambientales: `storage` fuera del watch de Live Server.
 4. Al completarse: **"Firma registrada correctamente. Los documentos y
-   evidencias ya fueron actualizados."**
-5. En error: se restaura la tarjeta con el toast de error y los controles se
-   rehabilitan (esperando el cooldown de reenvío OTP si aplica).
+   evidencias ya fueron actualizados."** En error: se restaura la tarjeta y se
+   rehabilitan los controles.
 
 ## 6. Pantalla de procesamiento implementada
 
-Estado nuevo en `firma.html` (`#stateProcessing`), reutilizando la clase
-`.firma-state` existente:
+Estado nuevo `#stateProcessing` en `firma.html` (reutiliza `.firma-state`):
 
 ```html
 <div class="firma-state" id="stateProcessing" style="display:none">
@@ -173,55 +188,49 @@ Estado nuevo en `firma.html` (`#stateProcessing`), reutilizando la clase
 </div>
 ```
 
-Controlada por `mostrarProcesando()` / `ocultarProcesando()` en `firma.js`,
-con la guardia `procesandoFirma` para evitar doble envío.
+Controlado por `mostrarProcesando()` / `ocultarProcesando()` en `firma.js`.
 
 ## 7. Impacto en rendimiento percibido
 
-- **Firma** (caso crítico): antes el usuario percibía "falló / se colgó"
-  durante segundos de procesamiento; ahora hay un estado visible que avanza y
-  concluye en éxito. Se eliminan recargas manuales e intentos duplicados que
-  agregaban latencia percibida y ruido en el servidor.
-- **Generación** de actas: el flujo async existente (`GENERANDO_DOCUMENTOS`)
-  ya evita la espera síncrona; el polling avisa "Documentos listos" sin
-  recargar la página.
-- No se añadió ningún request extra: la pantalla de procesamiento es puro DOM.
-  Cero impacto en el backend.
+- **Generación**: el parpadeo a repetido era el Live Reload + la recarga de cada
+  navegación. Con `ignoreFiles`/servidor plano queda **una sola navegación**:
+  POST → toast → listado.
+- **Firma**: antes "falló/parece colgado" + recargas manuales + dobles envíos;
+  ahora estado visible que avanza y concluye. Se eliminan recargas ambientales y
+  latencia percibida.
+- Cero requests extra en el frontend (la pantalla de procesamiento es DOM puro).
 
 ## 8. Validación auditoría OWASP intacta
 
-Cambios acotados a **firma.html (markup de estado)** y **firma.js
-(feedback/DOM + guardia de duplicidad)**. Ningún archivo de seguridad tocado:
+Cambios acotados a: `firma.html` (markup de estado), `firma.js` (feedback/DOM +
+guardia de duplicidad), `.vscode/settings.json` (config de editor local) y
+documentación. **Ningún archivo de backend o de seguridad tocado:**
 
 | Item | Estado |
 |---|---|
 | **JWT** (`jjwt`, `SecurityConfig`, `JwtAuthenticationFilter`) | Sin cambios |
 | **OTP** (validación, expiración, envío, cooldown, reenvíos) | Sin cambios |
 | **Password Reset / Recuperación / Cambio contraseña** | Sin cambios |
-| **Protección XSS** | La pantalla nueva usa `textContent` (nada de `innerHTML` con datos del servidor); los textos son estáticos del HTML |
+| **Protección XSS** | Pantalla nueva usa `textContent`; textos estáticos del HTML |
 | **Path Traversal** | Sin cambios |
 | **Validaciones OWASP / GlobalExceptionHandler** | Sin cambios |
 | **Auditoría** | Sin cambios |
 | **Autorización / Roles** | Sin cambios |
 | **Rate Limiting** | Sin cambios |
-| **CSP** | Sin cambios |
-| **Tokens de firma (un solo uso)** | La guardia `procesandoFirma` refuerza el no-uso repetido del token; no lo debilita |
+| **CSP / Tokens de firma (un solo uso)** | Sin cambios; la guardia refuerza el no-uso repetido |
 | **Rutas públicas** (`/firma/*`, `/uploads/*`) | Sin cambios |
 
 ## 9. Confirmación: sin regresiones de seguridad
 
-- **No se introdujeron superficies de ataque**: el nuevo estado es markup
-  estático; la lógica de seguridad (otpHeaders, `X-OTP-Sesion`, token de un
-  solo uso) quedó intacta.
-- **No hay bypass**: la guardia de duplicidad no salta validaciones ni reduce
+- **Sin superficies de ataque**: el estado nuevo es markup estático; la lógica
+  de seguridad (otpHeaders, `X-OTP-Sesion`, token de un solo uso) intacta.
+- **Sin bypass**: la guardia de duplicidad no salta validaciones ni reduce
   verificaciones; solo evita un segundo POST simultáneo.
-- **No hay exposición de información**: los mensajes de procesamiento son
-  textos de negocio estáticos, sin datos internos (IDs, correos, rutas).
-- **No se relajaron controles**: el flujo de rechazo y el de firma siguen
-  exigiendo OTP válido y token no usado.
-- Los cambios no tocan autenticación, autorización, ni manejo de errores del
-  backend (a diferencia de la entrega MEJORA_CUENTAS_BLOQUEADAS, aquí no hubo
-  cambios de backend en absoluto).
+- **Sin exposición de información**: mensajes de negocio estáticos, sin IDs,
+  correos ni rutas.
+- **Sin relajación de controles**: firma y rechazo siguen exigiendo OTP válido y
+  token no usado.
+- `.vscode/settings.json` es configuración local del editor, no toca la app.
 
 ## 10. Resumen de archivos modificados
 
@@ -230,5 +239,15 @@ Cambios acotados a **firma.html (markup de estado)** y **firma.js
 | `frontend/pages/firma.html` | Estado `#stateProcessing` + mensaje de éxito actualizado |
 | `frontend/js/firma.js` | `mostrarProcesando`/`ocultarProcesando` + guardia `procesandoFirma` en firma y rechazo |
 | `frontend/pages/*.html` (14 páginas) | Cache-bust `?v=20260907` en todos los `<script src="../js/...">` |
+| `.vscode/settings.json` | `liveServer.settings.ignoreFiles` → `storage`, `target`, logs (causa raíz del parpadeo) |
+| `CLAUDE.md` | Nota de entorno: causa del parpadeo y cómo evitarlo |
+| `docs/MEJORA_UX_ACTAS_FIRMA.md` | Este documento (actualizado con causa raíz y evidencia A/B) |
 
 Backend **sin cambios**. Auditoría OWASP intacta. Sin regresiones.
+
+## 11. Cómo reproducir el diagnóstico (instrumentación usada)
+
+- Puppeteer-core + Edge headless, `Page.frameScheduledNavigation`/`frameNavigated`/`Network.*`,
+  contador de cargas persistente en `sessionStorage['__lc']` (sobrevive reloads).
+- Experimento clave: mismo script, dos orígenes — Live Server `:5500` vs
+  `python -m http.server 8080`. Solo el primero muestra `reason=reload` en bucle.
