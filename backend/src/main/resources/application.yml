@@ -33,7 +33,11 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      # SEC-109: esquema de BD controlado por entorno. Desarrollo usa
+      # "update" (autocrea tablas); produccion DEBE correr con
+      # JPA_DDL_AUTO=validate para que Hibernate solo valide el esquema
+      # contra las migraciones SQL manuales y no altere la BD en caliente.
+      ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
@@ -69,11 +73,25 @@ security:
     registro:
       max: ${RATE_LIMIT_REGISTRO_MAX:5}
       segundos: ${RATE_LIMIT_REGISTRO_SEGUNDOS:3600}
+    recuperar:
+      max: ${RATE_LIMIT_RECUPERAR_MAX:5}
+      segundos: ${RATE_LIMIT_RECUPERAR_SEGUNDOS:900}
+    # SEC-119: throttle por IP del paso OTP del portal de firma (estado/validar/
+    # reenviar). GET y POST comparten contador. Ajustado para un usuario humano
+    # (pocos REENVIAR por minuto); un bot que recorra tokens recibe 429.
+    firma-otp:
+      max: ${RATE_LIMIT_FIRMA_OTP_MAX:30}
+      segundos: ${RATE_LIMIT_FIRMA_OTP_SEGUNDOS:300}
     trust-x-forwarded-for: ${RATE_LIMIT_TRUST_XFF:false}
 
 # Integracion GLPI (URL no secreta; tokens por env, ver comentario arriba)
 glpi:
-  url: ${GLPI_URL:http://10.86.1.33/glpi/apirest.php}
+  # SEC-128: SIN default de URL. El servidor interno no se hardcodea; se define
+  # explicitamente via GLPI_URL (por env o backend/.env). Con GLPI_URL vacio la
+  # app arranca y las llamadas GLPI devuelven error claro ("GLPI no configurado")
+  # en lugar de disparar contra una URL fija. SEC-112 se mantiene: si el GLPI
+  # interno solo habla HTTP por LAN, GLPI_URL=http://... es decision conciente.
+  url: ${GLPI_URL:}
   app-token: ${GLPI_APP_TOKEN:}
   user-token: ${GLPI_USER_TOKEN:}
   # Timeouts de la integracion (QA-12): limitan la espera de GLPI para que un
@@ -105,10 +123,12 @@ mail:
         timeout: ${MAIL_SMTP_TIMEOUT:15000}
         writetimeout: ${MAIL_SMTP_TIMEOUT_WRITE:15000}
         ssl:
-          # Evita javax.net.ssl.SSLHandshakeException (certificate_unknown) con relays
-          # que rotan certificados (Brevo, SendGrid). Acepta el cert del host sin
-          # exigir la cadena completa del cacerts del JDK. Sobre-escribible por env.
-          trust: ${MAIL_SMTP_TRUST:smtp-relay.brevo.com}
+          # SEC-108: sin trust override por defecto. JavaMail valida la cadena
+          # completa del certificado contra los cacerts del JDK (comportamiento
+          # seguro). El override era un bypass de verificacion para relays que
+          # rotan certs (Brevo, SendGrid); si el entorno lo necesita de verdad,
+          # se fija MAIL_SMTP_TRUST=<host exacto y verificado> explicitamente.
+          trust: ${MAIL_SMTP_TRUST:}
 
 # Almacenamiento persistente de archivos (PDF, DOCX, firmas, fotos).
 # Ya no usa directorios temporales del SO.
@@ -146,6 +166,27 @@ app:
   firma-otp-max-intentos: ${FIRMA_OTP_MAX_INTENTOS:5}
   firma-otp-max-reenvios: ${FIRMA_OTP_MAX_REENVIOS:3}
   firma-otp-cooldown-segundos: ${FIRMA_OTP_COOLDOWN_SEGUNDOS:60}
+  # SEC-111: allow-list de dominios para el correo de envio a firma. Vacio por
+  # defecto = se mantiene la validacion @Email (compatibilidad). En produccion
+  # se fija con CORREO_DOMINIOS_PERMITIDOS (ej. "coltefinanciera.com") para que
+  # el enviar-acta solo acepte destinatarios de dominios corporativos (bloquea
+  # el abuso de redirigir solicitudes de firma a correos externos).
+  correo-dominios-permitidos: ${CORREO_DOMINIOS_PERMITIDOS:}
+
+# SEC-115: actuator expuesto al minimo. Solo el health check, sin detalles de
+# componentes (show-details never -> no filtra estado de DB/servicios a quien
+# consulte /health). Base-path "/" mapea el endpoint a /health (ya en permitAll).
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+      path-mapping:
+        health: health
+  endpoint:
+    health:
+      show-details: never
 
 # Ruta a LibreOffice Portable (soffice.exe)
 libreoffice:

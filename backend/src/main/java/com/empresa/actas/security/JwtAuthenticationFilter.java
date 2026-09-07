@@ -22,7 +22,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/auth/",
-            "/equipo/",
+            // /equipo ya NO va aqui (SEC-107): quedó fuera de permitAll y exige
+            // rol TECNICO/ADMINISTRADOR; el filtro debe parsear el Bearer.
             // /usuario y /descargar-acta no van aqui: protegidos por
             // @PreAuthorize en el controlador; el filtro autentica el Bearer.
             // /generar-acta y /generar-devolucion tampoco: se deja que el
@@ -48,12 +49,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String path = request.getRequestURI();
 
-        // /auth/logout y /auth/cambiar-password van excluidos del salto publico:
-        // se intenta autenticar el Bearer (rutas autenticadas). El prefijo
-        // "/auth/" de PUBLIC_PATHS cubre login/register/recuperar (publicos);
-        // cambiar-password NO esta en permitAll del SecurityConfig, asi que sin
-        // este parseo quedaria anonimo y Spring respondería 403.
-        if (isPublicPath(path) && !path.equals("/auth/logout") && !path.equals("/auth/cambiar-password")) {
+        // /auth/cambiar-password va excluido del salto publico: se intenta
+        // autenticar el Bearer (ruta autenticada). El prefijo "/auth/" de
+        // PUBLIC_PATHS cubre login/register/recuperar (publicos). (SEC-118 ya
+        // no existe /auth/logout: el logout unico es /sesiones/revocar.)
+        if (isPublicPath(path) && !path.equals("/auth/cambiar-password")) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -84,15 +84,19 @@ public class OtpService {
                 .build();
         otpRepository.save(fila);
 
+        // SEC-105: el FirmaToken en auditoria va enmascarado (es una capability
+        // de un solo uso); el id numerico del token de BD sirve para correlacionar.
+        String tokenMask = enmascararToken(firmaToken.getToken());
+
         auditoriaService.registrar(TipoEventoAuditoria.OTP_GENERADO, null,
-                "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                "/firma/" + firmaToken.getToken() + "/otp",
+                "PORTAL_FIRMA", "FIRMA_TOKEN", tokenMask,
+                "/firma/otp",
                 "Codigo OTP emitido para firma_token id=" + firmaToken.getIdToken());
 
         boolean enviado = enviarCorreoOtp(firmaToken, codigo);
         auditoriaService.registrar(enviado ? TipoEventoAuditoria.OTP_ENVIADO : TipoEventoAuditoria.OTP_ENVIO_FALLIDO,
-                null, "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                "/firma/" + firmaToken.getToken() + "/otp",
+                null, "PORTAL_FIRMA", "FIRMA_TOKEN", tokenMask,
+                "/firma/otp",
                 enviado ? "Correo OTP enviado a " + enmascararCorreo(fila.getCorreoDestino())
                         : "Fallo el envio de correo OTP a " + enmascararCorreo(fila.getCorreoDestino()));
         return enviado;
@@ -118,10 +122,11 @@ public class OtpService {
     }
 
     /**
-     * Estado del paso OTP. GET con efecto lateral: genera y envia un codigo si
-     * el token nunca tuvo uno (legacy). {@code valido=true} solo si el cliente
-     * presenta la sesion correcta (header): si no la tiene, se le da un codigo
-     * nuevo aunque exista una sesion vigente en el servidor (ej. otro dispositivo).
+     * Estado del paso OTP. GET SIN efecto lateral (SEC-119): nunca genera ni
+     * envia un codigo; para tokens legacy sin fila devuelve "sin codigo" y el
+     * frontend dispara POST /otp/reenviar. {@code valido=true} solo si el
+     * cliente presenta la sesion correcta (header): si no la tiene, no hay
+     * sesion que aprovechar desde otro dispositivo y se pide un codigo nuevo.
      */
     @Transactional
     public FirmaOtpEstadoResponse estado(String token, String sesionSolicitada) {
@@ -159,18 +164,12 @@ public class OtpService {
                     expiraSegundos(ultima.get()), reenviosRestantes(firmaToken.getIdToken()), 0L, vencido);
         }
 
-        // Legacy: token sin fila -> generar y enviar uno nuevo (fallback).
-        if (ultima.isEmpty()) {
-            boolean enviado = generarYEnviarParaToken(firmaToken);
-            FirmaOtp fresca = otpRepository
-                    .findFirstByIdTokenFirmaOrderByFechaCreacionDesc(firmaToken.getIdToken()).orElseThrow();
-            return new FirmaOtpEstadoResponse(false, correoEnmascarado, enviado,
-                    expiraSegundos(fresca), reenviosRestantes(firmaToken.getIdToken()), 0L, false);
-        }
-
-        // Fila usada/bloqueada sin sesion vigente: el usuario debe reenviar.
+        // Legacy: token sin fila -> NO se genera ni envia aqui (SEC-119: GET sin
+        // efecto lateral; un GET publico no debe disparar correos). Se devuelve
+        // el estado "sin codigo" y el frontend llama POST /otp/reenviar cuando
+        // el usuario lo solicita (reenviar cubre el caso legacy con fila vacia).
         return new FirmaOtpEstadoResponse(false, correoEnmascarado, null,
-                null, reenviosRestantes(firmaToken.getIdToken()), 0L, false);
+                null, reenviosRestantes(firmaToken.getIdToken()), 0L, null);
     }
 
     /** Valida el codigo OTP. Solo devuelve la sesion; los errores son genericos (no filtrar el motivo). */
@@ -187,8 +186,8 @@ public class OtpService {
 
         if (fila.getFechaExpiracion().isBefore(LocalDateTime.now())) {
             auditoriaService.registrar(TipoEventoAuditoria.OTP_EXPIRADO, null,
-                    "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                    "/firma/" + firmaToken.getToken() + "/otp/validar",
+                    "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
+                    "/firma/otp/validar",
                     "Codigo OTP vencido (" + enmascararCorreo(fila.getCorreoDestino()) + ")");
             throw new IllegalArgumentException("El codigo expiro, solicite uno nuevo");
         }
@@ -205,15 +204,15 @@ public class OtpService {
         String sesion = UUID.randomUUID().toString();
         if (otpRepository.validarSesionAtomico(fila.getIdOtp(), LocalDateTime.now(), sesion) == 0) {
             auditoriaService.registrar(TipoEventoAuditoria.OTP_INVALIDO, null,
-                    "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                    "/firma/" + firmaToken.getToken() + "/otp/validar",
+                    "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
+                    "/firma/otp/validar",
                     "Reintento de codigo OTP ya usado (" + enmascararCorreo(fila.getCorreoDestino()) + ")");
             throw new IllegalArgumentException("Codigo incorrecto o no valido");
         }
 
         auditoriaService.registrar(TipoEventoAuditoria.OTP_VALIDADO, null,
-                "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                "/firma/" + firmaToken.getToken() + "/otp/validar",
+                "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
+                "/firma/otp/validar",
                 "Codigo OTP validado, sesion " + sesion.substring(0, 8) + "... ("
                         + enmascararCorreo(fila.getCorreoDestino()) + ")");
         return new FirmaOtpValidarResponse(sesion);
@@ -224,9 +223,24 @@ public class OtpService {
     public void reenviar(String token) {
         FirmaToken firmaToken = validadorToken.validar(token);
 
+        // SEC-119: el GET /otp/estado ya no genera codigo (sin efecto lateral);
+        // el reenvio es el UNICO camino para emitir. Un token legacy sin fila
+        // entra aqui (ultima vacia) y genera el codigo inicial.
         FirmaOtp ultima = otpRepository
                 .findFirstByIdTokenFirmaOrderByFechaCreacionDesc(firmaToken.getIdToken())
-                .orElseThrow(() -> new IllegalArgumentException("No hay codigo previo; abra el enlace nuevamente"));
+                .orElse(null);
+
+        if (ultima == null) {
+            boolean enviado = generarYEnviarParaToken(firmaToken);
+            if (!enviado) {
+                throw new IllegalArgumentException("No se pudo enviar el codigo. Verifique el correo e intente de nuevo.");
+            }
+            auditoriaService.registrar(TipoEventoAuditoria.OTP_REENVIADO, null,
+                    "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
+                    "/firma/otp/reenviar",
+                    "Codigo OTP inicial emitido para token legacy (" + enmascararToken(token) + ")");
+            return;
+        }
 
         // Sin guardia de "sesion activa": un usuario sin la sesion en este
         // dispositivo (otra pestana/equipo) debe poder pedir un codigo nuevo;
@@ -244,8 +258,8 @@ public class OtpService {
 
         generarYEnviarParaToken(firmaToken);
         auditoriaService.registrar(TipoEventoAuditoria.OTP_REENVIADO, null,
-                "PORTAL_FIRMA", "FIRMA_TOKEN", firmaToken.getToken(),
-                "/firma/" + firmaToken.getToken() + "/otp/reenviar",
+                "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
+                "/firma/otp/reenviar",
                 "Codigo OTP reenviado (" + enmascararCorreo(ultima.getCorreoDestino()) + ")");
     }
 
@@ -290,6 +304,14 @@ public class OtpService {
     private int reenviosRestantes(Long idTokenFirma) {
         long usados = otpRepository.countByIdTokenFirmaAndFechaValidacionIsNull(idTokenFirma) - 1;
         return (int) Math.max(maxReenvios - usados, 0);
+    }
+
+    /** SEC-105: un FirmaToken completo es una capability; en auditoria/logs solo el prefijo. */
+    private String enmascararToken(String token) {
+        if (token == null || token.length() <= 8) {
+            return "***";
+        }
+        return token.substring(0, 8) + "...";
     }
 
     /** Enmascara el correo a ca***@dominio; nunca viaja el correo completo en interfaz. */

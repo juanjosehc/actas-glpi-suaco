@@ -11,8 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Pone la generacion de documentos (DOCX->ZIP->PDF) fuera del request HTTP.
@@ -35,14 +36,28 @@ public class GeneracionDocumentalAsyncService {
     private final ActaRepository actaRepository;
     private final ActaHistorialService actaHistorialService;
 
-    private final ExecutorService generacionExecutor =
-            Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "generacion-documental");
-                t.setDaemon(true);
-                return t;
-            });
+    /**
+     * SEC-113: cola de espera ACOTADA (20). Un unico hilo daemon serializa la
+     * generacion; si la cola se llena, CallerRunsPolicy ejecuta la tarea en el
+     * hilo del request HTTP (backpressure: el cliente espera y la generacion
+     * no se descarta ni queda colgada). Esto elimina la cola ilimitada que un
+     * atacante autenticado podia llenar con POSTs masivos a /generar-*.
+     */
+    private static final int COLA_MAXIMA = 20;
 
-    /** Encola la tarea de generacion de documentos (daemon, un solo hilo). */
+    private final ThreadPoolExecutor generacionExecutor =
+            new ThreadPoolExecutor(
+                    1, 1,
+                    0L, TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(COLA_MAXIMA),
+                    r -> {
+                        Thread t = new Thread(r, "generacion-documental");
+                        t.setDaemon(true);
+                        return t;
+                    },
+                    new ThreadPoolExecutor.CallerRunsPolicy());
+
+    /** Encola la tarea de generacion de documentos (daemon, un solo hilo, cola acotada). */
     public void encolar(Runnable tarea) {
         generacionExecutor.execute(tarea);
     }
@@ -94,7 +109,7 @@ public class GeneracionDocumentalAsyncService {
 
     private Acta cargar(Long idActa) {
         return actaRepository.findById(idActa)
-                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada con id: " + idActa));
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada")); // SEC-122: sin el id
     }
 
     private String actorNombre(Acta acta) {

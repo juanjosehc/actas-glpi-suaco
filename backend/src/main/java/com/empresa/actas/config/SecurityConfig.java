@@ -36,11 +36,18 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final RateLimitFilter rateLimitFilter;
 
-    // SEC-015: Swagger/OpenAPI publicos solo en desarrollo. En produccion se
-    // desactiva con APP_DOCUMENTACION_PUBLICA=false (o app.documentacion.publica);
-    // con false, /swagger-ui y /v3/api-docs exigen JWT (anyRequest().authenticated()).
-    @Value("${app.documentacion.publica:true}")
+    // SEC-015/SEC-110: Swagger/OpenAPI publicos SOLO en desarrollo. El default
+    // ahora es false (SEC-110: apertura por defecto invertida): /swagger-ui y
+    // /v3/api-docs exigen JWT salvo que se active explicitamente con
+    // APP_DOCUMENTACION_PUBLICA=true en un entorno de desarrollo.
+    @Value("${app.documentacion.publica:false}")
     private boolean documentacionPublica;
+
+    // SEC-114: origenes CORS por entorno. El default sigue siendo loopback
+    // (desarrollo local); en produccion se inyecta la lista real de origenes
+    // (ej. https://actas.coltefinanciera.com) via CORS_ALLOWED_ORIGINS.
+    @Value("${app.cors.allowed-origins:http://127.0.0.1,http://localhost,http://127.0.0.1:80,http://localhost:80,http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:8080,http://localhost:8080,http://127.0.0.1:8001,http://localhost:8001}")
+    private String corsAllowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,7 +59,6 @@ public class SecurityConfig {
                             "/auth/login",
                             "/auth/register",
                             "/auth/recuperar/**",
-                            "/equipo/**",
                             "/generar-acta",
                             "/generar-devolucion",
                             "/generar-formateo-seguro",
@@ -131,15 +137,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://127.0.0.1", "http://localhost",
-                "http://127.0.0.1:5500", "http://localhost:5500",
-                "http://127.0.0.1:80", "http://localhost:80",
-                "http://127.0.0.1:8080", "http://localhost:8080",
-                "http://127.0.0.1:8001", "http://localhost:8001"));
+        // SEC-114: origenes parametrizados por env (CORS_ALLOWED_ORIGINS).
+        configuration.setAllowedOrigins(List.of(corsAllowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        // SEC-114: cabeceras explícitas en vez de "*": solo las que la app
+        // realmente usa (JWT, OTP por header, tipos de contenido).
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept", "X-OTP-Sesion"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

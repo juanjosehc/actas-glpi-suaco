@@ -2,6 +2,7 @@ package com.empresa.actas.controller;
 
 import com.empresa.actas.dto.response.EquipoResponse;
 import com.empresa.actas.service.EquipoService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,7 +31,14 @@ public class EquipoController {
      * @param serial Número de serial del equipo a buscar.
      * @return EquipoResponse con marca, tipo y modelo (vacíos si no se encuentra).
      */
+    /**
+     * SEC-107: la consulta GLPI por serial ya NO es publica. Solo usuarios
+     * autenticados con rol TECNICO o ADMINISTRADOR (los que operan los
+     * formularios V1) pueden consumirla. Sin JWT -> 401/403; el endpoint ya no
+     * está en permitAll (SecurityConfig) ni en PUBLIC_PATHS del filtro JWT.
+     */
     @GetMapping("/equipo/{serial}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'TECNICO')")
     public EquipoResponse obtenerEquipo(@PathVariable String serial) {
         // SEC-005: el endpoint es publico y el serial viaja a GLPI. La validacion
         // en la frontera de entrada (allow-list + longitud) rechaza seriales

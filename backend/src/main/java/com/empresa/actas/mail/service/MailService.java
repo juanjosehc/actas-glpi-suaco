@@ -102,7 +102,10 @@ public class MailService {
                 helper.addInline("logoCorreo", logo, "image/png");
             }
             javaMailSender.send(message);
-            log.info("Correo de firma enviado a '{}' con enlace '{}'", destinatario, urlFirma);
+            // SEC-105: no se loguea el enlace completo (lleva el FirmaToken, una
+            // capability de un solo uso). Solo el destinatario, como en la
+            // recuperacion.
+            log.info("Correo de firma enviado a '{}'", destinatario);
             return true;
         } catch (MailException | jakarta.mail.MessagingException e) {
             log.error("Error al enviar correo de firma a '{}': {}", destinatario, e.getMessage(), e);

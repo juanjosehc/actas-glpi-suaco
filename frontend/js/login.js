@@ -40,16 +40,10 @@ const LoginService = {
         const token = this.obtenerToken();
         if (token) {
             try {
-                // Registrar LOGOUT (auditoria) en el backend (best-effort).
-                await fetch(`${API_BASE}/auth/logout`, {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${token}` },
-                });
-            } catch (_) {}
-            try {
-                // SEC-011: logout efectivo en servidor. El jti del JWT se mete
-                // en la denylist y el token deja de validarse aunque no haya
-                // expirado (best-effort: si ya fue revocado/vencio, ignorar).
+                // SEC-118: un solo endpoint de logout real. /sesiones/revocar
+                // revoca el jti del JWT en la denylist y registra LOGOUT en
+                // auditoria (best-effort: si el token ya vencio/revoco, la UI
+                // sigue limpiando la sesion local).
                 await fetch(`${API_BASE}/sesiones/revocar`, {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${token}` },

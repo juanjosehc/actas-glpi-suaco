@@ -51,6 +51,13 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- SEC-115: actuator expuesto al minimo (solo /health), reemplaza el
+             permitAll /health que devolvia 404 por un health check real. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -125,14 +132,10 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.8.4</version>
         </dependency>
-
-        <!-- DevTools -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
+        <!-- SEC-126: sin spring-boot-devtools. Es una dependencia de desarrollo que
+             se empaqueta y lleva consigo un endpoint de reinicio en caliente y
+             variables de entorno accesibles; no tiene lugar en el artefacto de
+             produccion. El reinicio manual (mvn spring-boot:run) sigue disponible. -->
 
         <!-- Test -->
         <dependency>

@@ -46,10 +46,12 @@ public record CrearActaRequest(
         @Schema(description = "Descripcion del equipo", example = "Laptop Dell Latitude 5540")
         String descripcionEquipo,
 
-        @Size(max = 500, message = "La ruta PDF no puede exceder 500 caracteres")
-        @Schema(description = "Ruta del archivo PDF generado desde la plantilla DOCX")
-        String rutaPdf,
-
-        @Schema(description = "JSON con los datos originales usados para generar el DOCX (para regeneracion del documento firmado con imagenes)")
+        // SEC-101: rutaPdf se ELIMINO del request. La ruta al PDF es un dato de
+        // servidor (la fija la generacion documental al guardar en uploads/pdf/);
+        // confiar en el cliente para ella habilito el path traversal leido en la
+        // auditoria (un acta con rutaPdf="uploads/../../backend/.env" servia ese
+        // archivo via /uploads o /firma). Ahora el backend siempre la deriva.
+        @Schema(description = "JSON con los datos originales usados para generar el DOCX (para regeneracion del documento firmado con imagenes); lo genera el servidor al persistir la generacion, no es entrada directa del cliente en rutas actuales")
+        @Size(max = 100000, message = "Los datos originales no pueden exceder 100000 caracteres")
         String datosOriginales
 ) {}

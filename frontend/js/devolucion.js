@@ -738,8 +738,13 @@ async function buscarEquipoBloque(bloque) {
 
     try {
 
+        // SEC-107: /equipo ya no es publico; se envia el JWT del usuario logueado.
         const response =
-            await fetch(`${API_BASE}/equipo/${serial}`);
+            await fetch(`${API_BASE}/equipo/${serial}`, {
+                headers: {
+                    "Authorization": "Bearer " + (LoginService.obtenerToken() || "")
+                }
+            });
 
         if (!response.ok) {
 

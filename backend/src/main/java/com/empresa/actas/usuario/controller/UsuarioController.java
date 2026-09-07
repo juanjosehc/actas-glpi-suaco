@@ -42,6 +42,21 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
+    // SEC-123: allow-list de campos de ordenacion. Spring Data convierte sort en
+    // SQL ORDER BY: si se aceptara el valor crudo del cliente, bytes arbitrarios
+    // entrarian al order by. (En la practica las columnas se validan contra el
+    // metamodelo, pero la allow-list elimina el vector sin depender de eso.)
+    private static final java.util.Set<String> CAMPOS_ORDEN =
+            // "rol" excluido: es una relacion ManyToOne, no un escalar ordenable.
+            java.util.Set.of(
+                    "idUsuario", "cedula", "nombres", "apellidos", "nombreUsuario",
+                    "correo", "cargo", "empresa", "lugarTrabajo", "bloqueado",
+                    "cambiarPasswordObligatorio");
+
+    private String sortPermitido(String sort) {
+        return CAMPOS_ORDEN.contains(sort) ? sort : "idUsuario";
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(summary = "Listar usuarios", description = "Lista todos los usuarios con paginacion (solo ADMINISTRADOR)")
@@ -55,7 +70,7 @@ public class UsuarioController {
             @RequestParam(defaultValue = "idUsuario") String sort) {
 
         Page<UsuarioResponse> usuarios = usuarioService.listarUsuarios(
-                PageRequest.of(page, size, Sort.by(sort).ascending()));
+                PageRequest.of(page, size, Sort.by(sortPermitido(sort)).ascending())); // SEC-123: sort por allow-list
         return ResponseEntity.ok(ErrorResponse.ok("Usuarios listados", usuarios));
     }
 

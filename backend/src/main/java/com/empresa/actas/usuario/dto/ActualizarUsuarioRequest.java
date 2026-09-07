@@ -3,6 +3,7 @@ package com.empresa.actas.usuario.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Request para actualizar un usuario existente")
@@ -24,14 +25,20 @@ public record ActualizarUsuarioRequest(
         String correo,
 
         @Size(max = 100, message = "El cargo no puede exceder 100 caracteres")
+        @Pattern(regexp = "^[A-Za-zÀ-ÿÑñ0-9 .,;:()#/'\"-]{0,100}$",
+                message = "El cargo contiene caracteres no validos")
         @Schema(description = "Cargo del usuario", example = "Ingeniero de Soporte")
         String cargo,
 
         @Size(max = 100, message = "La empresa no puede exceder 100 caracteres")
+        @Pattern(regexp = "^[A-Za-zÀ-ÿÑñ0-9 .,;:()#/'\"-]{0,100}$",
+                message = "La empresa contiene caracteres no validos")
         @Schema(description = "Empresa", example = "Coltefinanciera")
         String empresa,
 
         @Size(max = 150, message = "El lugar de trabajo no puede exceder 150 caracteres")
+        @Pattern(regexp = "^[A-Za-zÀ-ÿÑñ0-9 .,;:()#/'\"-]{0,150}$",
+                message = "El lugar de trabajo contiene caracteres no validos")
         @Schema(description = "Lugar de trabajo", example = "Oficina Principal Bogota")
         String lugarTrabajo,
 

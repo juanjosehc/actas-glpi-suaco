@@ -41,12 +41,10 @@ public class AuthController {
         return ResponseEntity.ok(ErrorResponse.ok("Login exitoso", response));
     }
 
-    @PostMapping("/logout")
-    @Operation(summary = "Cerrar sesion", description = "Registra el cierre de sesion del usuario autenticado")
-    public ResponseEntity<ErrorResponse> logout() {
-        authService.logout();
-        return ResponseEntity.ok(ErrorResponse.ok("Sesion cerrada"));
-    }
+    // SEC-118: NO existe /auth/logout. El logout es unico y real:
+    // POST /sesiones/revocar revoca el JWT por jti (denylist) y registra
+    // LOGOUT en la CAPA 2. El endpoint dual best-effort que solo auditaba
+    // se elimino junto con su servicio.
 
     @PostMapping("/register")
     @Operation(summary = "Registrar usuario", description = "Registra un nuevo usuario en el sistema")

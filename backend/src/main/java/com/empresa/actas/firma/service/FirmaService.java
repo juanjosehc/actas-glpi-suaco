@@ -16,6 +16,7 @@ import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.firma.support.FirmaUrlBuilder;
 import com.empresa.actas.security.AccesoService;
+import com.empresa.actas.security.StoragePathResolver;
 import com.empresa.actas.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +31,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +53,10 @@ public class FirmaService {
 
     @Value("${app.uploads-dir:uploads}")
     private String uploadsDir;
+
+    /** SEC-111: dominios corporativos permitidos para el correo de envio (CSV), vacio = sin restriccion. */
+    @Value("${app.correo-dominios-permitidos:}")
+    private String correoDominiosPermitidos;
 
     /** Vigencia del enlace de firma en horas (default 72h = 3 dias). */
     @Value("${app.firma-token-expira-horas:72}")
@@ -133,7 +141,7 @@ public class FirmaService {
 
         Acta acta = actaRepository.findById(idActa)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + idActa));
+                        "Acta no encontrada")); // SEC-122: sin el id (anti-enumeracion)
 
         // ROL TECNICO: solo puede enviar a firma sus propias actas.
         accesoService.verificarAccesoActa(acta);
@@ -150,6 +158,11 @@ public class FirmaService {
         }
 
         String correoUtilizado = acta.getCorreoUsuario();
+
+        // SEC-111: el correo de envio (el que recibe el enlace de firma + OTP)
+        // solo puede ser de un dominio corporativo permitido. Sin allow-list
+        // configurada (CORREO_DOMINIOS_PERMITIDOS vacio) se mantiene el @Email.
+        validarDominioCorreo(correoUtilizado);
 
         String token = UUID.randomUUID().toString();
 
@@ -199,6 +212,36 @@ public class FirmaService {
     }
 
     /**
+     * SEC-111: valida el dominio del correo de envio contra la allow-list
+     * configurada. Sin allow-list (config vacia) no restringe nada.
+     */
+    private void validarDominioCorreo(String correo) {
+        if (correo == null || correo.isBlank()) {
+            return;
+        }
+        if (correoDominiosPermitidos == null || correoDominiosPermitidos.isBlank()) {
+            return;
+        }
+        Set<String> permitidos = Arrays.stream(correoDominiosPermitidos.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+        if (permitidos.isEmpty()) {
+            return;
+        }
+        int arroba = correo.indexOf('@');
+        if (arroba <= 0 || arroba == correo.length() - 1) {
+            throw new IllegalArgumentException("El correo de envio no es valido");
+        }
+        String dominio = correo.substring(arroba + 1).toLowerCase();
+        if (!permitidos.contains(dominio)) {
+            throw new IllegalArgumentException(
+                    "El correo de envio debe pertenecer a un dominio corporativo permitido");
+        }
+    }
+
+    /**
      * Sirve el PDF del acta al firmante (portal publico, sin JWT).
      * Valida el token de firma: debe existir, no estar usado y el acta ENVIADA.
      * Devuelve null si el archivo no existe.
@@ -214,12 +257,9 @@ public class FirmaService {
                     "Esta acta no esta disponible para firma. Estado: " + acta.getEstado());
         }
 
-        if (acta.getRutaPdf() == null || !acta.getRutaPdf().startsWith("uploads/")) {
-            return null;
-        }
-        Path archivo = Paths.get(uploadsDir)
-                .resolve(acta.getRutaPdf().substring("uploads/".length()));
-        if (!Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+        // SEC-101: contenimiento lexico bajo uploadsDir (normalize + startsWith).
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, acta.getRutaPdf());
+        if (archivo == null || !Files.exists(archivo) || !Files.isRegularFile(archivo)) {
             return null;
         }
 
@@ -247,12 +287,9 @@ public class FirmaService {
                     "Esta acta no esta disponible para firma. Estado: " + acta.getEstado());
         }
 
-        if (acta.getRutaPdfChecklist() == null || !acta.getRutaPdfChecklist().startsWith("uploads/")) {
-            return null;
-        }
-        Path archivo = Paths.get(uploadsDir)
-                .resolve(acta.getRutaPdfChecklist().substring("uploads/".length()));
-        if (!Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+        // SEC-101: contenimiento lexico bajo uploadsDir (normalize + startsWith).
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, acta.getRutaPdfChecklist());
+        if (archivo == null || !Files.exists(archivo) || !Files.isRegularFile(archivo)) {
             return null;
         }
 

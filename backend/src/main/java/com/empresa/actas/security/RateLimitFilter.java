@@ -28,6 +28,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final String LOGIN_PATH = "/auth/login";
     private static final String REGISTER_PATH = "/auth/register";
+    // SEC-104: prefijo compartido por /auth/recuperar/solicitar,
+    // /auth/recuperar/validar-token y /auth/recuperar/cambiar-password.
+    private static final String RECUPERAR_PATH = "/auth/recuperar";
+    // SEC-119: throttle por IP del paso OTP del portal de firma (estado,
+    // validar, reenviar). El brute force del codigo de 6 digitos ya esta
+    // acotado a 5 intentos por fila; este limite zanja el escaneo por IP.
+    private static final String FIRMA_OTP_PREFIX = "/firma/";
+    private static final String FIRMA_OTP_SUB = "/otp/";
 
     /** Limpieza oportunista de ventanas viejas cuando el mapa de contadores crece. */
     private static final long LIMPIEZA_UMBRAL = 10_000;
@@ -43,6 +51,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private int registroMax;
     @Value("${security.rate-limit.registro.segundos:3600}")
     private int registroSegundos;
+    @Value("${security.rate-limit.recuperar.max:5}")
+    private int recuperarMax;
+    @Value("${security.rate-limit.recuperar.segundos:900}")
+    private int recuperarSegundos;
+    @Value("${security.rate-limit.firma-otp.max:30}")
+    private int firmaOtpMax;
+    @Value("${security.rate-limit.firma-otp.segundos:300}")
+    private int firmaOtpSegundos;
     /** Solamente detras de un proxy de confianza; si se expone directo, un
      *  atacante evita el limite falsificando X-Forwarded-For. */
     @Value("${security.rate-limit.trust-x-forwarded-for:false}")
@@ -67,14 +83,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Limite limitePara(HttpServletRequest request) {
+        String path = request.getRequestURI();
         if ("POST".equalsIgnoreCase(request.getMethod())) {
-            String path = request.getRequestURI();
             if (LOGIN_PATH.equals(path)) {
                 return new Limite(loginMax, loginSegundos);
             }
             if (REGISTER_PATH.equals(path)) {
                 return new Limite(registroMax, registroSegundos);
             }
+            if (path.startsWith(RECUPERAR_PATH)) {
+                return new Limite(recuperarMax, recuperarSegundos);
+            }
+        }
+        // SEC-119: GET y POST del paso OTP comparten el contador por IP (el GET
+        // /otp/estado ya no envia nada, pero sigue siendo un oraculo a acotar).
+        if (path.startsWith(FIRMA_OTP_PREFIX) && path.contains(FIRMA_OTP_SUB)) {
+            return new Limite(firmaOtpMax, firmaOtpSegundos);
         }
         return null;
     }
@@ -114,9 +138,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        String mensaje = REGISTER_PATH.equals(request.getRequestURI())
-                ? "Se supero el limite de registros desde esta direccion. Intente mas tarde."
-                : "Demasiados intentos de inicio de sesion. Espere unos minutos e intente nuevamente.";
+        String path = request.getRequestURI();
+        String mensaje;
+        if (REGISTER_PATH.equals(path)) {
+            mensaje = "Se supero el limite de registros desde esta direccion. Intente mas tarde.";
+        } else if (path.startsWith(RECUPERAR_PATH)) {
+            mensaje = "Se supero el limite de solicitudes de recuperacion de contrasena. Intente mas tarde.";
+        } else if (path.startsWith(FIRMA_OTP_PREFIX) && path.contains(FIRMA_OTP_SUB)) { // SEC-119
+            mensaje = "Se supero el limite de solicitudes del codigo OTP. Intente mas tarde.";
+        } else {
+            mensaje = "Demasiados intentos de inicio de sesion. Espere unos minutos e intente nuevamente.";
+        }
         objectMapper.writeValue(response.getWriter(), ErrorResponse.of(mensaje));
     }
 

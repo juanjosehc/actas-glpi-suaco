@@ -4,6 +4,7 @@ import com.empresa.actas.acta.entity.Acta;
 import com.empresa.actas.acta.entity.TipoActa;
 import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
+import com.empresa.actas.security.StoragePathResolver;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lowagie.text.Chunk;
@@ -87,15 +88,12 @@ public class PdfService {
     /**
      * Convierte una ruta virtual almacenada en BD (uploads/...) a una ruta
      * fisica bajo el directorio de uploads configurado.
+     * SEC-101: cualquier ruta que no sea virtual (absoluta, con "..", con el
+     * prefijo suplantado) devuelve null; nunca se resuelve fuera de uploadsDir.
      */
     private Path resolverRutaArchivo(String rutaArchivo) {
-        if (rutaArchivo == null || rutaArchivo.isBlank()) {
-            return Paths.get(rutaArchivo == null ? "" : rutaArchivo);
-        }
-        if (rutaArchivo.startsWith("uploads/") || rutaArchivo.startsWith("uploads\\")) {
-            return Paths.get(uploadsDir).resolve(rutaArchivo.substring("uploads/".length()));
-        }
-        return Paths.get(rutaArchivo);
+        if (rutaArchivo == null) return null;
+        return StoragePathResolver.bajoUploads(uploadsDir, rutaArchivo.replace('\\', '/'));
     }
 
     public String generarPdfFinal(Acta acta) {
@@ -281,7 +279,7 @@ public class PdfService {
                     Path rutaArchivo = resolverRutaArchivo(evidencia.getRutaArchivo());
                     String textoAlternativo = tipoLabel + " no disponible";
 
-                    if (!Files.exists(rutaArchivo)) {
+                    if (rutaArchivo == null || !Files.exists(rutaArchivo)) {
                         log.warn("Archivo no encontrado para evidencia {}: {}",
                                 evidencia.getIdEvidencia(), evidencia.getRutaArchivo());
                         document.add(new Paragraph(textoAlternativo, normalFont));

@@ -88,8 +88,10 @@ public class UsuarioGlpiService {
     public List<UsuarioGlpiResponse> buscarUsuarios(String consulta) {
         Map<String, Object> traza = new java.util.LinkedHashMap<>();
         traza.put("consulta", consulta);
-        if (consulta == null || consulta.isBlank()) {
-            traza.put("motivo", "consulta vacia");
+        // SEC-125: consulta minima de 2 caracteres. Autocompletado del frontend
+        // pide desde 2; un request de 1 char o vacio no dispara la carga del corpus.
+        if (consulta == null || consulta.length() < 2) {
+            traza.put("motivo", consulta == null || consulta.isBlank() ? "consulta vacia" : "consulta demasiado corta");
             trazaUltimaBusqueda = traza;
             return List.of();
         }
@@ -183,6 +185,11 @@ public class UsuarioGlpiService {
      * Leer "count" como total trunca el corpus a la primera pagina.
      */
     private List<UsuarioIndexado> cargarUsuariosActivos() throws Exception {
+        // SEC-128: sin GLPI_URL no hay servidor que consultar; el fallo queda en
+        // ultimoError (diagnosticable via getDiagnostico) y no dispara a una URL vacia.
+        if (glpiUrl == null || glpiUrl.isBlank()) {
+            throw new GlpiException("GLPI no configurado: defina GLPI_URL");
+        }
         String sessionToken = iniciarSesion();
         List<UsuarioIndexado> todos = new ArrayList<>();
         int total = Integer.MAX_VALUE;

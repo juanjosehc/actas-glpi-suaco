@@ -4,6 +4,7 @@ import com.empresa.actas.auditoria.entity.TipoEventoAuditoria;
 import com.empresa.actas.auditoria.service.AuditoriaService;
 import com.empresa.actas.rol.entity.Rol;
 import com.empresa.actas.rol.repository.RolRepository;
+import com.empresa.actas.security.StoragePathResolver;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.usuario.dto.ActualizarUsuarioRequest;
 import com.empresa.actas.usuario.dto.CrearUsuarioRequest;
@@ -220,9 +221,8 @@ public class UsuarioService {
         if (firma == null) {
             return null;
         }
-        Path archivo = Paths.get(uploadsDir)
-                .resolve(firma.getRutaFirma().substring("uploads/".length()));
-        if (!Files.exists(archivo)) {
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, firma.getRutaFirma());
+        if (archivo == null || !Files.exists(archivo)) {
             log.warn("Archivo de firma tecnico {} no existe en disco: {}", idUsuario, archivo);
             return null;
         }
@@ -285,10 +285,9 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No existe una firma registrada para este usuario"));
 
-        Path archivo = Paths.get(uploadsDir)
-                .resolve(firma.getRutaFirma().substring("uploads/".length()));
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, firma.getRutaFirma());
         try {
-            Files.deleteIfExists(archivo);
+            if (archivo != null) Files.deleteIfExists(archivo);
         } catch (IOException e) {
             log.warn("No se pudo eliminar el archivo de firma {}: {}", firma.getRutaFirma(), e.getMessage());
         }
@@ -310,9 +309,8 @@ public class UsuarioService {
         return usuarioFirmaRepository.findByUsuarioId(idUsuario)
                 .map(f -> {
                     try {
-                        Path archivo = Paths.get(uploadsDir)
-                                .resolve(f.getRutaFirma().substring("uploads/".length()));
-                        return Files.exists(archivo) ? Files.readAllBytes(archivo) : null;
+                        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, f.getRutaFirma());
+                        return archivo != null && Files.exists(archivo) ? Files.readAllBytes(archivo) : null;
                     } catch (IOException e) {
                         log.warn("No se pudo leer firma del tecnico {}: {}", idUsuario, e.getMessage());
                         return null;

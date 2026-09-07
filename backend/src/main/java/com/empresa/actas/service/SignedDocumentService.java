@@ -9,6 +9,7 @@ import com.empresa.actas.firma.entity.Evidencia;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
+import com.empresa.actas.security.StoragePathResolver;
 import com.empresa.actas.usuario.service.UsuarioService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -328,9 +329,9 @@ public class SignedDocumentService {
     }
 
     private Path resolverPdf(String rutaVirtual) {
-        if (rutaVirtual == null || !rutaVirtual.startsWith("uploads/")) return null;
-        Path archivo = Paths.get(uploadsDir).resolve(rutaVirtual.substring("uploads/".length()));
-        return Files.exists(archivo) && Files.isRegularFile(archivo) ? archivo : null;
+        // SEC-101: contenimiento lexico bajo uploadsDir (normalize + startsWith).
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, rutaVirtual);
+        return archivo != null && Files.exists(archivo) && Files.isRegularFile(archivo) ? archivo : null;
     }
 
     private String rutaVirtualPdf(Path archivo) {

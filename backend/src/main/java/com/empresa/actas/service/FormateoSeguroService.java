@@ -137,7 +137,7 @@ public class FormateoSeguroService {
     /** Re-encola la generacion desde datosOriginales (reintento / reinicio JVM). */
     public void reintentarGeneracion(Long idActa) {
         Acta acta = actaRepository.findById(idActa)
-                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada con id: " + idActa));
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada")); // SEC-122: sin el id
         if (acta.getEstado() != EstadoActa.GENERACION_FALLIDA
                 && acta.getEstado() != EstadoActa.GENERANDO_DOCUMENTOS) {
             throw new IllegalArgumentException("Solo se puede reintentar una acta en GENERACION_FALLIDA"

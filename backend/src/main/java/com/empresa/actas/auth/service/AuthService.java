@@ -12,6 +12,7 @@ import com.empresa.actas.auditoria.entity.TipoEventoAuditoria;
 import com.empresa.actas.auditoria.service.AuditoriaService;
 import com.empresa.actas.mail.service.MailService;
 import com.empresa.actas.security.JwtService;
+import com.empresa.actas.security.TokenDigest;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.rol.entity.Rol;
 import com.empresa.actas.rol.repository.RolRepository;
@@ -146,13 +147,16 @@ public class AuthService {
         passwordResetTokenRepository.deleteByIdUsuario(usuario.getIdUsuario());
         String token = UUID.randomUUID().toString();
         LocalDateTime expira = LocalDateTime.now().plusMinutes(recuperacionExpiraMinutos);
+        // SEC-120: en BD solo el digest SHA-256; el UUID viaja en el enlace del correo.
         passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .idUsuario(usuario.getIdUsuario())
-                .token(token)
+                .token(TokenDigest.sha256(token))
                 .fechaExpiracion(expira)
                 .build());
 
-        String url = firmaUrlBase + "/recuperar.html?token=" + token;
+        // SEC-117: el token va en un fragmento (#), nunca en query string: no llega
+        // al servidor en la navegacion inicial ni queda en logs de proxy/referrer.
+        String url = firmaUrlBase + "/recuperar.html#token=" + token;
         boolean enviado = mailService.enviarCorreoRecuperacion(
                 correo, usuario.getNombres(), url, recuperacionExpiraMinutos);
         if (!enviado) {
@@ -171,11 +175,13 @@ public class AuthService {
      * expirados o ya usados se rechazan y se auditan.
      */
     public void confirmarRecuperacion(ConfirmarRecuperacionRequest request) {
+        String tokenCrudo = request.token().trim();
+        // SEC-120: busqueda por digest; el UUID en claro nunca se consulta contra la BD.
         PasswordResetToken row = passwordResetTokenRepository
-                .findByToken(request.token().trim())
+                .findByTokenHash(TokenDigest.sha256(tokenCrudo))
                 .orElseThrow(() -> {
                     auditoriaService.registrar(TipoEventoAuditoria.RECUPERACION_TOKEN_INVALIDO,
-                            null, null, "USUARIO", request.token(), "/auth/recuperar/confirmar",
+                            null, null, "USUARIO", enmascarar(tokenCrudo), "/auth/recuperar/confirmar",
                             "Token de recuperacion inexistente");
                     return new IllegalArgumentException(
                             "El enlace de recuperacion no es valido o ya fue utilizado.");
@@ -186,7 +192,7 @@ public class AuthService {
                 && row.getFechaExpiracion().isBefore(LocalDateTime.now());
         if (utilizado || expirado) {
             auditoriaService.registrar(TipoEventoAuditoria.RECUPERACION_TOKEN_INVALIDO,
-                    row.getIdUsuario(), null, "USUARIO", row.getToken(), "/auth/recuperar/confirmar",
+                    row.getIdUsuario(), null, "USUARIO", enmascarar(tokenCrudo), "/auth/recuperar/confirmar",
                     "Token de recuperacion " + (utilizado ? "ya utilizado" : "expirado"));
             throw new IllegalArgumentException(
                     "El enlace de recuperacion no es valido o ya fue utilizado.");
@@ -210,28 +216,24 @@ public class AuthService {
                 "Recuperacion de contrasena completada");
     }
 
-    /**
-     * Cierre de sesion. Requiere token valido (ruta autenticada); registra
-     * el usuario que abandona la sesion en la CAPA 2.
-     */
-    public void logout() {
-        UserSecurity userSecurity =
-                (UserSecurity) SecurityContextHolder.getContext()
-                        .getAuthentication().getPrincipal();
-        auditoriaService.registrar(TipoEventoAuditoria.LOGOUT,
-                userSecurity.getUsuario().getIdUsuario(), userSecurity.getUsername(),
-                "AUTENTICACION", null, "/auth/logout", "Cierre de sesion");
+    /** SEC-120: en auditoria el token viaja enmascarado, nunca completo. */
+    private String enmascarar(String token) {
+        if (token == null || token.length() <= 8) {
+            return "***";
+        }
+        return token.substring(0, 8) + "...";
     }
 
     public Usuario registrarUsuario(RegisterUserRequest request) {
         if (usuarioRepository.existsByNombreUsuario(request.username())) {
-            throw new IllegalArgumentException(
-                    "El nombre de usuario ya existe: " + request.username());
+            // SEC-116: mensaje generico; no revelar si el username esta tomado
+            // ni menos repetirlo como eco. La diferencia es distinguible solo en
+            // auditoria/log (existeBy + auditoria).
+            throw new IllegalArgumentException("El nombre de usuario no esta disponible.");
         }
 
         if (usuarioRepository.existsByCorreo(request.correo())) {
-            throw new IllegalArgumentException(
-                    "El correo ya esta registrado: " + request.correo());
+            throw new IllegalArgumentException("El correo no esta disponible.");
         }
 
         // REGISTRO PUBLICO => SIEMPRE TECNICO. El rol se decide en el servidor,

@@ -7,6 +7,7 @@ import com.empresa.actas.security.AccesoService;
 import com.empresa.actas.security.UserSecurity;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,15 @@ public class AuditoriaService {
 
     private final AuditoriaSistemaRepository repository;
     private final AccesoService accesoService;
+
+    /**
+     * SEC-121: la IP de auditoria confia en X-Forwarded-For SOLO si el servidor
+     * esta detras de un proxy de confianza (mismo flag que RateLimitFilter).
+     * Si se expone directo, una cabecera falsificada no debe contaminar la
+     * auditoria (registraria la IP del atacante inventada).
+     */
+    @Value("${security.rate-limit.trust-x-forwarded-for:false}")
+    private boolean trustXForwardedFor;
 
     /**
      * Registra un evento tomando el usuario autenticado del contexto
@@ -60,14 +70,16 @@ public class AuditoriaService {
                 .build());
     }
 
-    /** IP del request actual; prioriza X-Forwarded-For (normalmente null en local). */
+    /** IP del request actual; X-Forwarded-For solo si el flag de proxy de confianza esta activo. */
     private String obtenerIp() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (attrs instanceof ServletRequestAttributes sra) {
             HttpServletRequest req = sra.getRequest();
-            String fwd = req.getHeader("X-Forwarded-For");
-            if (fwd != null && !fwd.isBlank()) {
-                return fwd.split(",")[0].trim();
+            if (trustXForwardedFor) {
+                String fwd = req.getHeader("X-Forwarded-For");
+                if (fwd != null && !fwd.isBlank()) {
+                    return fwd.split(",")[0].trim();
+                }
             }
             return req.getRemoteAddr();
         }

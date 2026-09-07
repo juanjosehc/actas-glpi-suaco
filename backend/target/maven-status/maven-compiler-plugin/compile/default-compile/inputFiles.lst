@@ -88,6 +88,8 @@ C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\JwtRevocadoRepository.java
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\JwtService.java
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\RateLimitFilter.java
+C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\StoragePathResolver.java
+C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\TokenDigest.java
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\security\UserSecurity.java
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\service\DevolucionService.java
 C:\Users\juanhern\Music\actas-glpi-Suaco\backend\src\main\java\com\empresa\actas\service\DocumentoWordService.java

@@ -19,6 +19,7 @@ import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.EvidenciaRepository;
 import com.empresa.actas.firma.repository.FirmaTokenRepository;
 import com.empresa.actas.security.AccesoService;
+import com.empresa.actas.security.StoragePathResolver;
 import com.empresa.actas.security.UserSecurity;
 import com.empresa.actas.service.ReintentoGeneracionService;
 import com.empresa.actas.service.SignedDocumentService;
@@ -81,7 +82,9 @@ public class ActaService {
                 .serialEquipo(request.serialEquipo())
                 .placaEquipo(request.placaEquipo())
                 .descripcionEquipo(request.descripcionEquipo())
-                .rutaPdf(request.rutaPdf())
+                // SEC-101: rutaPdf ya no viene del request; la fija la generacion
+                // documental (uploads/pdf/signed_...). Arranca null.
+                .rutaPdf(null)
                 .datosOriginales(datosOriginalesO(request))
                 .build();
 
@@ -188,7 +191,7 @@ public class ActaService {
     private Acta cargarActaConAcceso(Long id) {
         Acta acta = actaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Acta no encontrada con id: " + id));
+                        "Acta no encontrada")); // SEC-122: sin el id (anti-enumeracion)
         accesoService.verificarAccesoActa(acta);
         return acta;
     }
@@ -277,11 +280,9 @@ public class ActaService {
      * Devuelve null si no existe o la ruta no es de uploads.
      */
     private Resource resolverArchivo(String rutaVirtual) {
-        if (rutaVirtual == null || !rutaVirtual.startsWith("uploads/")) {
-            return null;
-        }
-        Path archivo = Paths.get(uploadsDir).resolve(rutaVirtual.substring("uploads/".length()));
-        if (!Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+        // SEC-101: contenimiento lexico bajo uploadsDir (normalize + startsWith).
+        Path archivo = StoragePathResolver.bajoUploads(uploadsDir, rutaVirtual);
+        if (archivo == null || !Files.exists(archivo) || !Files.isRegularFile(archivo)) {
             return null;
         }
         return new FileSystemResource(archivo.toFile());

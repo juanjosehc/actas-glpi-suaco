@@ -50,6 +50,13 @@ public class JwtService {
                 .claims(extraClaims)
                 .id(UUID.randomUUID().toString())
                 .subject(userDetails.getUsername())
+                // SEC-103: "pwv" = version de contrasena. Se usa el BCrypt (la
+                // app nunca guarda la contrasena en claro) como oscilador: cada
+                // cambio/reset/reasignacion produce un hash nuevo (salt nuevo),
+                // de modo que el claim deja de coincidir y el JWT deja de
+                // validarse en el siguiente request (cambio de contrasena =
+                // cabo de todas las sesiones del usuario).
+                .claim("pwv", userDetails.getPassword() != null ? userDetails.getPassword() : "")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(signingKey)
@@ -72,6 +79,13 @@ public class JwtService {
     public boolean validarToken(String token, UserDetails userDetails) {
         final String username = extraerUsername(token);
         if (!username.equals(userDetails.getUsername()) || estaExpirado(token)) {
+            return false;
+        }
+        // SEC-103: la contrasena fue cambiada/reseteada desde la emision del
+        // token -> hash actual distinto del claim "pwv" -> token invalido.
+        final String pwv = extraerClaim(token, c -> c.get("pwv", String.class));
+        final String hashActual = userDetails.getPassword();
+        if (pwv == null || hashActual == null || !pwv.equals(hashActual)) {
             return false;
         }
         // SEC-011: token revocado (logout efectivo / sesion terminada) deja de

@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ActaRepository extends JpaRepository<Acta, Long> {
@@ -22,6 +23,9 @@ public interface ActaRepository extends JpaRepository<Acta, Long> {
     List<Acta> findByEstado(EstadoActa estado);
 
     Page<Acta> findByIdTecnico(Long idTecnico, Pageable pageable);
+
+    /** SEC-106: resuelve el autor (idTecnico) desde el nombre del ZIP generado. */
+    Optional<Acta> findByRutaZip(String rutaZip);
 
     /**
      * Busqueda global server-side: id, ticket, estado, tipo, usuario, equipo,

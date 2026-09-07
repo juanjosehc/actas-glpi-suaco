@@ -15,6 +15,7 @@ com\empresa\actas\auditoria\dto\EventoAuditoriaResponse.class
 com\empresa\actas\usuario\mapper\UsuarioMapperImpl.class
 com\empresa\actas\firma\repository\FirmaOtpRepository.class
 com\empresa\actas\exception\GlpiException.class
+com\empresa\actas\security\JwtAuthenticationFilter.class
 com\empresa\actas\auth\repository\PasswordResetTokenRepository.class
 com\empresa\actas\dto\request\DevolucionRequest.class
 com\empresa\actas\acta\dto\ActaHistorialResponse$ActaHistorialResponseBuilder.class
@@ -48,6 +49,7 @@ com\empresa\actas\firma\entity\Evidencia.class
 com\empresa\actas\acta\entity\EstadoActa.class
 com\empresa\actas\firma\dto\FirmaRequest.class
 com\empresa\actas\security\RateLimitFilter$Limite.class
+com\empresa\actas\security\TokenDigest.class
 com\empresa\actas\auditoria\dto\EventosAuditoriaResponse.class
 com\empresa\actas\auth\controller\SesionController.class
 com\empresa\actas\firma\dto\FirmaOtpValidarRequest.class
@@ -114,6 +116,7 @@ com\empresa\actas\security\JwtRevocado$JwtRevocadoBuilder.class
 com\empresa\actas\usuario\controller\UsuarioController.class
 com\empresa\actas\config\MailConfig.class
 com\empresa\actas\service\DevolucionService$1.class
+com\empresa\actas\security\StoragePathResolver.class
 com\empresa\actas\auth\entity\PasswordResetToken$PasswordResetTokenBuilder.class
 com\empresa\actas\service\DocxActaService$1.class
 com\empresa\actas\acta\service\ActaService.class

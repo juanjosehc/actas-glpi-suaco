@@ -123,6 +123,16 @@
         renderPagination();
     }
 
+    // SEC-102: celdas construidas con createElement/textContent, sin innerHTML.
+    // Los datos de usuario (cargo/empresa/lugar de trabajo/rol) no se concatenan
+    // como HTML para que un valor con <script> se renderice como texto plano.
+    function crearCelda(valor, className) {
+        const td = document.createElement("td");
+        if (className) td.className = className;
+        td.textContent = valor;
+        return td;
+    }
+
     function renderTable(data) {
         usuariosBody.innerHTML = "";
         if (!data || data.length === 0) {
@@ -137,20 +147,24 @@
             const estado = u.bloqueado ? "BLOQUEADO" : "ACTIVO";
             const protegido = !!u.protegido;
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td class="cell-id">${u.id}</td>
-                <td>${u.nombres || "-"}</td>
-                <td>${u.apellidos || "-"}</td>
-                <td>${u.username || "-"}</td>
-                <td>${u.correo || "-"}</td>
-                <td>${u.cargo || "-"}</td>
-                <td>${u.rol || "-"}</td>
-                <td>
-                    <span class="badge badge--${estado}">${estado}</span>
-                </td>
-                <td class="cell-actions" data-id="${u.id}"></td>
-            `;
-            const actions = tr.querySelector(".cell-actions");
+            tr.appendChild(crearCelda(u.id, "cell-id"));
+            tr.appendChild(crearCelda(u.nombres || "-"));
+            tr.appendChild(crearCelda(u.apellidos || "-"));
+            tr.appendChild(crearCelda(u.username || "-"));
+            tr.appendChild(crearCelda(u.correo || "-"));
+            tr.appendChild(crearCelda(u.cargo || "-"));
+            tr.appendChild(crearCelda(u.rol || "-"));
+
+            const tdEstado = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = "badge badge--" + estado;
+            badge.textContent = estado;
+            tdEstado.appendChild(badge);
+            tr.appendChild(tdEstado);
+
+            const actions = document.createElement("td");
+            actions.className = "cell-actions";
+            actions.dataset.id = u.id;
             actions.appendChild(botonIcono("ojo", "Ver detalle", () => openView(u.id)));
             actions.appendChild(botonIcono("lapiz", "Editar", () => openEdit(u.id)));
             actions.appendChild(botonIcono("llave", "Restablecer contrasena", () => openPasswordModal(u)));
@@ -169,6 +183,7 @@
                     openConfirm("Bloquear Usuario", "¿Esta seguro de bloquear este usuario?");
                 }));
             }
+            tr.appendChild(actions);
             usuariosBody.appendChild(tr);
         });
     }
@@ -280,21 +295,45 @@
             if (!body.success) { showToast(body.mensaje || "Error al obtener usuario", "error"); return; }
             const u = body.data;
             const estado = u.bloqueado ? "BLOQUEADO" : "ACTIVO";
-            modalViewBody.innerHTML = `
-                <div class="detail-grid">
-                    <div class="detail-field"><span class="detail-label">ID</span><span class="detail-value">${u.id}</span></div>
-                    <div class="detail-field"><span class="detail-label">Estado</span><span class="badge badge--${estado}">${estado}</span></div>
-                    <div class="detail-field"><span class="detail-label">Cedula</span><span class="detail-value">${u.cedula || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Nombres</span><span class="detail-value">${u.nombres || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Apellidos</span><span class="detail-value">${u.apellidos || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Username</span><span class="detail-value">${u.username || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Correo</span><span class="detail-value">${u.correo || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Cargo</span><span class="detail-value">${u.cargo || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Empresa</span><span class="detail-value">${u.empresa || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Lugar Trabajo</span><span class="detail-value">${u.lugarTrabajo || "-"}</span></div>
-                    <div class="detail-field"><span class="detail-label">Rol</span><span class="detail-value">${u.rol || "-"}</span></div>
-                </div>
-                ${u.protegido ? '<p class="modal-desc" style="margin-top:8px;color:#B45309;">Administrador principal: no puede bloquearse, desactivarse ni cambiarsele el rol.</p>' : ""}`;
+            // SEC-102: detalle construido con createElement/textContent (sin innerHTML).
+            modalViewBody.textContent = "";
+            const grid = document.createElement("div");
+            grid.className = "detail-grid";
+            const campos = [
+                ["ID", String(u.id), "detail-value"],
+                ["Estado", estado, "badge badge--" + estado],
+                ["Cedula", u.cedula || "-", "detail-value"],
+                ["Nombres", u.nombres || "-", "detail-value"],
+                ["Apellidos", u.apellidos || "-", "detail-value"],
+                ["Username", u.username || "-", "detail-value"],
+                ["Correo", u.correo || "-", "detail-value"],
+                ["Cargo", u.cargo || "-", "detail-value"],
+                ["Empresa", u.empresa || "-", "detail-value"],
+                ["Lugar Trabajo", u.lugarTrabajo || "-", "detail-value"],
+                ["Rol", u.rol || "-", "detail-value"]
+            ];
+            campos.forEach(([label, valor, clase]) => {
+                const field = document.createElement("div");
+                field.className = "detail-field";
+                const lb = document.createElement("span");
+                lb.className = "detail-label";
+                lb.textContent = label;
+                const val = document.createElement("span");
+                val.className = clase;
+                val.textContent = valor;
+                field.appendChild(lb);
+                field.appendChild(val);
+                grid.appendChild(field);
+            });
+            modalViewBody.appendChild(grid);
+            if (u.protegido) {
+                const nota = document.createElement("p");
+                nota.className = "modal-desc";
+                nota.style.marginTop = "8px";
+                nota.style.color = "#B45309";
+                nota.textContent = "Administrador principal: no puede bloquearse, desactivarse ni cambiarsele el rol.";
+                modalViewBody.appendChild(nota);
+            }
             modalView.classList.add("open");
         } catch (_) {
             showToast("Error de conexion.", "error");

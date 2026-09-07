@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,6 +14,12 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     private static final String BEARER = "Bearer";
+
+    // SEC-110: el contacto de la documentacion no lleva un correo personal
+    // hardcodeado. Vacio por defecto; el equipo puede setear un buzón funcional
+    // por entorno (APP_DOCUMENTACION_CONTACTO_EMAIL) si lo considera.
+    @Value("${app.documentacion.contacto-email:}")
+    private String contactoEmail;
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -22,8 +29,8 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .description("API del sistema de generacion de actas GLPI con firma digital")
                         .contact(new Contact()
-                                .name("Juan Jose Hernandez Correa")
-                                .email("JuanHernandez@coltefinanciera.com.co")))
+                                .name("Equipo Actas GLPI")
+                                .email(contactoEmail)))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER))
                 .components(new Components()
                         .addSecuritySchemes(BEARER,

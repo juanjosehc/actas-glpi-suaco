@@ -397,6 +397,12 @@ public class DocumentoWordService {
             Path tempDir = Files.createTempDirectory("actas-tpl-");
             Path tempFile = tempDir.resolve(templateName);
             Files.copy(resource.getInputStream(), tempFile);
+            // SEC-113: registra el temp para borrarlo al salir el JVM (DeleteHook
+            // corre en orden inverso: primero el archivo, luego el dir). Sin esto
+            // cada generacion dejaba un directorio actas-tpl-* huérfano en el SO.
+            // El volumen queda acotado por la cola de generacion (COLA_MAXIMA).
+            tempFile.toFile().deleteOnExit();
+            tempDir.toFile().deleteOnExit();
             return tempFile;
         }
         return Paths.get(templatesDir, templateName);

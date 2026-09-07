@@ -58,8 +58,8 @@ public class ActaController {
             "idActa", "idTecnico", "ticketGlpi", "tipoActa", "estado",
             "cedulaUsuario", "nombreUsuario", "correoUsuario", "serialEquipo", "placaEquipo",
             "descripcionEquipo", "observacionRechazo",
-            "fechaRechazo", "rutaPdf", "rutaPdfChecklist", "datosOriginales", "fechaCreacion",
-            "fechaEnvio", "fechaFirma", "fechaAprobacion");
+            "fechaRechazo", "rutaPdf", "rutaPdfChecklist", "fechaCreacion",
+            "fechaEnvio", "fechaFirma", "fechaAprobacion"); // SEC-127: sin "datosOriginales" (JSON de request, no ordenable)
 
     /** SEC-013: normaliza el parametro de orden a un campo valido de la whitelist. */
     static String sortPermitido(String sort) {

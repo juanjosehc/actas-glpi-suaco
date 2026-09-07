@@ -64,7 +64,7 @@ public class ReintentoGeneracionService implements CommandLineRunner {
 
     private void dispatch(Long idActa) {
         Acta acta = actaRepository.findById(idActa)
-                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada con id: " + idActa));
+                .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada")); // SEC-122: sin el id
         switch (acta.getTipoActa()) {
             case ENTREGA -> docxActaService.reintentarGeneracion(idActa);
             case DEVOLUCION -> devolucionService.reintentarGeneracion(idActa);

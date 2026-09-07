@@ -1,7 +1,15 @@
 (() => {
     "use strict";
 
-    const token = new URLSearchParams(window.location.search).get("token");
+    // SEC-117: el token de recuperacion viaja en el fragmento (#token=...), no en
+    // la query string. El fragmento nunca llega al servidor ni queda en logs de
+    // referer/proxy, reduciendo la exposicion de la capability. Se lee aqui y se
+    // limpia de la barra de direcciones para no dejar el token visible/peleable.
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const token = hashParams.get("token");
+    if (window.location.hash.length > 1) {
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
 
     const form = document.getElementById("recuperarForm");
     const nuevaInput = document.getElementById("nuevaPassword");

@@ -83,6 +83,11 @@ public class EquipoService {
      * @throws GlpiException si GLPI falla (timeout, red, autenticación, HTTP>=300).
      */
     public EquipoResponse buscarEquipo(String serial) {
+        // SEC-128: sin GLPI_URL no hay servidor al que disparar; error claro,
+        // no un URI.create("null/...") o una URL vacia a mitad del flujo.
+        if (glpiUrl == null || glpiUrl.isBlank()) {
+            throw new GlpiException("GLPI no configurado: defina GLPI_URL en el entorno");
+        }
         try {
             String sessionToken = iniciarSesion();
 

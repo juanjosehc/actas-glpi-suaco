@@ -16,9 +16,12 @@ import java.time.LocalDateTime;
 /**
  * Token de un solo uso para recuperar una contrasena olvidada.
  *
- * Mismo patron que {@code FirmaToken}: UUID de un solo uso con expiracion.
- * No se guarda el hash del token: se guarda el UUID en claro (comparable con
- * {@code findByToken}), igual que el token de firma publica del acta.
+ * SEC-120: a diferencia de {@code FirmaToken} (que una vez usado no surge
+ * necesidad de re-mostrarlo al personal), este SI se persiste como digest
+ * SHA-256 hex del UUID original ({@link TokenDigest}): quien tenga un dump de
+ * la BD no obtiene la capability. El UUID en claro viaja solo en el correo y
+ * en la URL (fragmento, ver recuperar.html). La busqueda usa el digest del
+ * valor recibido ({@code findByTokenHash}).
  */
 @Entity
 @Table(name = "password_reset_token")
@@ -36,7 +39,8 @@ public class PasswordResetToken {
     @Column(name = "id_usuario", nullable = false)
     private Long idUsuario;
 
-    @Column(name = "token", nullable = false, unique = true, length = 36)
+    /** SEC-120: digest SHA-256 hex (64 chars) del UUID original, no la capability en claro. */
+    @Column(name = "token", nullable = false, unique = true, length = 64)
     private String token;
 
     @Column(name = "utilizado", nullable = false)

@@ -158,7 +158,7 @@ public class FirmaController {
     }
 
     @GetMapping("/{token}/otp/estado")
-    @Operation(summary = "Estado del OTP", description = "Estado del paso OTP del portal. GET con efecto lateral: si el token nunca tuvo OTP (actas legacy) se genera y envia uno")
+    @Operation(summary = "Estado del OTP", description = "Estado del paso OTP del portal. GET sin efecto lateral (SEC-119): jamas envia correos; los tokens legacy sin codigo se resuelven por POST /otp/reenviar")
     public ResponseEntity<ErrorResponse> estadoOtp(@PathVariable String token, HttpServletRequest request) {
         FirmaOtpEstadoResponse estado = otpService.estado(token, request.getHeader(OTP_SESION_HEADER));
         return ResponseEntity.ok(ErrorResponse.ok("Estado OTP", estado));
