@@ -1,6 +1,0 @@
-com\empresa\actas\security\RateLimitFilterTest.class
-com\empresa\actas\security\JwtServiceTest.class
-com\empresa\actas\service\EquipoServiceTest.class
-com\empresa\actas\acta\controller\ActaControllerTest.class
-com\empresa\actas\security\CustomUserDetailsServiceTest.class
-com\empresa\actas\firma\service\FirmaServiceTest.class

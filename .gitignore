@@ -1,0 +1,8 @@
+.env
+storage/
+backend/storage/
+backend/target/
+backend-boot.log
+.claude/
+node_modules/
+graphify-out/
