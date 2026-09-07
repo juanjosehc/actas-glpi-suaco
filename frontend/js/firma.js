@@ -6,6 +6,7 @@
     const stateError = $("stateError");
     const stateSuccess = $("stateSuccess");
     const stateRejected = $("stateRejected");
+    const stateProcessing = $("stateProcessing");
     const firmaCard = $("firmaCard");
     // OTP
     const stateOtp = $("stateOtp");
@@ -743,8 +744,46 @@
         firmaConfirm.addEventListener("change", () => { if (confirmError) confirmError.style.display = "none"; });
     }
 
+    /**
+     * Protege contra doble envio/acciones duplicadas mientras la firma o el
+     * rechazo estan en curso (SEC-033/DUPLICIDAD). Cada POST de firma usa un
+     * token de un solo uso; un segundo click simultaneo devolveria 400 y
+     * confundiria al usuario, ademas de duplicar intentos.
+     */
+    let procesandoFirma = false;
+
+    /** Pantalla de procesamiento: feedback claro mientras el backend finaliza. */
+    function mostrarProcesando() {
+        traza("procesando", "ON");
+        // El estado HTML ya trae el mensaje oficial; solo se muestra y se
+        // bloquea toda accion duplicada durante la operacion.
+        if (stateProcessing) stateProcessing.style.display = "flex";
+        if (firmaCard) firmaCard.style.display = "none";
+        // Deshabilita cualquier accion que podria duplicar la operacion en curso.
+        btnSubmit.disabled = true;
+        btnSubmit.classList.add("loading");
+        if (btnReject) btnReject.disabled = true;
+        if (btnOtpReenviar) btnOtpReenviar.disabled = true;
+        stopOtpCountdown();
+    }
+
+    /** Restaura la pantalla de firma tras un error/reintento. */
+    function ocultarProcesando() {
+        traza("procesando", "OFF");
+        if (stateProcessing) stateProcessing.style.display = "none";
+        if (firmaCard) firmaCard.style.display = "block";
+        btnSubmit.classList.remove("loading");
+        btnSubmit.disabled = false;
+        if (btnReject) btnReject.disabled = false;
+        // El reenvio OTP lo re-controlla renderOtpForm/disableResend segun cooldown.
+    }
+
     async function submitFirma() {
         traza("submitFirma", "CLICK Enviar: firma=" + String(!isCanvasEmpty()) + " foto=" + String(photoCaptured) + " checklist=" + String(tieneChecklist));
+        if (procesandoFirma) {
+            traza("submitFirma", "BLOQUEADO: operacion en curso, se ignora el click duplicado");
+            return;
+        }
         let valid = true;
 
         if (isCanvasEmpty()) {
@@ -772,8 +811,8 @@
 
         if (!valid) return;
 
-        btnSubmit.classList.add("loading");
-        btnSubmit.disabled = true;
+        procesandoFirma = true;
+        mostrarProcesando();
 
         try {
             const firmaBase64 = getSignatureBase64();
@@ -790,6 +829,7 @@
 
             if (resp.status === 401) {
                 traza("submitFirma", "401 -> volverAOtp");
+                ocultarProcesando();
                 volverAOtp();
                 return;
             }
@@ -798,19 +838,24 @@
                 sessionStorage.setItem(FIRMA_HECHA_KEY, "1");
                 traza("submitFirma", "EXITO: flag set -> PANTALLA FIRMA REGISTRADA");
                 stopCamera();
+                // Mantiene la pantalla de procesamiento visible un instante para
+                // que el usuario perciba la confirmacion del registro, luego
+                // muestra el estado terminal con el mensaje de exito.
+                if (stateProcessing) stateProcessing.style.display = "none";
                 firmaCard.style.display = "none";
                 stateSuccess.style.display = "flex";
             } else {
+                ocultarProcesando();
                 showToast(body.mensaje || "Error al registrar la firma. Intente de nuevo.", "error");
             }
         } catch (err) {
+            ocultarProcesando();
             const msg = err.message.includes("Failed to fetch")
                 ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
                 : "Error al registrar la firma. Intente de nuevo.";
             showToast(msg, "error");
         } finally {
-            btnSubmit.classList.remove("loading");
-            btnSubmit.disabled = false;
+            procesandoFirma = false;
         }
     }
 
@@ -865,7 +910,12 @@
             showFieldError(rejectError);
             return;
         }
+        if (procesandoFirma) {
+            traza("submitRechazo", "BLOQUEADO: operacion en curso, se ignora el rechazo duplicado");
+            return;
+        }
 
+        procesandoFirma = true;
         btnConfirmReject.classList.add("loading");
         btnConfirmReject.disabled = true;
 
@@ -880,6 +930,8 @@
 
             if (resp.status === 401) {
                 closeRejectModal();
+                btnConfirmReject.classList.remove("loading");
+                btnConfirmReject.disabled = false;
                 volverAOtp();
                 return;
             }
@@ -891,14 +943,20 @@
                 stateRejected.style.display = "flex";
             } else {
                 closeRejectModal();
+                btnConfirmReject.classList.remove("loading");
+                btnConfirmReject.disabled = false;
                 showToast(body.mensaje || "Error al rechazar el acta. Intente de nuevo.", "error");
             }
         } catch (err) {
             closeRejectModal();
+            btnConfirmReject.classList.remove("loading");
+            btnConfirmReject.disabled = false;
             const msg = err.message.includes("Failed to fetch")
                 ? "No se pudo conectar con el servidor. Verifique su conexion e intente de nuevo."
                 : "Error al rechazar el acta. Intente de nuevo.";
             showToast(msg, "error");
+        } finally {
+            procesandoFirma = false;
         }
     }
 })();

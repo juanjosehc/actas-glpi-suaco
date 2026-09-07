@@ -26,13 +26,21 @@
         <p class="state-text" id="errorMessage">El enlace de firma no es valido o ha expirado.</p>
     </div>
 
+    <!-- PROCESANDO FIRMA (feedback mientras se actualizan documentos) -->
+    <div class="firma-state" id="stateProcessing" style="display:none">
+        <div class="spinner-lg"></div>
+        <h2 class="state-title">Procesando Firma</h2>
+        <p class="state-text">Estamos finalizando su firma. Por favor espere mientras se actualizan los documentos y evidencias asociadas.</p>
+        <p class="state-text state-text--muted">No cierre esta ventana ni recargue la pagina.</p>
+    </div>
+
     <!-- SUCCESS -->
     <div class="firma-state" id="stateSuccess" style="display:none">
         <div class="state-icon state-icon--success">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
         <h2 class="state-title">Firma Registrada</h2>
-        <p class="state-text">La firma del acta fue registrada correctamente.</p>
+        <p class="state-text">Firma registrada correctamente. Los documentos y evidencias ya fueron actualizados.</p>
         <p class="state-text state-text--muted">Puede cerrar esta ventana.</p>
     </div>
 
