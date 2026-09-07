@@ -32,7 +32,28 @@ sprint eliminó `generar-acta.html` y `checklist-entrega.html`; la migración
 V1→V2 quedó descartada y los formularios V1 pasaron a ser la navegación
 canónica. Esas recargas ya no existen en el código actual.
 
-### 1b. Gap real actual (corregido en esta entrega)
+### 1c. Causa raíz confirmada en la validación posterior (Java 5.5)
+
+Al validar con el usuario (entorno Live Server `:5500`), el parpadeo **seguía
+ocurriendo al hacer clic** pese a que el repositorio ya tenía cero
+`location.reload`. La causa fue **caché del navegador**: los `<script src>` de
+las 14 páginas no llevaban parámetro de versión (`?v=`), así que Chrome seguía
+ejecutando los **JS antiguos cacheados** (los que sí contenían reloads y flujos
+V2 navegando de más), mientras que el contenido del repo ya estaba limpio.
+
+| Página | Antes | Después |
+|---|---|---|
+| `app.js`, `devolucion.js`, `formateo.js` (generadores) | Sin `?v` → versión cacheada vieja | `?v=20260907` |
+| `actas.js`, `acta-view.js`, `firmas.js`, `admin-layout.js`, `ui.js`, `login.js`, `api.js`, `iconos.js` y módulos de gestión | Sin `?v` → versión cacheada vieja | `?v=20260907` |
+| `firma.js` | `?v=20260825` (ya versionado) | `?v=20260907` (bump) |
+
+`flatpickr` y `flyonui` (dependencias de `node_modules`) no se versionaron.
+
+**Confirmación:** `grep` global de scripts sin `?v` → 0 resultados en las 14
+páginas; los reloads observados correspondían a ejecución de JS obsoletos en el
+navegador, no al código actual del repo.
+
+### 1a. Origen histórico (eliminado en Sprint 4 / Java 4.0-5.x)
 
 En el **Portal de Firma** (`firma.js`), el botón **Firmar Acta** iniciaba el
 POST sin pantalla de procesamiento: solo cambiaba su propio estado a `.loading`.
@@ -82,6 +103,11 @@ navegación. La corrección de esta entrega se concentra en **PROBLEMA 2** (firm
 - Estado `#stateSuccess` con mensaje exacto:
   *"Firma registrada correctamente. Los documentos y evidencias ya fueron
   actualizados."*
+
+### Cache-bust global (Java 5.5)
+- Todas las etiquetas `<script src="../js/*.js">` de las 14 páginas ahora llevan
+  `?v=20260907`. Fuerza al navegador a descargar el JS actual del repo y elimina
+  la ejecución de versiones cacheadas con `location.reload` del flujo V2.
 
 ### `frontend/js/firma.js`
 - **`mostrarProcesando()`**: bloquea el formulario durante la operación
@@ -203,5 +229,6 @@ Cambios acotados a **firma.html (markup de estado)** y **firma.js
 |---|---|
 | `frontend/pages/firma.html` | Estado `#stateProcessing` + mensaje de éxito actualizado |
 | `frontend/js/firma.js` | `mostrarProcesando`/`ocultarProcesando` + guardia `procesandoFirma` en firma y rechazo |
+| `frontend/pages/*.html` (14 páginas) | Cache-bust `?v=20260907` en todos los `<script src="../js/...">` |
 
 Backend **sin cambios**. Auditoría OWASP intacta. Sin regresiones.
