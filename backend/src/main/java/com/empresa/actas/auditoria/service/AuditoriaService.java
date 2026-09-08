@@ -58,6 +58,21 @@ public class AuditoriaService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registrar(TipoEventoAuditoria tipo, Long usuarioId, String usuarioNombre,
                           String entidad, String entidadId, String recurso, String detalle) {
+        registrarConEvidencia(tipo, usuarioId, usuarioNombre, entidad, entidadId, recurso, detalle,
+                null, null, null);
+    }
+
+    /**
+     * FORTALECIMIENTO_EVIDENCIA_FIRMA: variante que ademas deja evidencia
+     * estructurada del envio SMTP (message_id integro, hash_correo, estado) en
+     * columnas tipadas de auditoria_sistema. Usado por los eventos OTP
+     * (ENVIADO/ENVIO_FALLIDO/VALIDADO) para consolidar la trazabilidad del correo
+     * en la unica fuente de verdad, sin una tabla redundante.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarConEvidencia(TipoEventoAuditoria tipo, Long usuarioId, String usuarioNombre,
+                                      String entidad, String entidadId, String recurso, String detalle,
+                                      String messageId, String hashCorreo, String estadoEnvio) {
         repository.save(AuditoriaSistema.builder()
                 .tipoEvento(tipo)
                 .usuarioId(usuarioId)
@@ -66,6 +81,9 @@ public class AuditoriaService {
                 .entidadId(entidadId)
                 .recurso(recurso)
                 .detalle(detalle)
+                .messageId(messageId)
+                .hashCorreo(hashCorreo)
+                .estadoEnvio(estadoEnvio)
                 .ipDireccion(obtenerIp())
                 .build());
     }

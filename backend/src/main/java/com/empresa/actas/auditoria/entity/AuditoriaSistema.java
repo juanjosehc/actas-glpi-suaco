@@ -63,6 +63,22 @@ public class AuditoriaSistema {
     @Column(name = "detalle", length = 500)
     private String detalle;
 
+    /**
+     * FORTALECIMIENTO_EVIDENCIA_FIRMA: evidencia estructurada del envio SMTP y del
+     * compromiso criptografico del correo objetivo, consolidada en auditoria_sistema
+     * como unica fuente de verdad (sin tabla redundante). Se pueblan solo en eventos
+     * OTP (ENVIADO/ENVIO_FALLIDO/VALIDADO); null en el resto.
+     */
+    @Column(name = "message_id", length = 255)
+    private String messageId;
+
+    @Column(name = "hash_correo", length = 64)
+    private String hashCorreo;
+
+    /** ENVIADO | FALLIDO | NO_CONFIGURADO | DESTINATARIO_VACIO (solo en envios). */
+    @Column(name = "estado_envio", length = 30)
+    private String estadoEnvio;
+
     @Column(name = "ip_direccion", length = 45)
     private String ipDireccion;
 }

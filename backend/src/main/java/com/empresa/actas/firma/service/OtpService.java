@@ -9,7 +9,9 @@ import com.empresa.actas.firma.dto.FirmaOtpValidarResponse;
 import com.empresa.actas.firma.entity.FirmaOtp;
 import com.empresa.actas.firma.entity.FirmaToken;
 import com.empresa.actas.firma.repository.FirmaOtpRepository;
+import com.empresa.actas.firma.support.EvidenceHash;
 import com.empresa.actas.firma.support.FirmaUrlBuilder;
+import com.empresa.actas.mail.dto.ResultadoEnvio;
 import com.empresa.actas.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,12 +75,18 @@ public class OtpService {
         otpRepository.invalidarNoValidadas(firmaToken.getIdToken());
 
         String codigo = String.format("%06d", RANDOM.nextInt(1_000_000));
+        String correo = correoDelToken(firmaToken);
 
+        // FORTALECIMIENTO_EVIDENCIA_FIRMA (IMPLEMENTAR C): huella criptografica
+        // inmutable del correo exacto usado para emitir este OTP. No expone PII
+        // (SHA-256 unidireccional) y sobrevive a ediciones posteriores de
+        // acta.correo_usuario: compromete a cual direccion fue este codigo.
         FirmaOtp fila = FirmaOtp.builder()
                 .idTokenFirma(firmaToken.getIdToken())
                 .codigoHash(passwordEncoder.encode(codigo))
                 .fechaExpiracion(LocalDateTime.now().plusMinutes(expiraMinutos))
-                .correoDestino(correoDelToken(firmaToken))
+                .correoDestino(correo)
+                .hashCorreo(EvidenceHash.sha256(correo))
                 .usado(false)
                 .intentos(0)
                 .build();
@@ -88,18 +96,26 @@ public class OtpService {
         // de un solo uso); el id numerico del token de BD sirve para correlacionar.
         String tokenMask = enmascararToken(firmaToken.getToken());
 
-        auditoriaService.registrar(TipoEventoAuditoria.OTP_GENERADO, null,
-                "PORTAL_FIRMA", "FIRMA_TOKEN", tokenMask,
-                "/firma/otp",
-                "Codigo OTP emitido para firma_token id=" + firmaToken.getIdToken());
+        // FORTALECIMIENTO_EVIDENCIA_FIRMA (IMPLEMENTAR A): se persiste la
+        // evidencia del envio SMTP en columnas tipadas de auditoria_sistema
+        // (message_id integro, hash_correo, estado) — unica fuente de verdad.
+        ResultadoEnvio resultado = enviarCorreoOtp(firmaToken, codigo, correo);
 
-        boolean enviado = enviarCorreoOtp(firmaToken, codigo);
-        auditoriaService.registrar(enviado ? TipoEventoAuditoria.OTP_ENVIADO : TipoEventoAuditoria.OTP_ENVIO_FALLIDO,
+        String hashCorreo = fila.getHashCorreo();
+        String estado = resultado.estado();
+        auditoriaService.registrarConEvidencia(
+                resultado.esEnviado() ? TipoEventoAuditoria.OTP_ENVIADO
+                        : TipoEventoAuditoria.OTP_ENVIO_FALLIDO,
                 null, "PORTAL_FIRMA", "FIRMA_TOKEN", tokenMask,
                 "/firma/otp",
-                enviado ? "Correo OTP enviado a " + enmascararCorreo(fila.getCorreoDestino())
-                        : "Fallo el envio de correo OTP a " + enmascararCorreo(fila.getCorreoDestino()));
-        return enviado;
+                resultado.esEnviado()
+                        ? "Correo OTP enviado a " + enmascararCorreo(correo)
+                            + " | hash_correo=" + hashCorreo
+                        : "Fallo el envio de correo OTP a " + enmascararCorreo(correo)
+                            + " | estado=" + estado
+                            + " | hash_correo=" + hashCorreo,
+                resultado.messageId(), hashCorreo, estado);
+        return resultado.esEnviado();
     }
 
     private String correoDelToken(FirmaToken firmaToken) {
@@ -108,11 +124,11 @@ public class OtpService {
                 .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada para el token de firma"));
     }
 
-    private boolean enviarCorreoOtp(FirmaToken firmaToken, String codigo) {
+    private ResultadoEnvio enviarCorreoOtp(FirmaToken firmaToken, String codigo, String correo) {
         Acta acta = actaRepository.findById(firmaToken.getIdActa())
                 .orElseThrow(() -> new IllegalArgumentException("Acta no encontrada para el token de firma"));
         return mailService.enviarCorreoFirma(
-                acta.getCorreoUsuario(),
+                correo,
                 acta.getNombreUsuario(),
                 acta.getTipoActa() != null ? acta.getTipoActa().name() : null,
                 acta.getSerialEquipo(),
@@ -210,11 +226,17 @@ public class OtpService {
             throw new IllegalArgumentException("Codigo incorrecto o no valido");
         }
 
-        auditoriaService.registrar(TipoEventoAuditoria.OTP_VALIDADO, null,
+        // FORTALECIMIENTO_EVIDENCIA_FIRMA (IMPLEMENTAR D): se asocia hash_correo a
+        // la validacion, reforzando la trazabilidad de a quien fue emitido el
+        // codigo que ahora se valida. Sin message_id aqui: la ultima evidencia de
+        // envio ya queda en la fila OTP_ENVIADO/OTP_ENVIO_FALLIDO de este token.
+        auditoriaService.registrarConEvidencia(TipoEventoAuditoria.OTP_VALIDADO, null,
                 "PORTAL_FIRMA", "FIRMA_TOKEN", enmascararToken(firmaToken.getToken()),
                 "/firma/otp/validar",
                 "Codigo OTP validado, sesion " + sesion.substring(0, 8) + "... ("
-                        + enmascararCorreo(fila.getCorreoDestino()) + ")");
+                        + enmascararCorreo(fila.getCorreoDestino()) + ") | hash_correo="
+                        + fila.getHashCorreo(),
+                null, fila.getHashCorreo(), null);
         return new FirmaOtpValidarResponse(sesion);
     }
 

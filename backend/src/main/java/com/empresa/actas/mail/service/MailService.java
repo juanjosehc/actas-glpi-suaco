@@ -11,6 +11,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.empresa.actas.mail.dto.ResultadoEnvio;
+
+import java.time.LocalDateTime;
+
 /**
  * Servicio de envio de correos electronicos.
  *
@@ -48,7 +52,8 @@ public class MailService {
                                      String tipoActa,
                                      String serialEquipo,
                                      String urlFirma) {
-        return enviarCorreoFirma(destinatario, nombreUsuario, tipoActa, serialEquipo, urlFirma, null, 0);
+        return enviarCorreoFirma(destinatario, nombreUsuario, tipoActa, serialEquipo, urlFirma, null, 0)
+                .esEnviado();
     }
 
     /**
@@ -62,23 +67,24 @@ public class MailService {
      * @param urlFirma      enlace publico para firmar el acta
      * @param codigoOtp     OTP de 6 digitos (null/vacio = sin bloque OTP)
      * @param expiraMinutos vigencia del OTP en minutos (para el texto del correo)
-     * @return {@code true} si el correo se envio correctamente
+     * @return evidencia del envio SMTP (resultado + message_id + fecha real)
      */
-    public boolean enviarCorreoFirma(String destinatario,
-                                     String nombreUsuario,
-                                     String tipoActa,
-                                     String serialEquipo,
-                                     String urlFirma,
-                                     String codigoOtp,
-                                     int expiraMinutos) {
+    public ResultadoEnvio enviarCorreoFirma(String destinatario,
+                                            String nombreUsuario,
+                                            String tipoActa,
+                                            String serialEquipo,
+                                            String urlFirma,
+                                            String codigoOtp,
+                                            int expiraMinutos) {
         if (destinatario == null || destinatario.isBlank()) {
             log.warn("Correo de firma omitido: destinatario vacio");
-            return false;
+            return ResultadoEnvio.fallo(ResultadoEnvio.ESTADO_DESTINATARIO_VACIO, "Destinatario vacio");
         }
 
         if (!smtpConfigurado()) {
             log.warn("SMTP no configurado (mail.host/mail.from). Envio a '{}' omitido.", destinatario);
-            return false;
+            return ResultadoEnvio.fallo(ResultadoEnvio.ESTADO_NO_CONFIGURADO,
+                    "SMTP no configurado (mail.host/mail.from)");
         }
 
         String cuerpoHtml = construirPlantilla(nombreUsuario, tipoActa, serialEquipo, urlFirma, codigoOtp, expiraMinutos);
@@ -101,15 +107,20 @@ public class MailService {
             if (logo.exists()) {
                 helper.addInline("logoCorreo", logo, "image/png");
             }
+            LocalDateTime fechaEnvio = LocalDateTime.now();
             javaMailSender.send(message);
+            // El transporte SMTP (o JavaMail al componer el mensaje) asigna el
+            // Message-ID; se lee tras el send como evidencia de identificacion
+            // del mensaje aceptado para envio.
+            String messageId = message.getMessageID();
             // SEC-105: no se loguea el enlace completo (lleva el FirmaToken, una
             // capability de un solo uso). Solo el destinatario, como en la
             // recuperacion.
-            log.info("Correo de firma enviado a '{}'", destinatario);
-            return true;
+            log.info("Correo de firma enviado a '{}' (message-id {})", destinatario, messageId);
+            return ResultadoEnvio.exito(messageId, fechaEnvio, ResultadoEnvio.ESTADO_ENVIADO);
         } catch (MailException | jakarta.mail.MessagingException e) {
             log.error("Error al enviar correo de firma a '{}': {}", destinatario, e.getMessage(), e);
-            return false;
+            return ResultadoEnvio.fallo(ResultadoEnvio.ESTADO_FALLIDO, e.getMessage());
         }
     }
 

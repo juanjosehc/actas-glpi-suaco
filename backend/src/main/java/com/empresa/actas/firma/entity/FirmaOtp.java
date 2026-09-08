@@ -63,4 +63,13 @@ public class FirmaOtp {
 
     @Column(name = "correo_destino", nullable = false, length = 255)
     private String correoDestino;
+
+    /**
+     * Huella criptografica inmutable (SHA-256 hex) del correo objetivo usado para
+     * enviar el OTP. No expone PII (unidireccional) y sobrevive a una eventual
+     * edicion de {@code acta.correo_usuario}: compromete a cual direccion exacta
+     * fue este OTP, en el momento de su emision (FORTALECIMIENTO_EVIDENCIA_FIRMA).
+     */
+    @Column(name = "hash_correo", nullable = false, length = 64)
+    private String hashCorreo;
 }
